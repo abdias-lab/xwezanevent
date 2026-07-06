@@ -1,18 +1,26 @@
--- Supabase SQL Migration: Security fixes for xwezanevent
+-- Supabase SQL Migration v2: Security fixes - CORRECTED
 -- Date: 2026-07-06
--- Fixes: Role escalation, auto-publication, privacy, updated_at triggers
+-- Critical Fix: Remove SECURITY DEFINER - use SECURITY INVOKER (default)
+-- 
+-- PREVIOUS BUG:
+--   Functions with SECURITY DEFINER made current_user = postgres (function owner)
+--   Guard "IF current_user IN ('service_role', 'postgres')" was always TRUE
+--   Result: Triggers did NOT block anything (security was bypassed)
+--
+-- FIX:
+--   Use SECURITY INVOKER so current_user = actual caller
+--   Now guards work correctly: only service_role/postgres bypass the checks
 
 -- ========================================
 -- 1. FIX: ESCALADE DE RÔLE - Prevent role column modification via client
 -- ========================================
 
 -- Trigger to prevent unauthorized role changes
--- SECURITY INVOKER: current_user returns the actual caller, not the function owner
+-- SECURITY INVOKER (default): current_user returns the actual caller
 CREATE OR REPLACE FUNCTION prevent_role_escalation()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Only postgres/rls_bypass_role users can modify role
-  -- For authenticated users via service_role: current_user will be service_role
+  -- Only postgres/service_role users can modify role
   IF current_user NOT IN ('postgres', 'service_role') THEN
     -- Block role changes for all other users (authenticated clients)
     IF NEW.role != OLD.role THEN
@@ -24,18 +32,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY INVOKER;
 
--- Create trigger on profiles to validate updates
+-- Drop and recreate trigger
 DROP TRIGGER IF EXISTS validate_profile_update_trigger ON profiles;
 CREATE TRIGGER validate_profile_update_trigger
   BEFORE UPDATE ON profiles
   FOR EACH ROW
   EXECUTE PROCEDURE prevent_role_escalation();
 
--- Update the policy to be more explicit
--- Drop old policy
+-- Update the policy
 DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
 
--- New policy: Users can update their own profile (role change blocked by trigger)
 CREATE POLICY "Users can update own profile info"
   ON profiles FOR UPDATE
   USING (auth.uid() = id)
@@ -46,7 +52,7 @@ CREATE POLICY "Users can update own profile info"
 -- ========================================
 
 -- Trigger to prevent unauthorized event status changes
--- SECURITY INVOKER: current_user returns the actual caller, not the function owner
+-- SECURITY INVOKER (default): current_user returns the actual caller
 CREATE OR REPLACE FUNCTION prevent_unauthorized_status_change()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -68,7 +74,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY INVOKER;
 
--- Create trigger on events to validate status changes
+-- Drop and recreate trigger
 DROP TRIGGER IF EXISTS prevent_event_status_change ON events;
 CREATE TRIGGER prevent_event_status_change
   BEFORE UPDATE ON events
@@ -83,23 +89,19 @@ CREATE TRIGGER prevent_event_status_change
 DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON profiles;
 
 -- Policy: Everyone can read public columns (id, nom, role, created_at)
--- Authentication check happens at column level
 CREATE POLICY "Profiles public info readable"
   ON profiles FOR SELECT
   USING (true);
 
--- Note: Column-level SELECT restrictions are enforced via PostgreSQL column privileges.
--- This must be applied AFTER RLS is enabled.
-
--- Revoke all SELECT on profiles from public/anonymous roles initially
+-- Revoke all SELECT on profiles from public/anonymous roles
 REVOKE SELECT ON profiles FROM public;
-REVOKE SELECT ON profiles FROM anon;  -- Supabase anon role
+REVOKE SELECT ON profiles FROM anon;
 
 -- Grant SELECT only on safe columns to anonymous/public
 GRANT SELECT (id, nom, role, created_at) ON profiles TO anon;
 GRANT SELECT (id, nom, role, created_at) ON profiles TO public;
 
--- Authenticated users can read public columns + full access to own profile via RLS
+-- Authenticated users can read all columns
 GRANT SELECT (id, nom, role, created_at, telephone, updated_at) ON profiles TO authenticated;
 
 -- Service role has full access
@@ -164,13 +166,10 @@ CREATE TRIGGER update_payouts_updated_at
 -- 5. FIX: Allow 'termine' status in public event view
 -- ========================================
 
--- Drop old policy that only allows 'publie'
+-- Drop old policy
 DROP POLICY IF EXISTS "Published events are readable by everyone" ON events;
 
 -- New policy: Public can read published and terminated events
 CREATE POLICY "Published and terminated events readable"
   ON events FOR SELECT
   USING (statut IN ('publie', 'termine'));
-
--- Keep existing policies for organisators and admin
--- (They are already defined in the original migration)
