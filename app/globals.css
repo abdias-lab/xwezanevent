@@ -145,6 +145,11 @@
     color: var(--texte);
   }
 
+  /* CTA du header : libellé long par défaut, court réservé au très petit écran */
+  .cta-header .cta-court {
+    display: none;
+  }
+
   /* ==========================================================
      BOUTON OR
      ========================================================== */
@@ -893,5 +898,23 @@
   }
   .nav-right .connexion {
     display: none;
+  }
+}
+
+/* CTA header — plus compact en mobile (< 768px), la version desktop ne bouge pas */
+@media (max-width: 767px) {
+  .cta-header {
+    padding: 8px 16px;
+    font-size: 0.875rem;
+  }
+}
+
+/* Sur très petit écran (< 400px) on raccourcit le libellé pour éviter le débordement */
+@media (max-width: 399px) {
+  .cta-header .cta-long {
+    display: none;
+  }
+  .cta-header .cta-court {
+    display: inline;
   }
 }

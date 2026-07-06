@@ -23,8 +23,9 @@ export default function Header() {
           <Link className="connexion" href="/connexion">
             Se connecter
           </Link>
-          <Link className="btn btn-or" href="/creer">
-            Publier un événement
+          <Link className="btn btn-or cta-header" href="/creer">
+            <span className="cta-long">Publier un événement</span>
+            <span className="cta-court">Publier</span>
           </Link>
         </div>
       </div>
