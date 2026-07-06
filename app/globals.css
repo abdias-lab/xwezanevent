@@ -2,26 +2,896 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   DESIGN SYSTEM — Déclinaison « Doré »
+   Porté fidèlement depuis maquettes/accueil.html
+   (le sélecteur de thèmes de la maquette n'est pas repris)
+   ============================================================ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --fond: #151009;
+  --surface: #1f1710;
+  --surface2: #2a1f14;
+  --accent: #e4a93f;
+  --accent-clair: #f3c96b;
+  --sur-accent: #151009;
+  --secondaire: #c24e2a;
+  --texte: #f3eada;
+  --texte2: #b7a88f;
+  --ligne: rgba(228, 169, 63, 0.16);
+  --ombre: rgba(0, 0, 0, 0.45);
+  --motif-opacite: 0.05;
+
+  --bricolage: var(--font-bricolage), sans-serif;
+  --instrument: var(--font-instrument), sans-serif;
+  --space: var(--font-space), monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ============================================================
+   BASE
+   ============================================================ */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background: var(--fond);
+    color: var(--texte);
+    font-family: var(--instrument);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  ::selection {
+    background: var(--accent);
+    color: var(--sur-accent);
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 4px;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+/* Motif appliqué (filigrane losange) */
+.applique {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--motif-opacite);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cg fill='none' stroke='%23C08A3E' stroke-width='1.5'%3E%3Cpath d='M48 8 88 48 48 88 8 48Z'/%3E%3Ccircle cx='48' cy='48' r='12'/%3E%3Cpath d='M48 0v16M48 80v16M0 48h16M80 48h16'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 96px 96px;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@layer components {
+  /* ==========================================================
+     NAV / HEADER
+     ========================================================== */
+  .header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--fond) 88%, transparent);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--ligne);
+  }
+  .nav {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 28px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    gap: 36px;
+  }
+  .logo {
+    font-family: var(--bricolage);
+    font-weight: 800;
+    font-size: 1.35rem;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo .mark {
+    width: 30px;
+    height: 30px;
+    flex: none;
+    background: var(--accent);
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    position: relative;
+  }
+  .logo .mark::after {
+    content: "";
+    position: absolute;
+    inset: 9px;
+    background: var(--fond);
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  }
+  .logo em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .nav-links {
+    display: flex;
+    gap: 28px;
+    font-size: 0.95rem;
+    color: var(--texte2);
+    margin-left: 8px;
+  }
+  .nav-links a {
+    transition: color 0.2s;
+  }
+  .nav-links a:hover {
+    color: var(--texte);
+  }
+  .nav-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .nav-right .connexion {
+    font-size: 0.95rem;
+    color: var(--texte2);
+  }
+  .nav-right .connexion:hover {
+    color: var(--texte);
+  }
+
+  /* ==========================================================
+     BOUTON OR
+     ========================================================== */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--instrument);
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 12px 22px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s;
+  }
+  .btn-or {
+    background: var(--accent);
+    color: var(--sur-accent);
+  }
+  .btn-or:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px var(--ombre);
+  }
+
+  /* ==========================================================
+     HERO
+     ========================================================== */
+  .hero {
+    position: relative;
+    padding: 176px 28px 96px;
+    background:
+      radial-gradient(1000px 520px at 82% -10%, color-mix(in srgb, var(--secondaire) 20%, transparent), transparent 62%),
+      radial-gradient(900px 600px at -10% 30%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 60%),
+      var(--fond);
+    overflow: hidden;
+  }
+  .hero-inner {
+    max-width: 1240px;
+    margin: 0 auto;
+    position: relative;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--space);
+    font-size: 0.78rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 26px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 34px;
+    height: 1px;
+    background: var(--accent);
+  }
+  .hero h1 {
+    font-family: var(--bricolage);
+    font-weight: 800;
+    font-size: clamp(2.6rem, 6.4vw, 5.2rem);
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    max-width: 15ch;
+  }
+  .hero h1 .fete {
+    color: var(--accent);
+    position: relative;
+    white-space: nowrap;
+  }
+  .hero h1 .fete::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0.04em;
+    height: 0.14em;
+    background: var(--secondaire);
+    z-index: -1;
+    transform: skewX(-12deg);
+    opacity: 0.85;
+  }
+  .hero .lede {
+    margin-top: 26px;
+    max-width: 52ch;
+    color: var(--texte2);
+    font-size: 1.12rem;
+  }
+  .hero .lede strong {
+    color: var(--texte);
+    font-weight: 600;
+  }
+
+  /* Barre de recherche Quoi / Où / Quand */
+  .recherche {
+    margin-top: 42px;
+    max-width: 860px;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr auto;
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 100px;
+    padding: 8px;
+    box-shadow: 0 24px 60px var(--ombre);
+  }
+  .champ {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8px 24px;
+    border-right: 1px solid var(--ligne);
+  }
+  .champ:nth-of-type(3) {
+    border-right: none;
+  }
+  .champ label {
+    font-family: var(--space);
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 2px;
+  }
+  .champ input,
+  .champ select {
+    background: transparent;
+    border: none;
+    color: var(--texte);
+    font-family: var(--instrument);
+    font-size: 1rem;
+    outline: none;
+    appearance: none;
+    width: 100%;
+  }
+  .champ input::placeholder {
+    color: var(--texte2);
+  }
+  .champ select option {
+    background: var(--surface);
+    color: var(--texte);
+  }
+  .recherche .btn {
+    margin: 2px;
+    padding: 0 30px;
+    border-radius: 100px;
+  }
+
+  .confiance {
+    margin-top: 34px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px 28px;
+    color: var(--texte2);
+    font-size: 0.92rem;
+  }
+  .pastille {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .dot-mtn,
+  .dot-moov,
+  .dot-qr {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex: none;
+  }
+  .dot-mtn {
+    background: #ffcc00;
+  }
+  .dot-moov {
+    background: #0a6cb4;
+  }
+  .dot-qr {
+    background: #5e8c4a;
+  }
+
+  /* ==========================================================
+     TICKER / BANDEAU DÉFILANT
+     ========================================================== */
+  .ticker {
+    border-top: 1px solid var(--ligne);
+    border-bottom: 1px solid var(--ligne);
+    background: var(--surface);
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 13px 0;
+    font-family: var(--space);
+    font-size: 0.82rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--texte2);
+  }
+  .ticker-piste {
+    display: inline-block;
+    animation: defile 38s linear infinite;
+  }
+  .ticker span {
+    margin: 0 34px;
+  }
+  .ticker b {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* ==========================================================
+     SECTIONS
+     ========================================================== */
+  .section {
+    padding: 88px 28px;
+  }
+  .contenu {
+    max-width: 1240px;
+    margin: 0 auto;
+  }
+  .entete-section {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 44px;
+    flex-wrap: wrap;
+  }
+  .titre-section {
+    font-family: var(--bricolage);
+    font-weight: 700;
+    font-size: clamp(1.7rem, 3.2vw, 2.5rem);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .entete-section .tout {
+    font-family: var(--space);
+    font-size: 0.82rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .entete-section .tout:hover {
+    color: var(--accent-clair);
+  }
+
+  /* ==========================================================
+     CARTES-BILLETS
+     ========================================================== */
+  .grille-events {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 26px;
+  }
+  .carte {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 18px;
+    overflow: hidden;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s;
+  }
+  .carte:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent);
+    box-shadow: 0 24px 54px var(--ombre);
+  }
+  .visuel {
+    height: 200px;
+    position: relative;
+    overflow: hidden;
+  }
+  .visuel .photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 0.45s ease;
+  }
+  .carte:hover .visuel .photo {
+    transform: scale(1.05);
+  }
+  .visuel .voile {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(12, 7, 4, 0.6), rgba(12, 7, 4, 0.08) 55%, transparent);
+  }
+  .badge-cat {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 2;
+    background: rgba(18, 12, 8, 0.72);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 248, 236, 0.22);
+    font-family: var(--space);
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #fbf3e4;
+    padding: 7px 13px;
+    border-radius: 100px;
+  }
+  .date-souche {
+    position: absolute;
+    bottom: -1px;
+    right: 20px;
+    z-index: 2;
+    background: var(--accent);
+    color: var(--sur-accent);
+    text-align: center;
+    padding: 10px 14px 8px;
+    border-radius: 10px 10px 0 0;
+    font-family: var(--space);
+    line-height: 1.05;
+  }
+  .date-souche .jour {
+    font-size: 1.35rem;
+    font-weight: 700;
+    display: block;
+  }
+  .date-souche .mois {
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .dechirure {
+    position: relative;
+    border-top: 2px dashed color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  .dechirure::before,
+  .dechirure::after {
+    content: "";
+    position: absolute;
+    top: -11px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--fond);
+  }
+  .dechirure::before {
+    left: -12px;
+  }
+  .dechirure::after {
+    right: -12px;
+  }
+  .infos {
+    padding: 22px 22px 24px;
+  }
+  .infos h3 {
+    font-family: var(--bricolage);
+    font-weight: 700;
+    font-size: 1.16rem;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    margin-bottom: 8px;
+  }
+  .lieu {
+    color: var(--texte2);
+    font-size: 0.92rem;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .lieu svg {
+    flex: none;
+    opacity: 0.7;
+  }
+  .pied-carte {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .prix {
+    font-family: var(--space);
+    font-weight: 700;
+    font-size: 1.02rem;
+    color: var(--accent);
+  }
+  .prix small {
+    font-weight: 400;
+    color: var(--texte2);
+    font-size: 0.78rem;
+    display: block;
+    letter-spacing: 0.06em;
+  }
+  .mini-btn {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--sur-accent);
+    background: var(--accent);
+    padding: 9px 18px;
+    border-radius: 100px;
+    transition: filter 0.18s;
+  }
+  .mini-btn:hover {
+    filter: brightness(1.08);
+  }
+
+  /* ==========================================================
+     CATÉGORIES
+     ========================================================== */
+  .sec-cat {
+    background: var(--surface);
+    border-top: 1px solid var(--ligne);
+    border-bottom: 1px solid var(--ligne);
+    position: relative;
+  }
+  .grille-cat {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 16px;
+  }
+  .tuile {
+    background: var(--fond);
+    border: 1px solid var(--ligne);
+    border-radius: 18px;
+    padding: 26px 18px 22px;
+    text-align: center;
+    transition: transform 0.2s, border-color 0.2s, background 0.2s;
+  }
+  .tuile:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    background: var(--surface2);
+  }
+  .tuile .glyphe {
+    width: 46px;
+    height: 46px;
+    margin: 0 auto 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tuile .glyphe svg {
+    stroke: var(--accent);
+  }
+  .tuile .nom {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .tuile .nb {
+    font-family: var(--space);
+    font-size: 0.72rem;
+    color: var(--texte2);
+    letter-spacing: 0.1em;
+    margin-top: 3px;
+    display: block;
+  }
+
+  /* ==========================================================
+     VILLES
+     ========================================================== */
+  .liste-villes {
+    border-top: 1px solid var(--ligne);
+  }
+  .ville {
+    display: flex;
+    align-items: baseline;
+    gap: 26px;
+    padding: 26px 8px;
+    border-bottom: 1px solid var(--ligne);
+    transition: background 0.2s, padding-left 0.25s;
+    flex-wrap: wrap;
+  }
+  .ville:hover {
+    background: var(--surface);
+    padding-left: 22px;
+  }
+  .ville .rang {
+    font-family: var(--space);
+    font-size: 0.78rem;
+    color: var(--secondaire);
+    letter-spacing: 0.14em;
+    width: 34px;
+    flex: none;
+  }
+  .ville .nom-ville {
+    font-family: var(--bricolage);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3.4vw, 2.4rem);
+    letter-spacing: -0.02em;
+    transition: color 0.2s;
+  }
+  .ville:hover .nom-ville {
+    color: var(--accent);
+  }
+  .ville .detail {
+    color: var(--texte2);
+    font-size: 0.95rem;
+    margin-left: auto;
+  }
+  .ville .fleche {
+    color: var(--accent);
+    font-size: 1.3rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .ville:hover .fleche {
+    opacity: 1;
+  }
+
+  /* ==========================================================
+     ORGANISATEURS (bande 6%)
+     ========================================================== */
+  .organisateur {
+    background: linear-gradient(120deg, var(--secondaire), color-mix(in srgb, var(--secondaire) 68%, black) 78%);
+    position: relative;
+    overflow: hidden;
+  }
+  .orga-inner {
+    max-width: 1240px;
+    margin: 0 auto;
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.25fr 0.75fr;
+    gap: 56px;
+    align-items: center;
+  }
+  .organisateur h2 {
+    font-family: var(--bricolage);
+    font-weight: 700;
+    font-size: clamp(1.7rem, 3.2vw, 2.5rem);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: #fff6e8;
+    max-width: 18ch;
+  }
+  .organisateur p {
+    color: rgba(255, 246, 232, 0.85);
+    margin-top: 18px;
+    max-width: 50ch;
+    font-size: 1.06rem;
+  }
+  .organisateur .btn-or {
+    margin-top: 30px;
+    background: #fff6e8;
+    color: var(--secondaire);
+  }
+  .organisateur .btn-or:hover {
+    background: #fff;
+  }
+  .six {
+    text-align: center;
+    background: rgba(15, 10, 6, 0.26);
+    border: 1px solid rgba(255, 246, 232, 0.24);
+    border-radius: 24px;
+    padding: 44px 30px;
+    backdrop-filter: blur(4px);
+  }
+  .six .chiffre {
+    font-family: var(--bricolage);
+    font-weight: 800;
+    font-size: clamp(4rem, 7vw, 6rem);
+    line-height: 1;
+    color: #fff6e8;
+    letter-spacing: -0.03em;
+  }
+  .six .chiffre sup {
+    font-size: 0.4em;
+    color: #ffd98a;
+  }
+  .six .legende {
+    font-family: var(--space);
+    font-size: 0.78rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255, 246, 232, 0.78);
+    margin-top: 10px;
+  }
+  .six .note {
+    font-size: 0.9rem;
+    color: rgba(255, 246, 232, 0.68);
+    margin-top: 14px;
+  }
+
+  /* ==========================================================
+     FOOTER
+     ========================================================== */
+  .footer {
+    border-top: 1px solid var(--ligne);
+    padding: 64px 28px 40px;
+    background: var(--fond);
+  }
+  .foot {
+    max-width: 1240px;
+    margin: 0 auto;
+  }
+  .foot-haut {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    gap: 40px;
+  }
+  .foot h4 {
+    font-family: var(--space);
+    font-size: 0.74rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+  .foot ul {
+    list-style: none;
+  }
+  .foot li {
+    margin-bottom: 11px;
+  }
+  .foot li a {
+    color: var(--texte2);
+    font-size: 0.95rem;
+    transition: color 0.2s;
+  }
+  .foot li a:hover {
+    color: var(--texte);
+  }
+  .foot .pitch {
+    color: var(--texte2);
+    font-size: 0.95rem;
+    max-width: 34ch;
+    margin-top: 16px;
+  }
+  .paiements {
+    display: flex;
+    gap: 10px;
+    margin-top: 22px;
+    flex-wrap: wrap;
+  }
+  .moyen {
+    font-family: var(--space);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    border: 1px solid var(--ligne);
+    border-radius: 8px;
+    padding: 8px 13px;
+    color: var(--texte2);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .foot-bas {
+    margin-top: 54px;
+    padding-top: 26px;
+    border-top: 1px solid var(--ligne);
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    color: var(--texte2);
+    font-size: 0.86rem;
+  }
+  .foot-bas .fon {
+    color: var(--accent);
+    font-style: italic;
+  }
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes defile {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-piste {
+    animation: none;
+  }
+  .btn,
+  .carte,
+  .tuile,
+  .visuel .photo {
+    transition: none !important;
+  }
+  .carte:hover .visuel .photo {
+    transform: none;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE (mobile-first : on dégrade au-delà des breakpoints
+   comme dans la maquette)
+   ============================================================ */
+@media (max-width: 1020px) {
+  .grille-events {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grille-cat {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .orga-inner {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+  .foot-haut {
+    grid-template-columns: 1fr 1fr;
+  }
+  .nav-links {
+    display: none;
+  }
+}
+
+@media (max-width: 680px) {
+  .hero {
+    padding: 150px 20px 70px;
+  }
+  .section {
+    padding: 64px 20px;
+  }
+  .grille-events {
+    grid-template-columns: 1fr;
+  }
+  .grille-cat {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .recherche {
+    grid-template-columns: 1fr;
+    border-radius: 24px;
+  }
+  .champ {
+    border-right: none;
+    border-bottom: 1px solid var(--ligne);
+    padding: 12px 18px;
+  }
+  .champ:nth-of-type(3) {
+    border-bottom: none;
+  }
+  .recherche .btn {
+    padding: 14px;
+    justify-content: center;
+  }
+  .ville .detail {
+    margin-left: 60px;
+    width: 100%;
+  }
+  .nav {
+    padding: 0 20px;
+    gap: 16px;
+  }
+  .nav-right .connexion {
+    display: none;
   }
 }

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Créer un événement — XwézanEvent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root, body[data-theme="dore"]{
+  --fond:#151009;--surface:#1F1710;--surface2:#2A1F14;
+  --accent:#E4A93F;--accent-clair:#F3C96B;--sur-accent:#151009;
+  --secondaire:#C24E2A;--texte:#F3EADA;--texte2:#B7A88F;
+  --ligne:rgba(228,169,63,.16);--ombre:rgba(0,0,0,.45);--motif-opacite:.05;
+  --ok:#7C9A55;--attente:#D9A23B;--erreur:#C4502E;
+}
+body[data-theme="terracotta"]{
+  --fond:#F5EDE2;--surface:#FCF7EF;--surface2:#EFE2D0;
+  --accent:#C25B3A;--accent-clair:#A9482B;--sur-accent:#FFF6EE;
+  --secondaire:#6E7645;--texte:#2E1F17;--texte2:#7C6A5C;
+  --ligne:rgba(194,91,58,.25);--ombre:rgba(94,52,32,.16);--motif-opacite:.06;
+  --ok:#5F7A3A;--attente:#B07E22;--erreur:#B3392B;
+}
+body[data-theme="indigo"]{
+  --fond:#121A30;--surface:#1A2440;--surface2:#233055;
+  --accent:#E8B54A;--accent-clair:#F5CA6E;--sur-accent:#161C2E;
+  --secondaire:#D9634A;--texte:#EFF1FA;--texte2:#9AA3C0;
+  --ligne:rgba(232,181,74,.18);--ombre:rgba(0,0,0,.5);--motif-opacite:.05;
+  --ok:#7FA662;--attente:#E8B54A;--erreur:#D9634A;
+}
+body[data-theme="savane"]{
+  --fond:#0F1912;--surface:#17251B;--surface2:#213627;
+  --accent:#D9A23B;--accent-clair:#E9BA5E;--sur-accent:#141B10;
+  --secondaire:#B4552F;--texte:#F0EEDF;--texte2:#A6B098;
+  --ligne:rgba(217,162,59,.18);--ombre:rgba(0,0,0,.5);--motif-opacite:.05;
+  --ok:#86A75F;--attente:#D9A23B;--erreur:#B4552F;
+}
+body[data-theme="fidjrosse"]{
+  --fond:#1D1022;--surface:#2A1731;--surface2:#3A2044;
+  --accent:#F0714B;--accent-clair:#FF8B63;--sur-accent:#2A1020;
+  --secondaire:#E0A24E;--texte:#F9EDE3;--texte2:#C2A6B0;
+  --ligne:rgba(240,113,75,.22);--ombre:rgba(0,0,0,.5);--motif-opacite:.05;
+  --ok:#8FA662;--attente:#E0A24E;--erreur:#F0714B;
+}
+body[data-theme="ivoire"]{
+  --fond:#FAF7F0;--surface:#FFFFFF;--surface2:#F0EADB;
+  --accent:#B3392B;--accent-clair:#962E24;--sur-accent:#FFF7F2;
+  --secondaire:#1F7A3D;--texte:#191713;--texte2:#6E675B;
+  --ligne:rgba(179,57,43,.2);--ombre:rgba(60,40,20,.14);--motif-opacite:.05;
+  --ok:#1F7A3D;--attente:#B07E22;--erreur:#B3392B;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--fond);color:var(--texte);
+  font-family:'Instrument Sans',sans-serif;font-size:16px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  transition:background .35s,color .35s;
+}
+::selection{background:var(--accent);color:var(--sur-accent)}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+h1,h2,h3{font-family:'Bricolage Grotesque',sans-serif;letter-spacing:-.02em;line-height:1.12}
+.mono{font-family:'Space Grotesk',monospace}
+
+.applique{
+  position:absolute;inset:0;pointer-events:none;opacity:var(--motif-opacite);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cg fill='none' stroke='%23C08A3E' stroke-width='1.5'%3E%3Cpath d='M48 8 88 48 48 88 8 48Z'/%3E%3Ccircle cx='48' cy='48' r='12'/%3E%3Cpath d='M48 0v16M48 80v16M0 48h16M80 48h16'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:96px 96px;
+}
+
+/* --- boutons --- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  font-weight:600;font-size:.95rem;padding:12px 22px;border-radius:100px;
+  border:none;cursor:pointer;font-family:'Instrument Sans',sans-serif;
+  transition:transform .18s,box-shadow .18s,filter .18s,border-color .18s;
+}
+.btn-or{background:var(--accent);color:var(--sur-accent)}
+.btn-or:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 8px 24px var(--ombre)}
+.btn-ghost{background:transparent;color:var(--texte);border:1px solid var(--ligne)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-large{width:100%;padding:16px 22px;font-size:1.05rem}
+
+/* --- sélecteur de thème --- */
+.selecteur{
+  position:fixed;bottom:22px;right:22px;z-index:100;
+  background:var(--surface);border:1px solid var(--ligne);border-radius:18px;
+  padding:14px 16px;box-shadow:0 18px 48px var(--ombre);max-width:230px;
+}
+.selecteur .titre-sel{font-family:'Space Grotesk',monospace;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--texte2);margin-bottom:11px}
+.swatches{display:flex;flex-wrap:wrap;gap:9px}
+.swatch{width:56px;border:none;background:none;cursor:pointer;padding:0;text-align:center}
+.swatch .rond{width:34px;height:34px;border-radius:50%;margin:0 auto;border:2px solid transparent;transition:transform .15s,border-color .15s}
+.swatch:hover .rond{transform:scale(1.12)}
+.swatch[aria-pressed="true"] .rond{border-color:var(--texte);transform:scale(1.12)}
+.swatch .nom-sw{display:block;font-size:.62rem;color:var(--texte2);margin-top:5px;font-family:'Space Grotesk',monospace}
+.r-dore{background:linear-gradient(135deg,#151009 50%,#E4A93F 50%)}
+.r-terracotta{background:linear-gradient(135deg,#F5EDE2 50%,#C25B3A 50%)}
+.r-indigo{background:linear-gradient(135deg,#121A30 50%,#E8B54A 50%)}
+.r-savane{background:linear-gradient(135deg,#0F1912 50%,#D9A23B 50%)}
+.r-fidjrosse{background:linear-gradient(135deg,#1D1022 50%,#F0714B 50%)}
+.r-ivoire{background:linear-gradient(135deg,#FAF7F0 50%,#B3392B 50%)}
+
+/* --- nav publique --- */
+header.site{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  background:color-mix(in srgb,var(--fond) 88%,transparent);
+  backdrop-filter:blur(14px);border-bottom:1px solid var(--ligne);
+}
+.nav{max-width:1240px;margin:0 auto;padding:0 28px;height:72px;display:flex;align-items:center;gap:36px}
+.logo{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:1.35rem;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+.logo .mark{width:30px;height:30px;flex:none;background:var(--accent);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);position:relative}
+.logo .mark::after{content:"";position:absolute;inset:9px;background:var(--fond);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.logo em{font-style:normal;color:var(--accent)}
+nav.links{display:flex;gap:28px;font-size:.95rem;color:var(--texte2)}
+nav.links a{transition:color .2s}
+nav.links a:hover,nav.links a.actif{color:var(--texte)}
+nav.links a.actif{color:var(--accent)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:18px}
+.nav-right .connexion{font-size:.95rem;color:var(--texte2)}
+.nav-right .connexion:hover{color:var(--texte)}
+
+/* --- formulaires --- */
+.champ-bloc{display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
+.champ-bloc label{font-size:.88rem;font-weight:600;color:var(--texte)}
+.champ-bloc label small{font-weight:400;color:var(--texte2)}
+.champ-bloc input,.champ-bloc select,.champ-bloc textarea{
+  background:var(--fond);border:1px solid var(--ligne);border-radius:12px;
+  padding:13px 16px;color:var(--texte);font-family:'Instrument Sans',sans-serif;font-size:.98rem;
+  outline:none;transition:border-color .18s;width:100%;
+}
+.champ-bloc input:focus,.champ-bloc select:focus,.champ-bloc textarea:focus{border-color:var(--accent)}
+.champ-bloc input::placeholder,.champ-bloc textarea::placeholder{color:var(--texte2)}
+.champ-bloc select option{background:var(--surface);color:var(--texte)}
+.rangee{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* --- cartes & panneaux --- */
+.panneau{background:var(--surface);border:1px solid var(--ligne);border-radius:18px;padding:28px}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:'Space Grotesk',monospace;font-size:.78rem;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--accent);
+}
+.eyebrow::before{content:"";width:34px;height:1px;background:var(--accent)}
+
+/* --- pastilles de statut --- */
+.statut{font-family:'Space Grotesk',monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:100px;white-space:nowrap}
+.st-ok{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 45%,transparent)}
+.st-attente{background:color-mix(in srgb,var(--attente) 16%,transparent);color:var(--attente);border:1px solid color-mix(in srgb,var(--attente) 45%,transparent)}
+.st-fini{background:color-mix(in srgb,var(--texte2) 14%,transparent);color:var(--texte2);border:1px solid color-mix(in srgb,var(--texte2) 35%,transparent)}
+
+/* --- tableaux --- */
+table.donnees{width:100%;border-collapse:collapse;font-size:.94rem}
+table.donnees th{
+  text-align:left;font-family:'Space Grotesk',monospace;font-size:.7rem;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--texte2);
+  padding:12px 14px;border-bottom:1px solid var(--ligne);
+}
+table.donnees td{padding:15px 14px;border-bottom:1px solid var(--ligne);vertical-align:middle}
+table.donnees tr:last-child td{border-bottom:none}
+table.donnees tr:hover td{background:color-mix(in srgb,var(--accent) 4%,transparent)}
+
+/* --- coquille application (dashboard/admin) --- */
+.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+.lateral{
+  background:var(--surface);border-right:1px solid var(--ligne);
+  padding:26px 18px;position:sticky;top:0;height:100vh;overflow-y:auto;
+  display:flex;flex-direction:column;
+}
+.lateral .logo{margin-bottom:8px;font-size:1.15rem}
+.lateral .role{
+  font-family:'Space Grotesk',monospace;font-size:.64rem;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--secondaire);margin:0 0 26px 40px;
+}
+.lateral .groupe{font-family:'Space Grotesk',monospace;font-size:.64rem;letter-spacing:.2em;text-transform:uppercase;color:var(--texte2);margin:20px 0 8px 12px}
+.lateral a.item{
+  display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:11px;
+  color:var(--texte2);font-size:.94rem;transition:background .15s,color .15s;
+}
+.lateral a.item:hover{background:var(--surface2);color:var(--texte)}
+.lateral a.item.actif{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);font-weight:600}
+.lateral .badge-nb{margin-left:auto;background:var(--secondaire);color:#FFF6E8;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:100px}
+.lateral .bas{margin-top:auto;padding-top:20px;border-top:1px solid var(--ligne);display:flex;align-items:center;gap:11px}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--secondaire);color:#FFF6E8;display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+.principal{padding:34px 38px;min-width:0}
+.entete-app{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:30px;flex-wrap:wrap}
+.entete-app h1{font-size:1.7rem}
+.entete-app .sous{color:var(--texte2);margin-top:4px;font-size:.95rem}
+
+/* --- cartes KPI --- */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:28px}
+.kpi{background:var(--surface);border:1px solid var(--ligne);border-radius:16px;padding:20px 22px}
+.kpi .libelle{font-family:'Space Grotesk',monospace;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--texte2)}
+.kpi .valeur{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:1.9rem;margin-top:8px;letter-spacing:-.02em}
+.kpi .valeur small{font-size:.85rem;font-weight:600;color:var(--texte2)}
+.kpi .delta{font-size:.82rem;margin-top:6px;color:var(--ok)}
+.kpi .delta.neutre{color:var(--texte2)}
+.kpi .mini-action{margin-top:10px;font-size:.85rem;font-weight:600;color:var(--accent)}
+
+/* --- pied de page réduit --- */
+footer.mini{border-top:1px solid var(--ligne);padding:30px 28px;margin-top:70px}
+footer.mini .in{max-width:1240px;margin:0 auto;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:var(--texte2);font-size:.86rem}
+footer.mini .fon{color:var(--accent);font-style:italic}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:1020px){
+  nav.links{display:none}
+  .kpis{grid-template-columns:1fr 1fr}
+  .app{grid-template-columns:1fr}
+  .lateral{position:static;height:auto;flex-direction:column}
+}
+@media (max-width:680px){
+  .nav{padding:0 20px;gap:16px}
+  .nav-right .connexion{display:none}
+  .rangee{grid-template-columns:1fr}
+  .kpis{grid-template-columns:1fr}
+  .principal{padding:24px 18px}
+  .selecteur{bottom:12px;right:12px;max-width:190px;padding:11px 12px}
+  .swatch{width:48px}
+  .swatch .rond{width:28px;height:28px}
+}
+
+
+.corps-cr{max-width:1240px;margin:0 auto;padding:108px 28px 0;display:grid;grid-template-columns:1fr 380px;gap:36px;align-items:start}
+.corps-cr h1{font-size:1.8rem}
+.corps-cr .sous{color:var(--texte2);margin:4px 0 26px;font-size:.95rem}
+.bloc-form{background:var(--surface);border:1px solid var(--ligne);border-radius:18px;padding:26px;margin-bottom:22px}
+.bloc-form .num-titre{display:flex;align-items:center;gap:13px;margin-bottom:20px}
+.bloc-form .num{width:32px;height:32px;border-radius:50%;background:var(--accent);color:var(--sur-accent);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',monospace;font-weight:700;font-size:.9rem;flex:none}
+.bloc-form h2{font-size:1.12rem}
+.puces-cat{display:flex;flex-wrap:wrap;gap:8px}
+.puce-cat{border:1px solid var(--ligne);background:var(--fond);color:var(--texte2);border-radius:100px;padding:9px 16px;font-size:.9rem;cursor:pointer;font-family:'Instrument Sans',sans-serif;transition:all .15s}
+.puce-cat:hover{border-color:var(--accent)}
+.puce-cat[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--sur-accent);font-weight:600}
+.depot{
+  border:2px dashed var(--ligne);border-radius:16px;padding:36px 20px;text-align:center;
+  color:var(--texte2);cursor:pointer;transition:border-color .15s;
+}
+.depot:hover{border-color:var(--accent)}
+.depot .ico{font-size:2rem}
+.depot .grand{font-weight:600;color:var(--texte);margin-top:8px}
+.depot .petit{font-size:.82rem;margin-top:4px}
+.type-b{border:1px solid var(--ligne);border-radius:14px;padding:18px;margin-bottom:14px;background:var(--fond)}
+.type-b .haut-b{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.type-b .haut-b .n{font-weight:700}
+.type-b .haut-b button{background:none;border:none;color:var(--erreur);font-size:.85rem;cursor:pointer;font-family:'Instrument Sans',sans-serif}
+.type-b .rangee{grid-template-columns:1fr 1fr 1fr}
+.type-b .champ-bloc{margin-bottom:0}
+.ajout-type{width:100%;border:1px dashed var(--ligne);background:none;border-radius:14px;padding:14px;color:var(--accent);font-weight:600;cursor:pointer;font-family:'Instrument Sans',sans-serif;transition:border-color .15s}
+.ajout-type:hover{border-color:var(--accent)}
+.cote-cr{position:sticky;top:96px;display:flex;flex-direction:column;gap:20px}
+.apercu{background:var(--surface);border:1px solid var(--ligne);border-radius:18px;overflow:hidden}
+.apercu .titre-a{font-family:'Space Grotesk',monospace;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--texte2);padding:16px 20px 0}
+.apercu .visuel-a{height:130px;margin:14px 20px 0;border-radius:12px;background:linear-gradient(135deg,var(--secondaire),color-mix(in srgb,var(--secondaire) 55%,black));position:relative;overflow:hidden;display:flex;align-items:flex-start;padding:12px}
+.apercu .badge-a{background:rgba(18,12,8,.72);border:1px solid rgba(255,248,236,.22);font-family:'Space Grotesk',monospace;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:#FBF3E4;padding:5px 11px;border-radius:100px}
+.apercu .infos-a{padding:16px 20px 20px}
+.apercu .infos-a h3{font-size:1.05rem}
+.apercu .infos-a .m{font-size:.84rem;color:var(--texte2);margin-top:6px}
+.apercu .infos-a .p{font-family:'Space Grotesk',monospace;font-weight:700;color:var(--accent);margin-top:10px}
+.checklist{background:var(--surface);border:1px solid var(--ligne);border-radius:18px;padding:22px}
+.checklist h3{font-size:1rem;margin-bottom:14px}
+.checklist .item-c{display:flex;align-items:center;gap:11px;padding:7px 0;font-size:.92rem;color:var(--texte2)}
+.checklist .item-c .etat{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;flex:none;border:1px solid var(--ligne)}
+.checklist .item-c.fait{color:var(--texte)}
+.checklist .item-c.fait .etat{background:color-mix(in srgb,var(--ok) 20%,transparent);border-color:var(--ok);color:var(--ok)}
+.checklist .item-c.manque .etat{border-color:var(--attente);color:var(--attente)}
+.checklist .item-c.manque{color:var(--attente)}
+.cote-cr .btn-large{margin-top:2px}
+.brouillon{text-align:center;font-size:.9rem;color:var(--texte2)}
+.brouillon a{color:var(--accent);font-weight:600}
+@media (max-width:1020px){.corps-cr{grid-template-columns:1fr}.cote-cr{position:static}}
+</style>
+</head>
+<body data-theme="dore">
+
+<div class="selecteur" role="group" aria-label="Choisir une déclinaison de couleurs">
+  <div class="titre-sel">Déclinaisons</div>
+  <div class="swatches">
+    <button class="swatch" data-set="dore"><span class="rond r-dore"></span><span class="nom-sw">Doré</span></button>
+    <button class="swatch" data-set="terracotta"><span class="rond r-terracotta"></span><span class="nom-sw">Terracotta</span></button>
+    <button class="swatch" data-set="indigo"><span class="rond r-indigo"></span><span class="nom-sw">Indigo</span></button>
+    <button class="swatch" data-set="savane"><span class="rond r-savane"></span><span class="nom-sw">Savane</span></button>
+    <button class="swatch" data-set="fidjrosse"><span class="rond r-fidjrosse"></span><span class="nom-sw">Fidjrossè</span></button>
+    <button class="swatch" data-set="ivoire"><span class="rond r-ivoire"></span><span class="nom-sw">Ivoire</span></button>
+  </div>
+</div>
+
+<header class="site"><div class="nav"><a class="logo" href="accueil.html" aria-label="XwézanEvent — accueil"><span class="mark" aria-hidden="true"></span>Xwézan<em>Event</em></a><nav class="links" aria-label="Navigation principale"><a href="listing.html">Événements</a><a href="accueil.html#villes">Villes</a><a href="creer.html" class="actif">Organisateurs</a></nav><div class="nav-right"><a class="connexion" href="compte.html">Mon compte</a><a class="btn btn-or" href="creer.html">Publier un événement</a></div></div></header>
+
+<main class="corps-cr">
+  <div>
+    <span class="eyebrow">Espace organisateur</span>
+    <h1 style="margin-top:12px">Créer un événement</h1>
+    <p class="sous">Remplis les informations ci-dessous pour publier ton événement</p>
+
+    <div class="bloc-form">
+      <div class="num-titre"><span class="num">1</span><h2>Informations générales</h2></div>
+      <div class="champ-bloc"><label for="nom-ev">Nom de l'événement *</label><input id="nom-ev" type="text" value="Afrobeats Night" placeholder="Ex : Concert de fin d'année"></div>
+      <div class="champ-bloc"><label for="desc-ev">Description *</label><textarea id="desc-ev" rows="4" placeholder="Décris ton événement : ambiance, programme, artistes…">Une nuit 100% afrobeats au cœur de Cotonou, avec les meilleurs DJs de la scène béninoise.</textarea></div>
+      <div class="champ-bloc"><label>Catégorie *</label>
+        <div class="puces-cat">
+          <button class="puce-cat" aria-pressed="true">🎵 Concert</button>
+          <button class="puce-cat" aria-pressed="false">🎪 Festival</button>
+          <button class="puce-cat" aria-pressed="false">🪘 Culture</button>
+          <button class="puce-cat" aria-pressed="false">⚽ Sport</button>
+          <button class="puce-cat" aria-pressed="false">😂 Humour</button>
+          <button class="puce-cat" aria-pressed="false">🌙 Soirée</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bloc-form">
+      <div class="num-titre"><span class="num">2</span><h2>Date &amp; Lieu</h2></div>
+      <div class="rangee">
+        <div class="champ-bloc"><label for="date-d">Date de début *</label><input id="date-d" type="date" value="2026-12-27"></div>
+        <div class="champ-bloc"><label for="heure-d">Heure de début *</label><input id="heure-d" type="time" value="22:00"></div>
+      </div>
+      <div class="champ-bloc"><label for="lieu-ev">Lieu / Adresse *</label><input id="lieu-ev" type="text" value="Club Étoile" placeholder="Nom du lieu ou adresse"></div>
+      <div class="champ-bloc"><label for="ville-ev">Ville *</label>
+        <select id="ville-ev"><option>Cotonou</option><option>Porto-Novo</option><option>Ouidah</option><option>Abomey</option><option>Parakou</option><option>Grand-Popo</option></select>
+      </div>
+    </div>
+
+    <div class="bloc-form">
+      <div class="num-titre"><span class="num">3</span><h2>Affiche &amp; Médias</h2></div>
+      <div class="depot" role="button" tabindex="0">
+        <div class="ico">🖼️</div>
+        <div class="grand">Glisse ton affiche ici ou clique pour choisir</div>
+        <div class="petit">JPG, PNG — 1200×628px recommandé — max 5 Mo</div>
+      </div>
+    </div>
+
+    <div class="bloc-form">
+      <div class="num-titre"><span class="num">4</span><h2>Billetterie</h2></div>
+      <div class="type-b">
+        <div class="haut-b"><span class="n">Entrée Standard</span><button>Supprimer</button></div>
+        <div class="rangee">
+          <div class="champ-bloc"><label>Prix (FCFA)</label><input type="number" value="5000"></div>
+          <div class="champ-bloc"><label>Quantité</label><input type="number" value="300"></div>
+          <div class="champ-bloc"><label>Vente jusqu'au</label><input type="date" value="2026-12-27"></div>
+        </div>
+      </div>
+      <div class="type-b">
+        <div class="haut-b"><span class="n">VIP Lounge</span><button>Supprimer</button></div>
+        <div class="rangee">
+          <div class="champ-bloc"><label>Prix (FCFA)</label><input type="number" value="15000"></div>
+          <div class="champ-bloc"><label>Quantité</label><input type="number" value="60"></div>
+          <div class="champ-bloc"><label>Vente jusqu'au</label><input type="date" value="2026-12-27"></div>
+        </div>
+      </div>
+      <button class="ajout-type">+ Ajouter un type de billet</button>
+    </div>
+  </div>
+
+  <aside class="cote-cr">
+    <div class="apercu" aria-label="Aperçu de la carte événement">
+      <p class="titre-a">Aperçu</p>
+      <div class="visuel-a"><span class="badge-a">Concert</span></div>
+      <div class="infos-a">
+        <h3>Afrobeats Night</h3>
+        <p class="m">📅 27 déc · 22h00 &nbsp;·&nbsp; 📍 Club Étoile, Cotonou</p>
+        <p class="p">5 000 FCFA</p>
+      </div>
+    </div>
+    <div class="checklist">
+      <h3>Checklist publication</h3>
+      <div class="item-c fait"><span class="etat">✓</span> Nom de l'événement</div>
+      <div class="item-c fait"><span class="etat">✓</span> Description</div>
+      <div class="item-c fait"><span class="etat">✓</span> Date &amp; heure</div>
+      <div class="item-c fait"><span class="etat">✓</span> Lieu</div>
+      <div class="item-c manque"><span class="etat">!</span> Affiche (manquante)</div>
+      <div class="item-c fait"><span class="etat">✓</span> Billetterie</div>
+    </div>
+    <button class="btn btn-or btn-large">🚀 Publier l'événement</button>
+    <p class="brouillon"><a href="#">Enregistrer en brouillon</a></p>
+  </aside>
+</main>
+
+<footer class="mini"><div class="in"><span>© 2026 XwézanEvent — Cotonou, Bénin</span><span class="fon">Mì wá dó gbè !&nbsp;· La fête vous attend.</span></div></footer>
+<script>
+(function(){
+  var boutons = document.querySelectorAll('.swatch');
+  var actuel = 'dore';
+  try { actuel = localStorage.getItem('xwezan-theme') || 'dore'; } catch(e){}
+  document.body.setAttribute('data-theme', actuel);
+  boutons.forEach(function(b){
+    b.setAttribute('aria-pressed', b.dataset.set === actuel ? 'true' : 'false');
+    b.addEventListener('click', function(){
+      document.body.setAttribute('data-theme', b.dataset.set);
+      try { localStorage.setItem('xwezan-theme', b.dataset.set); } catch(e){}
+      boutons.forEach(function(x){ x.setAttribute('aria-pressed', x===b ? 'true' : 'false'); });
+    });
+  });
+})();
+
+</script>
+</body>
+</html>
