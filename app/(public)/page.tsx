@@ -2,80 +2,11 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CarteEvenement from "@/components/CarteEvenement";
 import BoutonOr from "@/components/BoutonOr";
-import { supabase } from "@/lib/supabase";
+import { getEvenementsPublies } from "@/lib/events";
 import type { ReactNode } from "react";
 
 // Régénération incrémentale : la page est reconstruite au plus une fois par minute
 export const revalidate = 60;
-
-/* ------------------------------------------------------------------
-   Événements à l'affiche — données réelles (Supabase)
-   ------------------------------------------------------------------ */
-const MOIS_COURTS = [
-  "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
-  "Juil", "Août", "Sep", "Oct", "Nov", "Déc",
-];
-
-interface EventRow {
-  slug: string;
-  titre: string;
-  categorie: string | null;
-  ville: string;
-  lieu: string;
-  date_debut: string; // YYYY-MM-DD
-  affiche_url: string | null;
-  ticket_types: { prix: number }[];
-}
-
-interface CarteData {
-  id: string;
-  titre: string;
-  categorie: string;
-  lieu: string;
-  prix: number;
-  jour: string;
-  mois: string;
-  image: string;
-  href: string;
-}
-
-/**
- * Récupère les événements publiés avec le prix de leur ticket_type le moins
- * cher (pour l'affichage « à partir de X FCFA »), triés par date.
- */
-async function getEvenementsAffiche(): Promise<CarteData[]> {
-  const { data, error } = await supabase
-    .from("events")
-    .select(
-      "slug, titre, categorie, ville, lieu, date_debut, affiche_url, ticket_types(prix)"
-    )
-    .eq("statut", "publie")
-    .order("date_debut", { ascending: true });
-
-  if (error) {
-    console.error("[accueil] échec de récupération des événements :", error.message);
-    return [];
-  }
-
-  return (data as EventRow[]).map((ev) => {
-    const [, mois, jour] = ev.date_debut.split("-");
-    const prix = ev.ticket_types.length
-      ? Math.min(...ev.ticket_types.map((t) => t.prix))
-      : 0;
-
-    return {
-      id: ev.slug,
-      titre: ev.titre,
-      categorie: ev.categorie ?? "Événement",
-      lieu: `${ev.lieu}, ${ev.ville}`,
-      prix,
-      jour,
-      mois: MOIS_COURTS[parseInt(mois, 10) - 1] ?? "",
-      image: ev.affiche_url ?? "/images/vodun-days.jpg",
-      href: `/evenement/${ev.slug}`,
-    };
-  });
-}
 
 const CATEGORIES: { nom: ReactNode; nb: string; glyphe: ReactNode }[] = [
   {
@@ -161,7 +92,7 @@ const TICKER = [
 ];
 
 export default async function Accueil() {
-  const evenements = await getEvenementsAffiche();
+  const evenements = await getEvenementsPublies();
 
   return (
     <>

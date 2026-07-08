@@ -553,6 +553,151 @@
   }
 
   /* ==========================================================
+     LISTING (/evenements) — grille + filtres latéraux
+     ========================================================== */
+  .corps {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 108px 28px 0;
+    display: grid;
+    grid-template-columns: 264px 1fr;
+    gap: 34px;
+  }
+  .filtres {
+    position: sticky;
+    top: 96px;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .bloc-filtre {
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 16px;
+    padding: 20px;
+  }
+  .bloc-filtre h3 {
+    font-size: 0.8rem;
+    font-family: var(--space);
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+  .puces {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .puce {
+    border: 1px solid var(--ligne);
+    background: var(--fond);
+    color: var(--texte2);
+    border-radius: 100px;
+    padding: 7px 14px;
+    font-size: 0.86rem;
+    cursor: pointer;
+    font-family: var(--instrument);
+    transition: all 0.15s;
+  }
+  .puce:hover {
+    border-color: var(--accent);
+    color: var(--texte);
+  }
+  .puce.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--sur-accent);
+    font-weight: 600;
+  }
+  .case {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    color: var(--texte2);
+    font-size: 0.92rem;
+    cursor: pointer;
+  }
+  .case input {
+    accent-color: var(--accent);
+    width: 16px;
+    height: 16px;
+  }
+  .curseur {
+    width: 100%;
+    accent-color: var(--accent);
+    margin: 8px 0 4px;
+  }
+  .bornes {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--space);
+    font-size: 0.78rem;
+    color: var(--texte2);
+  }
+  .entete-resultats {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  .entete-resultats .nb {
+    font-size: 1.05rem;
+  }
+  .entete-resultats .nb b {
+    font-family: var(--bricolage);
+    font-size: 1.3rem;
+    color: var(--accent);
+  }
+  .tri {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--texte2);
+    font-size: 0.9rem;
+  }
+  .tri select {
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 100px;
+    padding: 9px 16px;
+    color: var(--texte);
+    font-family: var(--instrument);
+    outline: none;
+  }
+  .grille-listing {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  /* Pied de page réduit (pages internes) */
+  .footer-mini {
+    border-top: 1px solid var(--ligne);
+    padding: 30px 28px;
+    margin-top: 70px;
+  }
+  .footer-mini .in {
+    max-width: 1240px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    color: var(--texte2);
+    font-size: 0.86rem;
+  }
+  .footer-mini .fon {
+    color: var(--accent);
+    font-style: italic;
+  }
+
+  /* ==========================================================
      ÉTAT VIDE (aucun événement)
      ========================================================== */
   .etat-vide {
@@ -955,5 +1100,27 @@
   }
   .cta-header .cta-court {
     display: inline;
+  }
+}
+
+/* Listing : filtres empilés au-dessus des résultats sur tablette/mobile */
+@media (max-width: 1020px) {
+  .corps {
+    grid-template-columns: 1fr;
+  }
+  .filtres {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .filtres .bloc-filtre {
+    flex: 1;
+    min-width: 230px;
+  }
+}
+
+@media (max-width: 680px) {
+  .grille-listing {
+    grid-template-columns: 1fr;
   }
 }
