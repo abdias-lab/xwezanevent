@@ -1391,6 +1391,148 @@
     border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   }
 
+  /* ==========================================================
+     CONFIRMATION (/confirmation) — e-billets
+     ========================================================== */
+  .corps-c {
+    max-width: 660px;
+    margin: 0 auto;
+    padding: 120px 28px 0;
+    text-align: center;
+  }
+  .coche {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    margin: 0 auto 22px;
+    background: color-mix(in srgb, #7c9a55 18%, transparent);
+    border: 2px solid #7c9a55;
+    color: #7c9a55;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+  }
+  .corps-c h1 {
+    font-family: var(--bricolage);
+    font-size: 2rem;
+    letter-spacing: -0.02em;
+  }
+  .corps-c .sous {
+    color: var(--texte2);
+    margin-top: 8px;
+  }
+  .corps-c .sous b {
+    color: var(--texte);
+  }
+  .billet {
+    margin: 34px auto 0;
+    max-width: 520px;
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px var(--ombre);
+    text-align: left;
+  }
+  .billet .haut {
+    padding: 24px 26px;
+    background: linear-gradient(120deg, color-mix(in srgb, var(--secondaire) 90%, black), var(--secondaire));
+    color: #fff6e8;
+    position: relative;
+    overflow: hidden;
+  }
+  .billet .haut h2 {
+    font-family: var(--bricolage);
+    font-size: 1.3rem;
+    letter-spacing: -0.01em;
+    position: relative;
+  }
+  .billet .haut p {
+    font-size: 0.9rem;
+    opacity: 0.85;
+    margin-top: 6px;
+    position: relative;
+  }
+  .billet .separation {
+    position: relative;
+    border-top: 2px dashed color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  .billet .separation::before,
+  .billet .separation::after {
+    content: "";
+    position: absolute;
+    top: -11px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--fond);
+  }
+  .billet .separation::before {
+    left: -12px;
+  }
+  .billet .separation::after {
+    right: -12px;
+  }
+  .billet .bas {
+    padding: 24px 26px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    align-items: center;
+  }
+  .billet .detail .l {
+    font-family: var(--space);
+    font-size: 0.64rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--texte2);
+    margin-top: 12px;
+  }
+  .billet .detail .l:first-child {
+    margin-top: 0;
+  }
+  .billet .detail .v {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .billet .detail .num {
+    font-family: var(--space);
+    color: var(--accent);
+  }
+  .zone-qr {
+    background: #fff;
+    border-radius: 14px;
+    padding: 12px;
+    color: #151009;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .zone-qr svg {
+    width: 150px;
+    height: 150px;
+  }
+  .zone-qr .scan {
+    font-family: var(--space);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #8a8378;
+  }
+  .note-c {
+    margin-top: 22px;
+    color: var(--texte2);
+    font-size: 0.9rem;
+  }
+  .suite {
+    display: inline-flex;
+    margin-top: 16px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
   /* Pied de page réduit (pages internes) */
   .footer-mini {
     border-top: 1px solid var(--ligne);
@@ -1872,6 +2014,15 @@
 @media (max-width: 680px) {
   .moyens {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Confirmation : billet en colonne sur très petit écran */
+@media (max-width: 560px) {
+  .billet .bas {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
   }
 }
 

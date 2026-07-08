@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useFormStatus } from "react-dom";
 import Image from "next/image";
+import { payer } from "@/app/(public)/paiement/actions";
 
 export interface LigneCommande {
   nom: string;
@@ -10,6 +12,8 @@ export interface LigneCommande {
 }
 
 export interface TunnelProps {
+  slug: string;
+  selection: string[]; // ["ticketTypeId:qté", ...]
   titre: string;
   dateHeure: string;
   lieu: string;
@@ -32,7 +36,18 @@ const MOYENS: { id: Moyen; ico: string; nom: string; sous: string }[] = [
   { id: "carte", ico: "💳", nom: "Carte bancaire", sous: "Visa · Mastercard" },
 ];
 
+function BoutonPayer({ actif, total }: { actif: boolean; total: number }) {
+  const { pending } = useFormStatus();
+  return (
+    <button className="btn btn-or btn-large" type="submit" disabled={!actif || pending}>
+      {pending ? "Traitement…" : `Payer ${fmt(total)}`}
+    </button>
+  );
+}
+
 export default function TunnelPaiement({
+  slug,
+  selection,
   titre,
   dateHeure,
   lieu,
@@ -47,14 +62,20 @@ export default function TunnelPaiement({
   const [moyen, setMoyen] = useState<Moyen>("mtn");
   const [tel, setTel] = useState("");
   const [carte, setCarte] = useState("");
-  const [envoye, setEnvoye] = useState(false);
 
   const emailOk = /.+@.+\..+/.test(email);
   const detailOk = moyen === "carte" ? carte.trim().length >= 12 : tel.trim().length >= 8;
   const formValide = nom.trim().length > 1 && emailOk && detailOk;
 
   return (
-    <div className="grille-p">
+    <form className="grille-p" action={payer}>
+      {/* Champs transmis à la Server Action */}
+      <input type="hidden" name="ev" value={slug} />
+      <input type="hidden" name="moyen" value={moyen} />
+      {selection.map((s) => (
+        <input key={s} type="hidden" name="t" value={s} />
+      ))}
+
       {/* ------------------------- COLONNE FORMULAIRE ------------------------- */}
       <div>
         <h1>Paiement</h1>
@@ -66,6 +87,7 @@ export default function TunnelPaiement({
               <label htmlFor="nom">Nom complet</label>
               <input
                 id="nom"
+                name="nom"
                 type="text"
                 placeholder="Prénom Nom"
                 value={nom}
@@ -78,6 +100,7 @@ export default function TunnelPaiement({
               </label>
               <input
                 id="mail"
+                name="email"
                 type="email"
                 placeholder="ton@email.com"
                 value={email}
@@ -170,13 +193,7 @@ export default function TunnelPaiement({
       {/* --------------------------- RÉCAP COMMANDE --------------------------- */}
       <aside className="recap" aria-label="Récapitulatif de la commande">
         <div className="ev">
-          <Image
-            className="vignette"
-            src={affiche}
-            alt={titre}
-            width={74}
-            height={74}
-          />
+          <Image className="vignette" src={affiche} alt={titre} width={74} height={74} />
           <div>
             <h3>{titre}</h3>
             <p>
@@ -208,24 +225,9 @@ export default function TunnelPaiement({
           <span className="m">{fmt(total)}</span>
         </div>
 
-        <button
-          type="button"
-          className="btn btn-or btn-large"
-          disabled={!formValide || envoye}
-          onClick={() => setEnvoye(true)}
-        >
-          {envoye ? "Traitement…" : `Payer ${fmt(total)}`}
-        </button>
-
-        {envoye ? (
-          <p className="note-paiement">
-            ✓ Récapitulatif validé. L&apos;encaissement Mobile Money via FedaPay
-            sera activé prochainement (nécessite la connexion à ton compte).
-          </p>
-        ) : (
-          <p className="securise">🔒 Paiement sécurisé via FedaPay</p>
-        )}
+        <BoutonPayer actif={formValide} total={total} />
+        <p className="securise">🔒 Paiement sécurisé via FedaPay</p>
       </aside>
-    </div>
+    </form>
   );
 }

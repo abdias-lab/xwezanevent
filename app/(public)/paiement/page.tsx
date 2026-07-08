@@ -45,6 +45,7 @@ export default async function Paiement({
 
   const parId = new Map(ev.ticketTypes.map((t) => [t.id, t]));
   const lignes: LigneCommande[] = [];
+  const selection: string[] = [];
   for (const entree of entrees) {
     const [id, qStr] = entree.split(":");
     const tt = parId.get(id);
@@ -53,6 +54,7 @@ export default async function Paiement({
     const qte = Math.min(q, tt.disponibles);
     if (qte <= 0) continue;
     lignes.push({ nom: tt.nom, qte, montant: tt.prix * qte });
+    selection.push(`${tt.id}:${qte}`);
   }
 
   // Panier vide / sélection invalide : message clair + retour
@@ -118,6 +120,8 @@ export default async function Paiement({
         </div>
 
         <TunnelPaiement
+          slug={slug}
+          selection={selection}
           titre={ev.titre}
           dateHeure={formatDateHeure(ev.date_debut, ev.heure)}
           lieu={`${ev.lieu}, ${ev.ville}`}

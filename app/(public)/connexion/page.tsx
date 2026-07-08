@@ -7,14 +7,24 @@ export const metadata: Metadata = {
   title: "Connexion — XwézanEvent",
 };
 
-export default async function Connexion() {
+export default async function Connexion({
+  searchParams,
+}: {
+  searchParams: { redirect?: string };
+}) {
+  // On n'accepte que des chemins internes (évite les redirections ouvertes)
+  const dest =
+    searchParams.redirect && searchParams.redirect.startsWith("/")
+      ? searchParams.redirect
+      : "/";
+
   const supabase = creerClientServeur();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Déjà connecté → retour à l'accueil
-  if (user) redirect("/");
+  // Déjà connecté → destination demandée
+  if (user) redirect(dest);
 
   return (
     <div className="split">
@@ -43,7 +53,7 @@ export default async function Connexion() {
       </div>
 
       <div className="cote-form">
-        <AuthForm />
+        <AuthForm redirect={dest} />
       </div>
     </div>
   );
