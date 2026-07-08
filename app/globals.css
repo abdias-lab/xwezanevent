@@ -676,6 +676,297 @@
     gap: 24px;
   }
 
+  /* ==========================================================
+     DÉTAIL ÉVÉNEMENT (/evenement/[slug])
+     ========================================================== */
+  .btn-ghost {
+    background: transparent;
+    color: var(--texte);
+    border: 1px solid var(--ligne);
+  }
+  .btn-ghost:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn-large {
+    width: 100%;
+    padding: 16px 22px;
+    font-size: 1.05rem;
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .banniere {
+    position: relative;
+    height: 380px;
+    margin-top: 72px;
+    overflow: hidden;
+  }
+  .banniere .photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 30%;
+  }
+  .banniere .voile {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to top,
+      var(--fond) 2%,
+      color-mix(in srgb, var(--fond) 55%, transparent) 45%,
+      rgba(10, 6, 4, 0.25)
+    );
+  }
+  .entete-ev {
+    max-width: 1240px;
+    margin: -120px auto 0;
+    padding: 0 28px;
+    position: relative;
+  }
+  .badges-ev {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .badge-ev {
+    background: color-mix(in srgb, var(--fond) 78%, transparent);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--ligne);
+    font-family: var(--space);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--texte);
+    padding: 7px 14px;
+    border-radius: 100px;
+  }
+  .badge-ev.chaud {
+    border-color: var(--secondaire);
+    color: var(--secondaire);
+  }
+  .entete-ev h1 {
+    font-family: var(--bricolage);
+    font-size: clamp(1.9rem, 4.4vw, 3.4rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+    max-width: 20ch;
+  }
+  .meta-ev {
+    display: flex;
+    gap: 24px;
+    margin-top: 14px;
+    color: var(--texte2);
+    flex-wrap: wrap;
+    font-size: 0.98rem;
+  }
+  .corps-ev {
+    max-width: 1240px;
+    margin: 44px auto 0;
+    padding: 0 28px;
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 40px;
+    align-items: start;
+  }
+  .colonne h2 {
+    font-family: var(--bricolage);
+    font-size: 1.35rem;
+    letter-spacing: -0.02em;
+    margin: 34px 0 14px;
+  }
+  .colonne h2:first-child {
+    margin-top: 0;
+  }
+  .colonne p {
+    color: var(--texte2);
+    margin-bottom: 12px;
+    max-width: 62ch;
+  }
+  .pratique {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .info-p {
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 13px;
+    padding: 15px 17px;
+  }
+  .info-p .l {
+    font-family: var(--space);
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--texte2);
+  }
+  .info-p .v {
+    font-weight: 600;
+    margin-top: 4px;
+    font-size: 0.95rem;
+  }
+  .carte-lieu {
+    margin-top: 16px;
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 16px;
+    height: 190px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--texte2);
+  }
+  .carte-lieu .routes {
+    position: absolute;
+    inset: 0;
+    opacity: 0.5;
+  }
+  .epingle {
+    position: relative;
+    z-index: 2;
+    background: var(--fond);
+    border: 1px solid var(--ligne);
+    border-radius: 100px;
+    padding: 10px 18px;
+    font-size: 0.9rem;
+    color: var(--texte);
+  }
+  .billetterie {
+    position: sticky;
+    top: 96px;
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 20px;
+    padding: 26px;
+    box-shadow: 0 24px 60px var(--ombre);
+  }
+  .billetterie h2 {
+    font-family: var(--bricolage);
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+  }
+  .billetterie .limite {
+    font-size: 0.85rem;
+    color: var(--texte2);
+    margin: 5px 0 20px;
+  }
+  .type-billet {
+    border: 1px solid var(--ligne);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: border-color 0.15s;
+  }
+  .type-billet.choisi {
+    border-color: var(--accent);
+  }
+  .type-billet .d {
+    flex: 1;
+    min-width: 0;
+  }
+  .type-billet .n {
+    font-weight: 700;
+    font-size: 0.97rem;
+  }
+  .type-billet .de {
+    font-size: 0.82rem;
+    color: var(--texte2);
+  }
+  .type-billet .p {
+    font-family: var(--space);
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 0.92rem;
+    margin-top: 3px;
+  }
+  .quantite {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--fond);
+    border: 1px solid var(--ligne);
+    border-radius: 100px;
+    padding: 3px;
+  }
+  .quantite button {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: none;
+    color: var(--texte);
+    font-size: 1.15rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .quantite button:hover:not(:disabled) {
+    background: var(--surface2);
+  }
+  .quantite button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .quantite .q {
+    width: 26px;
+    text-align: center;
+    font-family: var(--space);
+    font-weight: 700;
+  }
+  .totaux {
+    border-top: 1px dashed color-mix(in srgb, var(--accent) 40%, transparent);
+    margin-top: 18px;
+    padding-top: 16px;
+    font-size: 0.94rem;
+  }
+  .totaux .ligne-t {
+    display: flex;
+    justify-content: space-between;
+    color: var(--texte2);
+    margin-bottom: 8px;
+  }
+  .totaux .ligne-t.total {
+    color: var(--texte);
+    font-weight: 700;
+    font-size: 1.12rem;
+    margin-top: 10px;
+  }
+  .totaux .ligne-t.total .m {
+    font-family: var(--space);
+    color: var(--accent);
+  }
+  .billetterie .btn-large {
+    margin-top: 16px;
+  }
+  .securise {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--texte2);
+    margin-top: 12px;
+  }
+  .actions-ev {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .actions-ev .btn {
+    flex: 1;
+    padding: 11px;
+  }
+
   /* Pied de page réduit (pages internes) */
   .footer-mini {
     border-top: 1px solid var(--ligne);
@@ -1122,5 +1413,24 @@
 @media (max-width: 680px) {
   .grille-listing {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Détail événement : colonne unique, billetterie non collée sur tablette/mobile */
+@media (max-width: 1020px) {
+  .corps-ev {
+    grid-template-columns: 1fr;
+  }
+  .billetterie {
+    position: static;
+  }
+}
+
+@media (max-width: 680px) {
+  .pratique {
+    grid-template-columns: 1fr;
+  }
+  .banniere {
+    height: 260px;
   }
 }
