@@ -2,76 +2,80 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CarteEvenement from "@/components/CarteEvenement";
 import BoutonOr from "@/components/BoutonOr";
+import { supabase } from "@/lib/supabase";
 import type { ReactNode } from "react";
 
+// Régénération incrémentale : la page est reconstruite au plus une fois par minute
+export const revalidate = 60;
+
 /* ------------------------------------------------------------------
-   Données de démonstration (branchées sur Supabase dans une étape
-   ultérieure)
+   Événements à l'affiche — données réelles (Supabase)
    ------------------------------------------------------------------ */
-const EVENEMENTS = [
-  {
-    id: "vodun-days",
-    titre: "Vodun Days 2026 — Célébration officielle",
-    categorie: "Culture & Vodun",
-    lieu: "Place aux Enchères, Ouidah",
-    prix: 5000,
-    jour: "10",
-    mois: "Jan",
-    image: "/images/vodun-days.jpg",
-  },
-  {
-    id: "afrobeat",
-    titre: "Nuit de l'Afrobeat — 6 artistes en live",
-    categorie: "Concert",
-    lieu: "Palais des Congrès, Cotonou",
-    prix: 10000,
-    jour: "17",
-    mois: "Jan",
-    image: "/images/afrobeat.jpg",
-  },
-  {
-    id: "comedy",
-    titre: "Cotonou Comedy Night — Spécial nouvelle génération",
-    categorie: "Humour",
-    lieu: "Canal Olympia Wologuèdè, Cotonou",
-    prix: 7500,
-    jour: "24",
-    mois: "Jan",
-    image: "/images/comedy.jpg",
-  },
-  {
-    id: "masques",
-    titre: "Festival des Masques — Guèlèdè & Zangbéto",
-    categorie: "Festival",
-    lieu: "Centre-ville, Porto-Novo",
-    prix: 3000,
-    jour: "31",
-    mois: "Jan",
-    image: "/images/masques.jpg",
-  },
-  {
-    id: "marathon",
-    titre: "Marathon international de Cotonou — 10 km & 42 km",
-    categorie: "Sport",
-    lieu: "Boulevard de la Marina, Cotonou",
-    prix: 8000,
-    prixLegende: "inscription",
-    jour: "07",
-    mois: "Fév",
-    image: "/images/marathon.jpg",
-  },
-  {
-    id: "zouk",
-    titre: "Soirée Zouk & Love — Saint-Valentin sur la plage",
-    categorie: "Soirée",
-    lieu: "Fidjrossè Plage, Cotonou",
-    prix: 15000,
-    prixLegende: "couple",
-    jour: "14",
-    mois: "Fév",
-    image: "/images/zouk.jpg",
-  },
+const MOIS_COURTS = [
+  "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
+  "Juil", "Août", "Sep", "Oct", "Nov", "Déc",
 ];
+
+interface EventRow {
+  slug: string;
+  titre: string;
+  categorie: string | null;
+  ville: string;
+  lieu: string;
+  date_debut: string; // YYYY-MM-DD
+  affiche_url: string | null;
+  ticket_types: { prix: number }[];
+}
+
+interface CarteData {
+  id: string;
+  titre: string;
+  categorie: string;
+  lieu: string;
+  prix: number;
+  jour: string;
+  mois: string;
+  image: string;
+  href: string;
+}
+
+/**
+ * Récupère les événements publiés avec le prix de leur ticket_type le moins
+ * cher (pour l'affichage « à partir de X FCFA »), triés par date.
+ */
+async function getEvenementsAffiche(): Promise<CarteData[]> {
+  const { data, error } = await supabase
+    .from("events")
+    .select(
+      "slug, titre, categorie, ville, lieu, date_debut, affiche_url, ticket_types(prix)"
+    )
+    .eq("statut", "publie")
+    .order("date_debut", { ascending: true });
+
+  if (error) {
+    console.error("[accueil] échec de récupération des événements :", error.message);
+    return [];
+  }
+
+  return (data as EventRow[]).map((ev) => {
+    const [, mois, jour] = ev.date_debut.split("-");
+    const prix = ev.ticket_types.length
+      ? Math.min(...ev.ticket_types.map((t) => t.prix))
+      : 0;
+
+    return {
+      id: ev.slug,
+      titre: ev.titre,
+      categorie: ev.categorie ?? "Événement",
+      lieu: `${ev.lieu}, ${ev.ville}`,
+      prix,
+      jour,
+      mois: MOIS_COURTS[parseInt(mois, 10) - 1] ?? "",
+      image: ev.affiche_url ?? "/images/vodun-days.jpg",
+      href: `/evenement/${ev.slug}`,
+    };
+  });
+}
 
 const CATEGORIES: { nom: ReactNode; nb: string; glyphe: ReactNode }[] = [
   {
@@ -156,7 +160,9 @@ const TICKER = [
   { date: "14 FÉV", texte: "Soirée Zouk & Love · Fidjrossè Plage" },
 ];
 
-export default function Accueil() {
+export default async function Accueil() {
+  const evenements = await getEvenementsAffiche();
+
   return (
     <>
       <Header />
@@ -244,11 +250,35 @@ export default function Accueil() {
             </a>
           </div>
 
-          <div className="grille-events">
-            {EVENEMENTS.map((ev) => (
-              <CarteEvenement key={ev.id} {...ev} />
-            ))}
-          </div>
+          {evenements.length > 0 ? (
+            <div className="grille-events">
+              {evenements.map((ev) => (
+                <CarteEvenement key={ev.id} {...ev} />
+              ))}
+            </div>
+          ) : (
+            <div className="etat-vide">
+              <div className="etat-vide-glyphe" aria-hidden="true">
+                <svg
+                  width="40"
+                  height="40"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                >
+                  <rect x="3" y="5" width="18" height="16" rx="2" />
+                  <path d="M16 3v4M8 3v4M3 11h18" />
+                </svg>
+              </div>
+              <h3>Aucun événement à l&apos;affiche pour l&apos;instant</h3>
+              <p>
+                Les prochaines dates arrivent très bientôt. Revenez vite —
+                ou publiez le vôtre dès maintenant.
+              </p>
+              <BoutonOr href="/creer">Publier un événement</BoutonOr>
+            </div>
+          )}
         </div>
       </section>
 
