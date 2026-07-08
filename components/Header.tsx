@@ -1,10 +1,18 @@
 import Link from "next/link";
+import { creerClientServeur } from "@/lib/supabase-server";
+import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 
 /**
  * En-tête sticky avec logo XwézanEvent (marque losange doré),
- * navigation principale et actions (connexion / publier).
+ * navigation principale et actions (connexion / compte / publier).
+ * Server Component : lit l'utilisateur connecté via la session Supabase.
  */
-export default function Header() {
+export default async function Header() {
+  const supabase = creerClientServeur();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <header className="header">
       <div className="nav">
@@ -20,9 +28,18 @@ export default function Header() {
         </nav>
 
         <div className="nav-right">
-          <Link className="connexion" href="/connexion">
-            Se connecter
-          </Link>
+          {user ? (
+            <>
+              <Link className="connexion" href="/compte">
+                Mon compte
+              </Link>
+              <BoutonDeconnexion />
+            </>
+          ) : (
+            <Link className="connexion" href="/connexion">
+              Se connecter
+            </Link>
+          )}
           <Link className="btn btn-or cta-header" href="/creer">
             <span className="cta-long">Publier un événement</span>
             <span className="cta-court">Publier</span>
