@@ -142,7 +142,7 @@ export default async function EvenementDetail({
           </div>
         </div>
 
-        <Billetterie ticketTypes={ev.ticketTypes} />
+        <Billetterie slug={ev.slug} ticketTypes={ev.ticketTypes} />
       </div>
 
       <footer className="footer-mini">

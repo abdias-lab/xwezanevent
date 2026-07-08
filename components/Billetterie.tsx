@@ -12,9 +12,11 @@ function fmt(n: number): string {
 }
 
 export default function Billetterie({
+  slug,
   ticketTypes,
   limiteVente,
 }: {
+  slug: string;
   ticketTypes: TicketTypeDetail[];
   limiteVente?: string;
 }) {
@@ -40,6 +42,15 @@ export default function Billetterie({
 
   const frais = Math.round(sousTotal * FRAIS_TAUX);
   const total = sousTotal + frais;
+
+  // Sélection encodée pour le tunnel : /paiement?ev=slug&t=idA:2&t=idB:1
+  const params = new URLSearchParams();
+  params.set("ev", slug);
+  for (const t of ticketTypes) {
+    const n = quantites[t.id] ?? 0;
+    if (n > 0) params.append("t", `${t.id}:${n}`);
+  }
+  const hrefPaiement = `/paiement?${params.toString()}`;
 
   return (
     <aside className="billetterie" aria-label="Choisir ses billets">
@@ -106,7 +117,7 @@ export default function Billetterie({
       </div>
 
       {totalQte > 0 ? (
-        <a className="btn btn-or btn-large" href="/paiement">
+        <a className="btn btn-or btn-large" href={hrefPaiement}>
           Continuer →
         </a>
       ) : (

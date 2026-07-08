@@ -967,6 +967,278 @@
     padding: 11px;
   }
 
+  /* ==========================================================
+     CHAMPS DE FORMULAIRE (partagés)
+     ========================================================== */
+  .champ-bloc {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 18px;
+  }
+  .champ-bloc label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--texte);
+  }
+  .champ-bloc label small {
+    font-weight: 400;
+    color: var(--texte2);
+  }
+  .champ-bloc input,
+  .champ-bloc select,
+  .champ-bloc textarea {
+    background: var(--fond);
+    border: 1px solid var(--ligne);
+    border-radius: 12px;
+    padding: 13px 16px;
+    color: var(--texte);
+    font-family: var(--instrument);
+    font-size: 0.98rem;
+    outline: none;
+    transition: border-color 0.18s;
+    width: 100%;
+  }
+  .champ-bloc input:focus,
+  .champ-bloc select:focus,
+  .champ-bloc textarea:focus {
+    border-color: var(--accent);
+  }
+  .champ-bloc input::placeholder,
+  .champ-bloc textarea::placeholder {
+    color: var(--texte2);
+  }
+  .rangee {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* ==========================================================
+     TUNNEL DE PAIEMENT (/paiement)
+     ========================================================== */
+  .corps-p {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 108px 28px 0;
+  }
+  .retour {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--texte2);
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+  }
+  .retour:hover {
+    color: var(--accent);
+  }
+  .etapes {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 38px;
+    max-width: 560px;
+  }
+  .etape {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .etape .rond-e {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--space);
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: 2px solid var(--ligne);
+    color: var(--texte2);
+  }
+  .etape.faite .rond-e {
+    background: #7c9a55;
+    border-color: #7c9a55;
+    color: #fff;
+  }
+  .etape.active .rond-e {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--sur-accent);
+  }
+  .etape .le {
+    font-size: 0.9rem;
+    color: var(--texte2);
+    font-weight: 600;
+  }
+  .etape.active .le {
+    color: var(--texte);
+  }
+  .trait {
+    flex: 1;
+    height: 2px;
+    background: var(--ligne);
+    margin: 0 14px;
+    min-width: 30px;
+  }
+  .trait.fait {
+    background: #7c9a55;
+  }
+  .grille-p {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 36px;
+    align-items: start;
+  }
+  .grille-p h1 {
+    font-family: var(--bricolage);
+    font-size: 1.8rem;
+    letter-spacing: -0.02em;
+    margin-bottom: 24px;
+  }
+  .section-p {
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 18px;
+    padding: 26px;
+    margin-bottom: 22px;
+  }
+  .section-p h2 {
+    font-family: var(--bricolage);
+    font-size: 1.1rem;
+    letter-spacing: -0.02em;
+    margin-bottom: 18px;
+  }
+  .moyens {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .moyen-p {
+    border: 1px solid var(--ligne);
+    border-radius: 14px;
+    padding: 16px 12px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--fond);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .moyen-p:hover {
+    border-color: var(--accent);
+  }
+  .moyen-p[aria-pressed="true"] {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 9%, transparent);
+  }
+  .moyen-p .ico {
+    font-size: 1.5rem;
+  }
+  .moyen-p .n {
+    font-weight: 700;
+    font-size: 0.92rem;
+    margin-top: 6px;
+    color: var(--texte);
+  }
+  .moyen-p .s {
+    font-size: 0.76rem;
+    color: var(--texte2);
+  }
+  .note-momo {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: 12px;
+    padding: 13px 16px;
+    font-size: 0.88rem;
+    color: var(--texte2);
+    margin-bottom: 18px;
+  }
+  .cache {
+    display: none;
+  }
+  .logos-cb {
+    display: flex;
+    gap: 8px;
+  }
+  .logo-cb {
+    font-family: var(--space);
+    font-size: 0.68rem;
+    font-weight: 700;
+    border: 1px solid var(--ligne);
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: var(--texte2);
+  }
+  .recap {
+    position: sticky;
+    top: 96px;
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 24px 60px var(--ombre);
+  }
+  .recap .ev {
+    display: flex;
+    gap: 14px;
+    padding-bottom: 18px;
+    border-bottom: 1px dashed color-mix(in srgb, var(--accent) 40%, transparent);
+    margin-bottom: 16px;
+  }
+  .recap .vignette {
+    width: 74px;
+    height: 74px;
+    border-radius: 12px;
+    object-fit: cover;
+    flex: none;
+  }
+  .recap .ev h3 {
+    font-family: var(--bricolage);
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+  }
+  .recap .ev p {
+    font-size: 0.84rem;
+    color: var(--texte2);
+    margin-top: 4px;
+  }
+  .recap .ligne-t {
+    display: flex;
+    justify-content: space-between;
+    color: var(--texte2);
+    font-size: 0.92rem;
+    margin-bottom: 8px;
+  }
+  .recap .ligne-t .m {
+    font-family: var(--space);
+  }
+  .recap .ligne-t.total {
+    color: var(--texte);
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--ligne);
+  }
+  .recap .ligne-t.total .m {
+    color: var(--accent);
+  }
+  .recap .btn-large {
+    margin-top: 16px;
+  }
+  .note-paiement {
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 0.88rem;
+    color: var(--texte);
+    margin-top: 14px;
+    text-align: center;
+  }
+
   /* Pied de page réduit (pages internes) */
   .footer-mini {
     border-top: 1px solid var(--ligne);
@@ -1432,5 +1704,21 @@
   }
   .banniere {
     height: 260px;
+  }
+}
+
+/* Tunnel de paiement : récap sous le formulaire, moyens empilés */
+@media (max-width: 1020px) {
+  .grille-p {
+    grid-template-columns: 1fr;
+  }
+  .recap {
+    position: static;
+  }
+}
+
+@media (max-width: 680px) {
+  .moyens {
+    grid-template-columns: 1fr;
   }
 }
