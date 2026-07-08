@@ -1533,6 +1533,182 @@
     font-weight: 600;
   }
 
+  /* ==========================================================
+     COMPTE (/compte) — mes billets
+     ========================================================== */
+  .avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--secondaire);
+    color: #fff6e8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex: none;
+  }
+  .statut {
+    font-family: var(--space);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+  .st-ok {
+    background: color-mix(in srgb, #7c9a55 18%, transparent);
+    color: #7c9a55;
+    border: 1px solid color-mix(in srgb, #7c9a55 45%, transparent);
+  }
+  .st-attente {
+    background: color-mix(in srgb, #d9a23b 16%, transparent);
+    color: #d9a23b;
+    border: 1px solid color-mix(in srgb, #d9a23b 45%, transparent);
+  }
+  .st-fini {
+    background: color-mix(in srgb, var(--texte2) 14%, transparent);
+    color: var(--texte2);
+    border: 1px solid color-mix(in srgb, var(--texte2) 35%, transparent);
+  }
+  .corps-cp {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 108px 28px 0;
+    display: grid;
+    grid-template-columns: 264px 1fr;
+    gap: 34px;
+    align-items: start;
+  }
+  .menu-cp {
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 18px;
+    padding: 22px;
+    position: sticky;
+    top: 96px;
+  }
+  .profil {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--ligne);
+    margin-bottom: 14px;
+  }
+  .profil .qui .n {
+    font-weight: 700;
+  }
+  .profil .qui .e {
+    font-size: 0.8rem;
+    color: var(--texte2);
+  }
+  .menu-cp a,
+  .menu-cp button {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 11px 12px;
+    border-radius: 11px;
+    color: var(--texte2);
+    font-size: 0.94rem;
+    font-family: var(--instrument);
+    transition: background 0.15s, color 0.15s;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  .menu-cp a:hover,
+  .menu-cp button:hover {
+    background: var(--surface2);
+    color: var(--texte);
+  }
+  .menu-cp a.actif {
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .contenu-cp h1 {
+    font-family: var(--bricolage);
+    font-size: 1.7rem;
+    letter-spacing: -0.02em;
+  }
+  .contenu-cp .sous {
+    color: var(--texte2);
+    margin: 4px 0 24px;
+    font-size: 0.95rem;
+  }
+  .rangee-billet {
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 18px;
+    padding: 18px 22px;
+    margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    gap: 18px;
+    align-items: center;
+  }
+  .rangee-billet .vignette {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    object-fit: cover;
+  }
+  .rangee-billet .vignette.libre {
+    background: linear-gradient(135deg, var(--secondaire), color-mix(in srgb, var(--secondaire) 60%, black));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+  .rangee-billet h3 {
+    font-family: var(--bricolage);
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+  }
+  .rangee-billet .meta {
+    font-size: 0.85rem;
+    color: var(--texte2);
+    margin-top: 4px;
+  }
+  .rangee-billet .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .rangee-billet .actions .btn {
+    padding: 7px 14px;
+    font-size: 0.82rem;
+  }
+  .rangee-billet .cote {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .rangee-billet .prix-b {
+    font-family: var(--space);
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .rangee-billet.passe {
+    opacity: 0.62;
+  }
+  .titre-groupe {
+    font-family: var(--space);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--texte2);
+    margin: 28px 0 14px;
+  }
+
   /* Pied de page réduit (pages internes) */
   .footer-mini {
     border-top: 1px solid var(--ligne);
@@ -2014,6 +2190,25 @@
 @media (max-width: 680px) {
   .moyens {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Compte : menu au-dessus, billets en colonne sur petit écran */
+@media (max-width: 1020px) {
+  .corps-cp {
+    grid-template-columns: 1fr;
+  }
+  .menu-cp {
+    position: static;
+  }
+}
+@media (max-width: 680px) {
+  .rangee-billet {
+    grid-template-columns: 1fr;
+  }
+  .rangee-billet .cote {
+    align-items: flex-start;
+    text-align: left;
   }
 }
 
