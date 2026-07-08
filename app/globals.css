@@ -1709,6 +1709,261 @@
     margin: 28px 0 14px;
   }
 
+  /* ==========================================================
+     CRÉER UN ÉVÉNEMENT (/creer) — espace organisateur
+     ========================================================== */
+  .corps-cr {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 108px 28px 0;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 36px;
+    align-items: start;
+  }
+  .corps-cr h1 {
+    font-family: var(--bricolage);
+    font-size: 1.8rem;
+    letter-spacing: -0.02em;
+  }
+  .corps-cr .sous {
+    color: var(--texte2);
+    margin: 4px 0 26px;
+    font-size: 0.95rem;
+  }
+  .bloc-form {
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 18px;
+    padding: 26px;
+    margin-bottom: 22px;
+  }
+  .bloc-form .num-titre {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    margin-bottom: 20px;
+  }
+  .bloc-form .num {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--sur-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--space);
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex: none;
+  }
+  .bloc-form h2 {
+    font-family: var(--bricolage);
+    font-size: 1.12rem;
+    letter-spacing: -0.01em;
+  }
+  .puces-cat {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .puce-cat {
+    border: 1px solid var(--ligne);
+    background: var(--fond);
+    color: var(--texte2);
+    border-radius: 100px;
+    padding: 9px 16px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-family: var(--instrument);
+    transition: all 0.15s;
+  }
+  .puce-cat:hover {
+    border-color: var(--accent);
+  }
+  .puce-cat[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--sur-accent);
+    font-weight: 600;
+  }
+  .type-b {
+    border: 1px solid var(--ligne);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 14px;
+    background: var(--fond);
+  }
+  .type-b .haut-b {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    gap: 12px;
+  }
+  .type-b .haut-b input.n {
+    font-weight: 700;
+    background: transparent;
+    border: none;
+    color: var(--texte);
+    font-family: var(--instrument);
+    font-size: 0.97rem;
+    outline: none;
+    flex: 1;
+    min-width: 0;
+  }
+  .type-b .haut-b button {
+    background: none;
+    border: none;
+    color: #c4502e;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: var(--instrument);
+    flex: none;
+  }
+  .type-b .rangee {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .type-b .champ-bloc {
+    margin-bottom: 0;
+  }
+  .ajout-type {
+    width: 100%;
+    border: 1px dashed var(--ligne);
+    background: none;
+    border-radius: 14px;
+    padding: 14px;
+    color: var(--accent);
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--instrument);
+    transition: border-color 0.15s;
+  }
+  .ajout-type:hover {
+    border-color: var(--accent);
+  }
+  .cote-cr {
+    position: sticky;
+    top: 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .apercu {
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+  .apercu .titre-a {
+    font-family: var(--space);
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--texte2);
+    padding: 16px 20px 0;
+  }
+  .apercu .visuel-a {
+    height: 130px;
+    margin: 14px 20px 0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--secondaire), color-mix(in srgb, var(--secondaire) 55%, black));
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-start;
+    padding: 12px;
+  }
+  .apercu .visuel-a img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .apercu .badge-a {
+    position: relative;
+    background: rgba(18, 12, 8, 0.72);
+    border: 1px solid rgba(255, 248, 236, 0.22);
+    font-family: var(--space);
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #fbf3e4;
+    padding: 5px 11px;
+    border-radius: 100px;
+  }
+  .apercu .infos-a {
+    padding: 16px 20px 20px;
+  }
+  .apercu .infos-a h3 {
+    font-family: var(--bricolage);
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+  }
+  .apercu .infos-a .m {
+    font-size: 0.84rem;
+    color: var(--texte2);
+    margin-top: 6px;
+  }
+  .apercu .infos-a .p {
+    font-family: var(--space);
+    font-weight: 700;
+    color: var(--accent);
+    margin-top: 10px;
+  }
+  .checklist {
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 18px;
+    padding: 22px;
+  }
+  .checklist h3 {
+    font-family: var(--bricolage);
+    font-size: 1rem;
+    margin-bottom: 14px;
+  }
+  .checklist .item-c {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 7px 0;
+    font-size: 0.92rem;
+    color: var(--texte2);
+  }
+  .checklist .item-c .etat {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    flex: none;
+    border: 1px solid var(--ligne);
+  }
+  .checklist .item-c.fait {
+    color: var(--texte);
+  }
+  .checklist .item-c.fait .etat {
+    background: color-mix(in srgb, #7c9a55 20%, transparent);
+    border-color: #7c9a55;
+    color: #7c9a55;
+  }
+  .checklist .item-c.manque .etat {
+    border-color: #d9a23b;
+    color: #d9a23b;
+  }
+  .checklist .item-c.manque {
+    color: #d9a23b;
+  }
+  .brouillon {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--texte2);
+  }
+
   /* Pied de page réduit (pages internes) */
   .footer-mini {
     border-top: 1px solid var(--ligne);
@@ -2209,6 +2464,21 @@
   .rangee-billet .cote {
     align-items: flex-start;
     text-align: left;
+  }
+}
+
+/* Créer : aperçu sous le formulaire sur petit écran */
+@media (max-width: 1020px) {
+  .corps-cr {
+    grid-template-columns: 1fr;
+  }
+  .cote-cr {
+    position: static;
+  }
+}
+@media (max-width: 680px) {
+  .type-b .rangee {
+    grid-template-columns: 1fr;
   }
 }
 
