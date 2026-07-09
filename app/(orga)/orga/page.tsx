@@ -88,6 +88,7 @@ export default async function Orga() {
         <Link className="btn btn-or" href="/creer" style={{ marginTop: 22 }}>
           + Créer un événement
         </Link>
+        <Link className="item" href="/scan" style={{ marginTop: 8 }}>📷 Scanner les billets</Link>
 
         <div className="bas">
           <div className="avatar">{initiale}</div>
