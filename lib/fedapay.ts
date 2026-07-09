@@ -1,49 +1,16 @@
 /**
- * Client FedaPay minimal (Mobile Money Bénin — MTN / Moov + carte).
+ * Intégration FedaPay via le SDK officiel (Mobile Money Bénin — MTN / Moov + carte).
  * ⚠️ SERVEUR UNIQUEMENT : utilise la clé secrète. Ne jamais importer côté client.
- *
- * Docs : https://docs.fedapay.com
  */
+import { FedaPay, Transaction, Webhook } from "fedapay";
 
-const ENV = process.env.FEDAPAY_ENVIRONMENT ?? "sandbox";
-const BASE =
-  ENV === "live" || ENV === "production"
-    ? "https://api.fedapay.com/v1"
-    : "https://sandbox-api.fedapay.com/v1";
-
-function cle(): string {
+function init() {
   const sk = process.env.FEDAPAY_SECRET_KEY;
   if (!sk) throw new Error("FEDAPAY_SECRET_KEY manquante");
-  return sk;
-}
-
-async function requete<T = unknown>(
-  chemin: string,
-  init: RequestInit = {}
-): Promise<T> {
-  const res = await fetch(`${BASE}${chemin}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${cle()}`,
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
-    cache: "no-store",
-  });
-  const corps = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(
-      `FedaPay ${chemin} → ${res.status} ${JSON.stringify(corps).slice(0, 200)}`
-    );
-  }
-  return corps as T;
-}
-
-export interface FedaTransaction {
-  id: number;
-  status: string; // pending | approved | declined | canceled | ...
-  amount: number;
-  reference: string;
+  FedaPay.setApiKey(sk);
+  FedaPay.setEnvironment(
+    process.env.FEDAPAY_ENVIRONMENT === "live" ? "live" : "sandbox"
+  );
 }
 
 interface Client {
@@ -52,45 +19,52 @@ interface Client {
   email?: string;
 }
 
-/** Crée une transaction FedaPay (montant en FCFA / XOF). */
-export async function creerTransaction(params: {
+/**
+ * Crée une transaction (montant en FCFA / XOF) et génère le lien de paiement
+ * hébergé. Retourne l'id FedaPay et l'URL du checkout.
+ */
+export async function creerTransactionEtLien(params: {
   description: string;
   montant: number;
   callbackUrl: string;
   client?: Client;
-}): Promise<FedaTransaction> {
-  const r = await requete<{ "v1/transaction": FedaTransaction }>(
-    "/transactions",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        description: params.description,
-        amount: params.montant,
-        currency: { iso: "XOF" },
-        callback_url: params.callbackUrl,
-        ...(params.client ? { customer: params.client } : {}),
-      }),
-    }
-  );
-  return r["v1/transaction"];
+}): Promise<{ id: number; url: string }> {
+  init();
+  const transaction = await Transaction.create({
+    description: params.description,
+    amount: params.montant,
+    currency: { iso: "XOF" },
+    callback_url: params.callbackUrl,
+    ...(params.client ? { customer: params.client } : {}),
+  });
+  const token = await transaction.generateToken();
+  return { id: Number(transaction.id), url: String(token.url) };
 }
 
-/** Génère le lien de paiement hébergé (checkout Mobile Money / carte). */
-export async function genererLienPaiement(transactionId: number): Promise<string> {
-  const r = await requete<{ url: string }>(
-    `/transactions/${transactionId}/token`,
-    { method: "POST" }
-  );
-  return r.url;
-}
-
-/** Récupère l'état courant d'une transaction (pour vérifier au retour). */
+/** État courant d'une transaction (pour vérifier au retour navigateur). */
 export async function recupererTransaction(
-  transactionId: number
-): Promise<FedaTransaction> {
-  const r = await requete<{ "v1/transaction": FedaTransaction }>(
-    `/transactions/${transactionId}`,
-    { method: "GET" }
-  );
-  return r["v1/transaction"];
+  id: number
+): Promise<{ id: number; status: string; amount: number }> {
+  init();
+  const t = await Transaction.retrieve(id);
+  return { id: Number(t.id), status: String(t.status), amount: Number(t.amount) };
+}
+
+export interface EvenementWebhook {
+  name: string;
+  entity: { id?: number; status?: string; amount?: number };
+}
+
+/**
+ * Vérifie la signature HMAC d'un webhook FedaPay et retourne l'événement.
+ * Lève une erreur si la signature est invalide ou expirée (tolérance 5 min).
+ */
+export function construireEvenementWebhook(
+  payload: string,
+  signatureHeader: string
+): EvenementWebhook {
+  const secret = process.env.FEDAPAY_WEBHOOK_SECRET;
+  if (!secret) throw new Error("FEDAPAY_WEBHOOK_SECRET manquante");
+  // Webhook.constructEvent vérifie la signature puis renvoie l'événement.
+  return Webhook.constructEvent(payload, signatureHeader, secret) as unknown as EvenementWebhook;
 }

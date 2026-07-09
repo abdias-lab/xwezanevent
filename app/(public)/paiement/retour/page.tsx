@@ -1,12 +1,12 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { recupererTransaction } from "@/lib/fedapay";
-import { marquerCommandePayee } from "@/lib/commandes";
+import { finaliserCommande } from "@/lib/commandes";
 import { redirect } from "next/navigation";
 
 /**
- * Retour depuis le checkout FedaPay : vérifie l'état de la transaction et,
- * si le paiement est approuvé, marque la commande « payée » + incrémente le
- * quota vendu (idempotent), puis redirige vers la confirmation.
+ * Retour navigateur depuis le checkout FedaPay. Comme il n'y a pas de signature
+ * ici, on vérifie l'état RÉEL de la transaction via l'API avant de finaliser
+ * (le webhook reste la source de vérité ; finaliserCommande est idempotent).
  */
 export default async function RetourPaiement({
   searchParams,
@@ -24,21 +24,15 @@ export default async function RetourPaiement({
 
   if (!order) redirect("/compte");
 
-  // Déjà finalisée ou pas de transaction : on affiche la confirmation telle quelle
-  if (order.statut === "paye" || !order.fedapay_transaction_id) {
-    redirect(`/confirmation?order=${orderId}`);
-  }
-
-  let approuve = false;
-  try {
-    const trx = await recupererTransaction(Number(order.fedapay_transaction_id));
-    approuve = trx.status === "approved";
-  } catch (e) {
-    console.error("[fedapay] vérification transaction échouée :", e);
-  }
-
-  if (approuve) {
-    await marquerCommandePayee(orderId);
+  if (order.statut !== "paye" && order.fedapay_transaction_id) {
+    try {
+      const trx = await recupererTransaction(Number(order.fedapay_transaction_id));
+      if (trx.status === "approved") {
+        await finaliserCommande(orderId, trx.amount);
+      }
+    } catch (e) {
+      console.error("[fedapay] vérification au retour échouée :", e);
+    }
   }
 
   redirect(`/confirmation?order=${orderId}`);

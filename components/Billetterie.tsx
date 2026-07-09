@@ -43,14 +43,44 @@ export default function Billetterie({
   const frais = Math.round(sousTotal * FRAIS_TAUX);
   const total = sousTotal + frais;
 
-  // Sélection encodée pour le tunnel : /paiement?ev=slug&t=idA:2&t=idB:1
-  const params = new URLSearchParams();
-  params.set("ev", slug);
-  for (const t of ticketTypes) {
-    const n = quantites[t.id] ?? 0;
-    if (n > 0) params.append("t", `${t.id}:${n}`);
+  const [envoi, setEnvoi] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  async function payer() {
+    const items = ticketTypes
+      .map((t) => ({ id: t.id, qte: quantites[t.id] ?? 0 }))
+      .filter((x) => x.qte > 0);
+    if (items.length === 0) return;
+
+    setEnvoi(true);
+    setErreur(null);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, items }),
+      });
+      if (res.status === 401) {
+        window.location.href = `/connexion?redirect=/evenement/${slug}`;
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.url) {
+        window.location.href = data.url; // → checkout FedaPay
+        return;
+      }
+      if (data.orderId) {
+        // Commande créée mais paiement indispo : on montre la confirmation
+        window.location.href = `/confirmation?order=${data.orderId}`;
+        return;
+      }
+      setErreur(data.error ?? "Une erreur est survenue.");
+    } catch {
+      setErreur("Connexion impossible. Réessaie.");
+    } finally {
+      setEnvoi(false);
+    }
   }
-  const hrefPaiement = `/paiement?${params.toString()}`;
 
   return (
     <aside className="billetterie" aria-label="Choisir ses billets">
@@ -116,16 +146,21 @@ export default function Billetterie({
         </div>
       </div>
 
-      {totalQte > 0 ? (
-        <a className="btn btn-or btn-large" href={hrefPaiement}>
-          Continuer →
-        </a>
-      ) : (
-        <button className="btn btn-or btn-large" type="button" disabled>
-          Sélectionne au moins un billet
-        </button>
-      )}
-      <p className="securise">🔒 Paiement sécurisé via FedaPay</p>
+      {erreur && <p className="note-paiement">{erreur}</p>}
+
+      <button
+        className="btn btn-or btn-large"
+        type="button"
+        onClick={payer}
+        disabled={totalQte === 0 || envoi}
+      >
+        {envoi
+          ? "Redirection…"
+          : totalQte > 0
+            ? `Payer ${fmt(total)}`
+            : "Sélectionne au moins un billet"}
+      </button>
+      <p className="securise">🔒 Paiement sécurisé via FedaPay (Mobile Money / carte)</p>
 
       <div className="actions-ev">
         <button className="btn btn-ghost" type="button">🤍 Favori</button>

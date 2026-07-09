@@ -1,68 +1,44 @@
 import { NextResponse, type NextRequest } from "next/server";
-import crypto from "node:crypto";
-import { recupererTransaction } from "@/lib/fedapay";
-import { marquerCommandePayee, commandeParTransaction } from "@/lib/commandes";
+import { construireEvenementWebhook } from "@/lib/fedapay";
+import { finaliserCommande, commandeParTransaction } from "@/lib/commandes";
 
 /**
- * Webhook FedaPay — source de vérité asynchrone du paiement Mobile Money.
- * Nécessite FEDAPAY_WEBHOOK_SECRET (configuré dans le dashboard FedaPay) et une
- * URL publique (non joignable en localhost). Vérifie la signature HMAC puis
- * finalise la commande sur « transaction.approved ».
+ * Webhook FedaPay — source de vérité du paiement Mobile Money.
+ * Requiert FEDAPAY_WEBHOOK_SECRET + une URL publique. Vérifie la signature HMAC
+ * puis, sur « transaction.approved », finalise la commande (idempotent) si le
+ * montant FedaPay correspond au total en base.
  */
 export async function POST(req: NextRequest) {
-  const secret = process.env.FEDAPAY_WEBHOOK_SECRET;
-  const payload = await req.text();
-  const signature = req.headers.get("x-fedapay-signature");
-
-  if (!secret) {
-    console.warn("[fedapay webhook] FEDAPAY_WEBHOOK_SECRET non configuré — ignoré");
+  if (!process.env.FEDAPAY_WEBHOOK_SECRET) {
+    console.warn("[fedapay webhook] secret non configuré — ignoré");
     return NextResponse.json({ received: true, ignored: true });
   }
-  if (!signature) {
-    return NextResponse.json({ error: "signature manquante" }, { status: 400 });
-  }
 
-  // Format « t=timestamp,s=hash »
-  const parts = Object.fromEntries(
-    signature.split(",").map((p) => p.split("=") as [string, string])
-  );
-  const attendu = crypto
-    .createHmac("sha256", secret)
-    .update(`${parts.t}.${payload}`)
-    .digest("hex");
+  const payload = await req.text();
+  const signature = req.headers.get("x-fedapay-signature") ?? "";
 
-  const fournie = parts.s ?? "";
-  const valide =
-    fournie.length === attendu.length &&
-    crypto.timingSafeEqual(Buffer.from(fournie), Buffer.from(attendu));
-  if (!valide) {
+  let event;
+  try {
+    event = construireEvenementWebhook(payload, signature);
+  } catch (e) {
+    console.error("[fedapay webhook] signature invalide :", (e as Error).message);
     return NextResponse.json({ error: "signature invalide" }, { status: 400 });
   }
 
-  let event: {
-    name?: string;
-    entity?: { id?: number; status?: string };
-  };
-  try {
-    event = JSON.parse(payload);
-  } catch {
-    return NextResponse.json({ error: "payload invalide" }, { status: 400 });
-  }
-
+  const estApprouve =
+    event.name === "transaction.approved" || event.entity?.status === "approved";
   const trxId = event.entity?.id;
-  const nom = event.name ?? "";
-  if (trxId && (event.entity?.status === "approved" || nom.includes("approved"))) {
-    // Re-vérifie l'état réel avant de créditer
-    let confirme = false;
-    try {
-      const t = await recupererTransaction(Number(trxId));
-      confirme = t.status === "approved";
-    } catch (e) {
-      console.error("[fedapay webhook] vérification échouée :", e);
-    }
-    if (confirme) {
-      const orderId = await commandeParTransaction(String(trxId));
-      if (orderId) await marquerCommandePayee(orderId);
+  const montant = event.entity?.amount;
+
+  if (estApprouve && trxId != null && typeof montant === "number") {
+    const commande = await commandeParTransaction(String(trxId));
+    if (commande) {
+      const r = await finaliserCommande(commande.id, montant);
+      if (r === "montant") {
+        console.warn(
+          `[fedapay webhook] montant incohérent pour la commande ${commande.id}`
+        );
+      }
     }
   }
 
