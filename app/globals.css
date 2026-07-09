@@ -2287,6 +2287,36 @@
     font-family: var(--space);
     font-weight: 700;
   }
+  .act {
+    display: flex;
+    gap: 8px;
+  }
+  .act .btn {
+    padding: 7px 14px;
+    font-size: 0.8rem;
+  }
+  .btn-valide {
+    background: color-mix(in srgb, #7c9a55 18%, transparent);
+    color: #7c9a55;
+    border: 1px solid color-mix(in srgb, #7c9a55 45%, transparent);
+  }
+  .btn-valide:hover {
+    filter: brightness(1.15);
+  }
+  .btn-valide:disabled,
+  .btn-refus:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .btn-refus {
+    background: none;
+    color: #c4502e;
+    border: 1px solid color-mix(in srgb, #c4502e 45%, transparent);
+  }
+  .btn-refus:hover {
+    filter: brightness(1.15);
+  }
 
   /* Pied de page réduit (pages internes) */
   .footer-mini {
