@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { creerClientServeur } from "@/lib/supabase-server";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
+import MenuBurger from "@/components/MenuBurger";
 
 /**
  * En-tête sticky avec logo XwézanEvent (marque losange doré),
@@ -45,6 +46,8 @@ export default async function Header() {
             <span className="cta-court">Publier</span>
           </Link>
         </div>
+
+        <MenuBurger connecte={!!user} />
       </div>
     </header>
   );
