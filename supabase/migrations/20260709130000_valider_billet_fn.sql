@@ -80,3 +80,11 @@ BEGIN
   );
 END;
 $$;
+
+-- Seul service_role (serveur) peut appeler cette fonction.
+-- p_user_id étant un paramètre libre, l'exposer aux rôles client serait
+-- une faille : un appelant pourrait usurper n'importe quel user_id.
+REVOKE EXECUTE ON FUNCTION public.valider_billet(UUID, UUID) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.valider_billet(UUID, UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.valider_billet(UUID, UUID) FROM authenticated;
+GRANT  EXECUTE ON FUNCTION public.valider_billet(UUID, UUID) TO   service_role;
