@@ -2,9 +2,18 @@
 
 import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { creerTransaction, genererLienPaiement } from "@/lib/fedapay";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
 const FRAIS_TAUX = 0.06;
+
+function origine(): string {
+  const h = headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
 
 interface TicketTypeRow {
   id: string;
@@ -101,14 +110,32 @@ export async function payer(formData: FormData) {
     throw new Error(`Création billets impossible : ${errTickets.message}`);
   }
 
-  // 6. Mise à jour du quota vendu
-  for (const l of selection) {
+  // 6. Initialisation du paiement FedaPay (le quota vendu est incrémenté
+  //    seulement après confirmation du paiement, dans /paiement/retour).
+  let lienPaiement: string | null = null;
+  try {
+    const nom = (user.user_metadata?.nom as string | undefined) ?? "";
+    const [firstname, ...reste] = nom.trim().split(" ");
+    const transaction = await creerTransaction({
+      description: `Commande ${order.id.slice(0, 8)} — XwézanEvent`,
+      montant: total,
+      callbackUrl: `${origine()}/paiement/retour?order=${order.id}`,
+      client: {
+        firstname: firstname || undefined,
+        lastname: reste.join(" ") || undefined,
+        email: user.email ?? undefined,
+      },
+    });
     await supabaseAdmin
-      .from("ticket_types")
-      .update({ quantite_vendue: l.tt.quantite_vendue + l.qte })
-      .eq("id", l.tt.id);
+      .from("orders")
+      .update({ fedapay_transaction_id: String(transaction.id) })
+      .eq("id", order.id);
+    lienPaiement = await genererLienPaiement(transaction.id);
+  } catch (e) {
+    console.error("[fedapay] initialisation du paiement échouée :", e);
   }
 
-  // 7. Vers la confirmation
+  // 7. Redirection : checkout FedaPay si dispo, sinon confirmation (réservation)
+  if (lienPaiement) redirect(lienPaiement);
   redirect(`/confirmation?order=${order.id}`);
 }

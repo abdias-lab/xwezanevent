@@ -91,10 +91,16 @@ export default async function Confirmation({
 
       <main className="corps-c">
         <div className="coche" aria-hidden="true">✓</div>
-        <h1>Commande enregistrée !</h1>
+        <h1>{order.statut === "paye" ? "Paiement confirmé !" : "Commande enregistrée !"}</h1>
         <p className="sous">
-          {billets.length > 1 ? "Tes billets ont été réservés" : "Ton billet a été réservé"} ·
-          envoyé à <b>{user.email}</b>
+          {order.statut === "paye"
+            ? billets.length > 1
+              ? "Tes billets sont confirmés"
+              : "Ton billet est confirmé"
+            : billets.length > 1
+              ? "Tes billets sont réservés"
+              : "Ton billet est réservé"}{" "}
+          · envoyé à <b>{user.email}</b>
         </p>
 
         {billets.map((b) => (
@@ -129,8 +135,9 @@ export default async function Confirmation({
         <p className="note-c">
           Présente ce QR code à l&apos;entrée de l&apos;événement.
           <br />
-          Paiement Mobile Money via FedaPay : intégration en cours — tes billets
-          sont réservés.
+          {order.statut === "paye"
+            ? "Un email de confirmation t'a été envoyé."
+            : "Paiement en attente — il sera confirmé dès la validation FedaPay."}
         </p>
         <Link className="suite" href="/compte">
           Voir mes billets →
