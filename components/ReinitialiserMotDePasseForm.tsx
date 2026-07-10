@@ -10,7 +10,11 @@ type Etat = "verification" | "pret" | "invalide" | "termine";
 export default function ReinitialiserMotDePasseForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = creerClientNavigateur();
+  // detectSessionInUrl désactivé : on traite nous-mêmes le jeton du hash
+  // (#access_token=...), à usage unique — sinon, en React Strict Mode (dev),
+  // les instances de client créées en double se le disputeraient et la
+  // perdante de la course ne trouverait plus rien.
+  const [supabase] = useState(() => creerClientNavigateur({ detectSessionInUrl: false }));
 
   const [etat, setEtat] = useState<Etat>("verification");
   const [motDePasse, setMotDePasse] = useState("");
@@ -19,16 +23,41 @@ export default function ReinitialiserMotDePasseForm() {
   const [erreur, setErreur] = useState<string | null>(null);
 
   useEffect(() => {
-    const code = searchParams.get("code");
-    if (!code) {
+    async function verifier() {
+      // Le lien Supabase peut signaler une erreur directement dans le hash
+      // (ex. lien déjà utilisé ou expiré) : #error=access_denied&error_code=otp_expired
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      if (hash.get("error")) {
+        setEtat("invalide");
+        return;
+      }
+
+      // Flux implicite : le lien contient #access_token=...&refresh_token=...&type=recovery.
+      const accessToken = hash.get("access_token");
+      const refreshToken = hash.get("refresh_token");
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        // On retire le jeton de l'URL (barre d'adresse, historique) une fois consommé.
+        window.history.replaceState(null, "", window.location.pathname);
+        setEtat(error ? "invalide" : "pret");
+        return;
+      }
+
+      // Flux PKCE : le lien contient ?code=... à échanger contre une session.
+      const code = searchParams.get("code");
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        setEtat(error ? "invalide" : "pret");
+        return;
+      }
+
       setEtat("invalide");
-      return;
     }
-    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-      setEtat(error ? "invalide" : "pret");
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    verifier();
+  }, [supabase, searchParams]);
 
   async function valider(e: React.FormEvent) {
     e.preventDefault();
