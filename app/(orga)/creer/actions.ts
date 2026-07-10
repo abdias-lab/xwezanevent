@@ -22,10 +22,12 @@ function slugify(s: string): string {
 }
 
 /**
- * Publie un événement pour l'organisateur connecté.
- * - Auth requise ; un visiteur est promu « organisateur » à sa 1re publication.
+ * Soumet un événement à la modération pour l'organisateur connecté.
+ * - Auth requise ; un visiteur est promu « organisateur » à sa 1re soumission.
  * - Écriture via service_role (les policies RLS bloquent l'INSERT direct).
  * - Slug unique généré depuis le titre.
+ * - L'événement est créé en statut 'en_validation' : il ne devient visible
+ *   publiquement qu'après validation par un admin (/api/admin/events/[id]/valider).
  */
 export async function publierEvenement(formData: FormData) {
   const supabase = creerClientServeur();
@@ -95,7 +97,10 @@ export async function publierEvenement(formData: FormData) {
       date_debut,
       heure,
       affiche_url,
-      statut: "publie",
+      // Statut TOUJOURS forcé côté serveur, jamais lu depuis le formulaire :
+      // la modération admin est obligatoire avant publication (voir
+      // /api/admin/events/[id]/valider, seule route habilitée à passer 'publie').
+      statut: "en_validation",
     })
     .select("id, slug")
     .single();
@@ -127,9 +132,9 @@ export async function publierEvenement(formData: FormData) {
     if (e2) throw new Error(`Création billets impossible : ${e2.message}`);
   }
 
-  // L'événement publié doit apparaître immédiatement sur l'accueil et le listing
-  revalidatePath("/");
-  revalidatePath("/evenements");
+  // Rafraîchit le tableau de bord organisateur, où l'événement apparaît
+  // immédiatement avec le badge « En validation ».
+  revalidatePath("/orga");
 
-  redirect(`/evenement/${ev.slug}`);
+  redirect("/orga");
 }
