@@ -1480,6 +1480,18 @@
     background: var(--accent);
     color: var(--sur-accent);
   }
+  .mdp-oublie {
+    text-align: right;
+    margin: -10px 0 18px;
+    font-size: 0.86rem;
+  }
+  .mdp-oublie a {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .mdp-oublie a:hover {
+    text-decoration: underline;
+  }
   .bascule {
     text-align: center;
     margin-top: 24px;

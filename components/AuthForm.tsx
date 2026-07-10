@@ -136,7 +136,9 @@ export default function AuthForm({ redirect = "/" }: { redirect?: string }) {
               required
             />
           </div>
-          {/* TODO: pas de lien "Mot de passe oublié" — à implémenter (flow de réinitialisation Supabase) */}
+          <p className="mdp-oublie">
+            <Link href="/mot-de-passe-oublie">Mot de passe oublié ?</Link>
+          </p>
           <button className="btn btn-or btn-large" disabled={enCours}>
             {enCours ? "Connexion…" : "Se connecter"}
           </button>
