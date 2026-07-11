@@ -174,3 +174,13 @@ BEGIN
   );
 END;
 $$;
+
+-- CREATE OR REPLACE ne réinitialise pas les privilèges existants tant que
+-- la signature ne change pas, mais on les re-déclare explicitement dans
+-- chaque migration qui touche une fonction SECURITY DEFINER : chaque
+-- fichier reste correct et auditable isolément, sans dépendre de l'état
+-- laissé par une migration précédente.
+REVOKE EXECUTE ON FUNCTION public.valider_billet(UUID, UUID) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.valider_billet(UUID, UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.valider_billet(UUID, UUID) FROM authenticated;
+GRANT  EXECUTE ON FUNCTION public.valider_billet(UUID, UUID) TO   service_role;
