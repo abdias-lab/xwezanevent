@@ -155,7 +155,7 @@ export default async function Evenements({
       <footer className="footer-mini">
         <div className="in">
           <span>© 2026 XwézanEvent — Cotonou, Bénin</span>
-          <span className="fon">Mì wá dó gbè !&nbsp;· La fête vous attend.</span>
+          <span className="fon">Mì wá djawá !&nbsp;· La fête vous attend.</span>
         </div>
       </footer>
     </>

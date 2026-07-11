@@ -32,7 +32,7 @@ ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;"
 ${contenu}
 </td></tr>
 <tr><td style="padding:20px 32px;border-top:1px solid rgba(228,169,63,0.16);color:#b7a88f;font-size:12px;line-height:1.6;">
-XwézanEvent — La billetterie du Bénin<br />Mì wá dó gbè ! · La fête vous attend.
+XwézanEvent — La billetterie du Bénin<br />Mì wá djawá ! · La fête vous attend.
 </td></tr>
 </table>
 </td></tr>

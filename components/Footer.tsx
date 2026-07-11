@@ -60,7 +60,7 @@ export default function Footer() {
 
         <div className="foot-bas">
           <span>© 2026 XwézanEvent — Cotonou, Bénin</span>
-          <span className="fon">Mì wá dó gbè !&nbsp;· La fête vous attend.</span>
+          <span className="fon">Mì wá djawá !&nbsp;· La fête vous attend.</span>
         </div>
       </div>
     </footer>

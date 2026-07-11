@@ -186,7 +186,7 @@ export default async function Compte() {
           <span>
             <Link href="/evenements">← Tous les événements</Link>
           </span>
-          <span className="fon">Mì wá dó gbè !&nbsp;· La fête vous attend.</span>
+          <span className="fon">Mì wá djawá !&nbsp;· La fête vous attend.</span>
         </div>
       </footer>
     </>
