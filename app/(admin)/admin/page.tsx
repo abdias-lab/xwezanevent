@@ -41,8 +41,10 @@ interface PayoutDemande {
   id: string;
   montant: number;
   moyen: string;
+  statut: string;
   created_at: string;
   organisateur: { nom: string } | null;
+  events: { titre: string } | null;
 }
 
 export default async function AdminPage() {
@@ -97,8 +99,8 @@ export default async function AdminPage() {
       .order("created_at", { ascending: true }),
     supabase
       .from("payouts")
-      .select("id, montant, moyen, created_at, organisateur:profiles(nom)")
-      .eq("statut", "demande")
+      .select("id, montant, moyen, statut, created_at, organisateur:profiles(nom), events(titre)")
+      .in("statut", ["demande", "bloque"])
       .order("created_at", { ascending: true }),
   ]);
 
@@ -266,9 +268,11 @@ export default async function AdminPage() {
               <thead>
                 <tr>
                   <th>Organisateur</th>
+                  <th>Événement</th>
                   <th>Montant</th>
                   <th>Moyen</th>
                   <th>Demandé le</th>
+                  <th>Statut</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -276,11 +280,25 @@ export default async function AdminPage() {
                 {payouts.map((p) => (
                   <tr key={p.id}>
                     <td className="ev-nom">{p.organisateur?.nom ?? "—"}</td>
+                    <td>{p.events?.titre ?? "—"}</td>
                     <td className="rev">{fmt(p.montant)} F</td>
                     <td>{p.moyen.toUpperCase()}</td>
                     <td>{formatDateCourte(p.created_at)}</td>
                     <td>
-                      <ActionsPayout payoutId={p.id} />
+                      {p.statut === "bloque" ? (
+                        <span className="statut st-annule">Gelé</span>
+                      ) : (
+                        <span className="statut st-attente">En attente</span>
+                      )}
+                    </td>
+                    <td>
+                      {p.statut === "demande" ? (
+                        <ActionsPayout payoutId={p.id} />
+                      ) : (
+                        <span style={{ color: "var(--texte2)", fontSize: "0.82rem" }}>
+                          Événement annulé
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

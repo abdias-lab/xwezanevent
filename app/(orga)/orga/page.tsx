@@ -1,6 +1,7 @@
 import Link from "next/link";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import ActionsEvenementOrga from "@/components/orga/ActionsEvenementOrga";
+import DemandeVirement from "@/components/orga/DemandeVirement";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -49,22 +50,41 @@ export default async function Orga() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/connexion?redirect=/orga");
 
-  const { data } = await supabase
-    .from("events")
-    .select(
-      "id, titre, slug, date_debut, statut, ticket_types(prix, quantite_totale, quantite_vendue)"
-    )
-    .eq("organisateur_id", user.id)
-    .order("date_debut", { ascending: false });
+  const [{ data }, { data: payoutsData }] = await Promise.all([
+    supabase
+      .from("events")
+      .select(
+        "id, titre, slug, date_debut, statut, ticket_types(prix, quantite_totale, quantite_vendue)"
+      )
+      .eq("organisateur_id", user.id)
+      .order("date_debut", { ascending: false }),
+    supabase
+      .from("payouts")
+      .select("event_id, montant, statut")
+      .eq("organisateur_id", user.id)
+      .in("statut", ["demande", "traite"]),
+  ]);
 
   const events = (data as unknown as EventOrga[]) ?? [];
+
+  const dejaDemandeParEvenement = new Map<string, number>();
+  for (const p of (payoutsData ?? []) as { event_id: string; montant: number }[]) {
+    dejaDemandeParEvenement.set(p.event_id, (dejaDemandeParEvenement.get(p.event_id) ?? 0) + p.montant);
+  }
+
+  const STATUTS_SANS_VIREMENT = new Set(["annule", "refuse"]);
 
   // Agrégats par événement + totaux
   const lignes = events.map((ev) => {
     const vendus = ev.ticket_types.reduce((s, t) => s + t.quantite_vendue, 0);
     const capacite = ev.ticket_types.reduce((s, t) => s + t.quantite_totale, 0);
     const revenu = ev.ticket_types.reduce((s, t) => s + t.prix * t.quantite_vendue, 0);
-    return { ev, vendus, capacite, revenu };
+    const revenuNetEvenement = Math.round(revenu * 0.94);
+    const dejaDemande = dejaDemandeParEvenement.get(ev.id) ?? 0;
+    const disponible = STATUTS_SANS_VIREMENT.has(ev.statut)
+      ? 0
+      : Math.max(0, revenuNetEvenement - dejaDemande);
+    return { ev, vendus, capacite, revenu, disponible };
   });
 
   const nbPublies = events.filter((e) => e.statut === "publie").length;
@@ -174,7 +194,7 @@ export default async function Orga() {
                 </tr>
               </thead>
               <tbody>
-                {lignes.map(({ ev, vendus, capacite, revenu }) => {
+                {lignes.map(({ ev, vendus, capacite, revenu, disponible }) => {
                   const badge = BADGE[ev.statut] ?? { cls: "st-fini", txt: ev.statut };
                   return (
                     <tr key={ev.id}>
@@ -192,9 +212,14 @@ export default async function Orga() {
                         <span className={`statut ${badge.cls}`}>{badge.txt}</span>
                       </td>
                       <td>
-                        {STATUTS_ANNULABLES.has(ev.statut) && (
-                          <ActionsEvenementOrga eventId={ev.id} titre={ev.titre} />
-                        )}
+                        <div className="act">
+                          {disponible > 0 && (
+                            <DemandeVirement eventId={ev.id} titre={ev.titre} disponible={disponible} />
+                          )}
+                          {STATUTS_ANNULABLES.has(ev.statut) && (
+                            <ActionsEvenementOrga eventId={ev.id} titre={ev.titre} />
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
