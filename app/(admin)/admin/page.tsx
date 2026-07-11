@@ -247,7 +247,7 @@ export default async function AdminPage() {
                         <span className="statut st-attente">En attente</span>
                       </td>
                       <td>
-                        <ActionsEvenement eventId={ev.id} />
+                        <ActionsEvenement eventId={ev.id} titre={ev.titre} />
                       </td>
                     </tr>
                   );

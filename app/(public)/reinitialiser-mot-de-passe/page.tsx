@@ -1,12 +1,28 @@
-import { Suspense } from "react";
 import ReinitialiserMotDePasseForm from "@/components/ReinitialiserMotDePasseForm";
+import { creerClientServeur } from "@/lib/supabase-server";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Nouveau mot de passe — XwézanEvent",
 };
 
-export default function ReinitialiserMotDePasse() {
+/**
+ * La session est déjà établie (ou non) AVANT que cette page ne se rende :
+ * /auth/confirm a échangé le token_hash du lien email contre une session
+ * posée en cookies côté serveur, puis a redirigé ici. Il suffit de vérifier
+ * si cette session existe — aucun parsing de hash/token côté client.
+ */
+export default async function ReinitialiserMotDePasse({
+  searchParams,
+}: {
+  searchParams: { erreur?: string };
+}) {
+  const supabase = creerClientServeur();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const lienValide = !!session && searchParams.erreur !== "lien_invalide";
+
   return (
     <div className="split">
       <div className="marque">
@@ -24,9 +40,7 @@ export default function ReinitialiserMotDePasse() {
       </div>
 
       <div className="cote-form">
-        <Suspense fallback={null}>
-          <ReinitialiserMotDePasseForm />
-        </Suspense>
+        <ReinitialiserMotDePasseForm lienValide={lienValide} />
       </div>
     </div>
   );

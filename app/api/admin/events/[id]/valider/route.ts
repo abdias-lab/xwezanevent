@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifierAdmin, journaliserActionAdmin } from "@/lib/admin-auth";
+import { envoyerEmail, emailUtilisateur } from "@/lib/email";
+import { emailEvenementValide } from "@/lib/emails/evenement-statut";
 
 /**
  * Fait passer un événement 'en_validation' → 'publie'.
@@ -19,7 +21,7 @@ export async function POST(
     .update({ statut: "publie" })
     .eq("id", params.id)
     .eq("statut", "en_validation")
-    .select("id, titre")
+    .select("id, titre, slug, organisateur_id")
     .maybeSingle();
 
   if (error) {
@@ -37,6 +39,21 @@ export async function POST(
     event_id: data.id,
     titre: data.titre,
   });
+
+  // Best-effort : ne fait jamais échouer la validation.
+  try {
+    const destinataire = await emailUtilisateur(data.organisateur_id);
+    if (destinataire) {
+      const origine = process.env.NEXT_PUBLIC_SITE_URL ?? "https://xwezanevent.vercel.app";
+      const { subject, html } = emailEvenementValide({
+        titre: data.titre,
+        lienEvenement: `${origine}/evenement/${data.slug}`,
+      });
+      await envoyerEmail({ to: destinataire, subject, html });
+    }
+  } catch (e) {
+    console.error("[api/admin/events/valider] échec envoi email :", e);
+  }
 
   return NextResponse.json({ ok: true });
 }

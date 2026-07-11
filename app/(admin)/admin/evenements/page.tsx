@@ -171,7 +171,7 @@ export default async function AdminEvenements({
                       </td>
                       <td>
                         {ev.statut === "en_validation" ? (
-                          <ActionsEvenement eventId={ev.id} />
+                          <ActionsEvenement eventId={ev.id} titre={ev.titre} />
                         ) : (
                           <ActionsEvenementGestion
                             eventId={ev.id}
