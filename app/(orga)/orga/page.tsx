@@ -1,5 +1,6 @@
 import Link from "next/link";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
+import ActionsEvenementOrga from "@/components/orga/ActionsEvenementOrga";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -36,7 +37,10 @@ const BADGE: Record<string, { cls: string; txt: string }> = {
   brouillon: { cls: "st-fini", txt: "Brouillon" },
   termine: { cls: "st-fini", txt: "Terminé" },
   refuse: { cls: "st-fini", txt: "Refusé" },
+  annule: { cls: "st-annule", txt: "Annulé" },
 };
+
+const STATUTS_ANNULABLES = new Set(["brouillon", "en_validation", "publie"]);
 
 export default async function Orga() {
   const supabase = creerClientServeur();
@@ -166,6 +170,7 @@ export default async function Orga() {
                   <th>Ventes</th>
                   <th>Revenu</th>
                   <th>Statut</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -185,6 +190,11 @@ export default async function Orga() {
                       <td className="rev">{revenu > 0 ? `${fmt(revenu)} F` : "—"}</td>
                       <td>
                         <span className={`statut ${badge.cls}`}>{badge.txt}</span>
+                      </td>
+                      <td>
+                        {STATUTS_ANNULABLES.has(ev.statut) && (
+                          <ActionsEvenementOrga eventId={ev.id} titre={ev.titre} />
+                        )}
                       </td>
                     </tr>
                   );

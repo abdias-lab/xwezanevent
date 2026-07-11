@@ -2,6 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { journaliserAction } from "@/lib/journal";
 
 interface AdminAutorise {
   adminId: string;
@@ -46,14 +47,11 @@ export async function verifierAdmin(): Promise<AdminAutorise | AdminRefuse> {
   return { adminId: user.id, erreur: null };
 }
 
-/** Journalise toute action admin en console serveur (id admin + horodatage). */
+/** Journalise toute action admin (persisté en base + console serveur). */
 export function journaliserActionAdmin(
   adminId: string,
   action: string,
   detail?: Record<string, unknown>
 ) {
-  console.log(
-    `[admin] ${new Date().toISOString()} — admin=${adminId} — ${action}`,
-    detail ?? ""
-  );
+  void journaliserAction(adminId, "admin", action, detail);
 }

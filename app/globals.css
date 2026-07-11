@@ -1716,6 +1716,11 @@
     color: var(--texte2);
     border: 1px solid color-mix(in srgb, var(--texte2) 35%, transparent);
   }
+  .st-annule {
+    background: color-mix(in srgb, #c4502e 16%, transparent);
+    color: #c4502e;
+    border: 1px solid color-mix(in srgb, #c4502e 45%, transparent);
+  }
   .corps-cp {
     max-width: 1240px;
     margin: 0 auto;
@@ -2320,6 +2325,16 @@
   .kpi .delta.neutre {
     color: var(--texte2);
   }
+  a.kpi {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  a.kpi:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
   .tableau-panneau {
     background: var(--surface);
     border: 1px solid var(--ligne);
@@ -2404,6 +2419,70 @@
   }
   .btn-refus:hover {
     filter: brightness(1.15);
+  }
+  .btn-annuler {
+    background: none;
+    color: #c4502e;
+    border: 1px solid color-mix(in srgb, #c4502e 45%, transparent);
+  }
+  .btn-annuler:hover {
+    filter: brightness(1.15);
+  }
+  .btn-annuler:disabled,
+  .btn-supprimer:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .btn-supprimer {
+    background: none;
+    color: var(--texte2);
+    border: 1px solid var(--ligne);
+  }
+  .btn-supprimer:hover {
+    border-color: #c4502e;
+    color: #c4502e;
+  }
+
+  .modale-fond {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: rgba(10, 6, 3, 0.68);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modale {
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 18px;
+    padding: 28px;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: 0 24px 54px var(--ombre);
+  }
+  .modale h3 {
+    font-family: var(--bricolage);
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+    margin-bottom: 10px;
+  }
+  .modale p {
+    font-size: 0.9rem;
+    color: var(--texte2);
+    line-height: 1.55;
+    margin-bottom: 16px;
+  }
+  .modale p strong {
+    color: var(--texte);
+  }
+  .modale-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
   }
 
   /* Pied de page réduit (pages internes) */

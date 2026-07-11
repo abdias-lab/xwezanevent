@@ -130,6 +130,10 @@ export default async function AdminPage() {
         <Link className="item actif" href="/admin">
           📊 Vue d&apos;ensemble
         </Link>
+        <Link className="item" href="/admin/evenements">🗓️ Événements</Link>
+        <Link className="item" href="/admin/billets">🎟️ Billets</Link>
+        <Link className="item" href="/admin/commissions">💰 Commissions</Link>
+        <Link className="item" href="/admin/organisateurs">👥 Organisateurs</Link>
 
         <div className="bas">
           <div className="avatar">{initiale}</div>
@@ -157,23 +161,23 @@ export default async function AdminPage() {
             <div className="valeur">{fmt(billetsVendusMois)}</div>
             <div className="delta neutre">ce mois-ci</div>
           </div>
-          <div className="kpi">
+          <Link className="kpi" href="/admin/commissions">
             <div className="libelle">Commissions perçues</div>
             <div className="valeur">
               {fmt(commissions)} <small>FCFA</small>
             </div>
-            <div className="delta neutre">6% des commandes payées</div>
-          </div>
+            <div className="delta neutre">6% des commandes payées · détail par événement →</div>
+          </Link>
           <div className="kpi">
             <div className="libelle">Événements en attente</div>
             <div className="valeur">{eventsEnAttenteCount}</div>
             <div className="delta neutre">à valider</div>
           </div>
-          <div className="kpi">
+          <Link className="kpi" href="/admin/organisateurs">
             <div className="libelle">Organisateurs actifs</div>
             <div className="valeur">{organisateursActifs}</div>
-            <div className="delta neutre">comptes organisateur</div>
-          </div>
+            <div className="delta neutre">comptes organisateur · voir le détail →</div>
+          </Link>
         </div>
 
         <div className="tableau-panneau" style={{ marginBottom: 24 }}>
