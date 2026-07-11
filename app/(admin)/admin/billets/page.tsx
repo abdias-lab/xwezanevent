@@ -96,6 +96,7 @@ export default async function AdminBillets({
         <Link className="item actif" href="/admin/billets">🎟️ Billets</Link>
         <Link className="item" href="/admin/commissions">💰 Commissions</Link>
         <Link className="item" href="/admin/organisateurs">👥 Organisateurs</Link>
+        <Link className="item" href="/admin/evenements?statut=termine">🏁 Terminés</Link>
 
         <div className="bas">
           <BoutonDeconnexion />

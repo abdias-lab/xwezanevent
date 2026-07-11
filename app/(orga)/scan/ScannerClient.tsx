@@ -28,6 +28,7 @@ function labelRaison(r: ScanResult & { ok: false }): string {
     inconnu: "QR non reconnu",
     annule: "Billet annulé",
     non_autorise: "Non autorisé",
+    evenement_termine: "Événement terminé",
   };
   return msgs[r.raison] ?? "Refusé";
 }

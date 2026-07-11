@@ -142,7 +142,19 @@ export default async function EvenementDetail({
           </div>
         </div>
 
-        <Billetterie slug={ev.slug} ticketTypes={ev.ticketTypes} />
+        {ev.estTermine ? (
+          <aside className="billetterie" aria-label="Billetterie">
+            <h2>Événement terminé</h2>
+            <p className="limite">
+              Cet événement est passé — la billetterie n&apos;est plus disponible.
+            </p>
+            <Link className="btn btn-ghost" href="/evenements" style={{ display: "block", textAlign: "center" }}>
+              Voir les événements à venir →
+            </Link>
+          </aside>
+        ) : (
+          <Billetterie slug={ev.slug} ticketTypes={ev.ticketTypes} />
+        )}
       </div>
 
       <footer className="footer-mini">

@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { aujourdhuiPortoNovo } from "@/lib/date";
 
 const MOIS_COURTS = [
   "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
@@ -51,6 +52,11 @@ function mapRow(ev: EventRow): CarteData {
 /**
  * Événements publiés + prix du ticket_type le moins cher (« à partir de »),
  * triés par date croissante. Filtre optionnel par catégorie.
+ *
+ * Exclut les événements dont la date est passée par une comparaison de
+ * date directe (pas seulement `statut = 'publie'`) : reste correct même
+ * si cloturer_evenements_passes()/pg_cron n'est pas encore passé sur cet
+ * événement (voir supabase/migrations/20260712120000_evenements_termines.sql).
  */
 export async function getEvenementsPublies(
   opts: { categorie?: string } = {}
@@ -60,7 +66,8 @@ export async function getEvenementsPublies(
     .select(
       "slug, titre, categorie, ville, lieu, date_debut, affiche_url, ticket_types(prix)"
     )
-    .eq("statut", "publie");
+    .eq("statut", "publie")
+    .gte("date_debut", aujourdhuiPortoNovo());
 
   if (opts.categorie) {
     query = query.eq("categorie", opts.categorie);
@@ -92,6 +99,8 @@ export interface EvenementDetail {
   date_debut: string;
   heure: string | null;
   affiche_url: string | null;
+  /** true si l'événement est passé (date_debut < aujourd'hui, ou statut déjà 'termine') */
+  estTermine: boolean;
   ticketTypes: TicketTypeDetail[];
 }
 
@@ -105,6 +114,7 @@ interface EventDetailRow {
   date_debut: string;
   heure: string | null;
   affiche_url: string | null;
+  statut: string;
   ticket_types: {
     id: string;
     nom: string;
@@ -114,17 +124,27 @@ interface EventDetailRow {
   }[];
 }
 
-/** Un événement publié détaillé (avec ses ticket_types), ou null si absent. */
+/**
+ * Un événement publié ou terminé, détaillé (avec ses ticket_types), ou
+ * null si absent/pas encore validé. Les événements 'termine' restent
+ * consultables (voir RLS "Published and terminated events readable") pour
+ * que la page reste accessible en direct par URL, avec la billetterie
+ * remplacée par un message "Événement terminé" (estTermine).
+ *
+ * estTermine se base sur la DATE, pas seulement sur `statut`, pour rester
+ * correct même si cloturer_evenements_passes()/pg_cron n'est pas encore
+ * passé sur cet événement précis.
+ */
 export async function getEvenementParSlug(
   slug: string
 ): Promise<EvenementDetail | null> {
   const { data, error } = await supabase
     .from("events")
     .select(
-      "slug, titre, description, categorie, ville, lieu, date_debut, heure, affiche_url, ticket_types(id, nom, prix, quantite_totale, quantite_vendue)"
+      "slug, titre, description, categorie, ville, lieu, date_debut, heure, affiche_url, statut, ticket_types(id, nom, prix, quantite_totale, quantite_vendue)"
     )
     .eq("slug", slug)
-    .eq("statut", "publie")
+    .in("statut", ["publie", "termine"])
     .maybeSingle();
 
   if (error) {
@@ -134,6 +154,7 @@ export async function getEvenementParSlug(
   if (!data) return null;
 
   const row = data as EventDetailRow;
+  const estTermine = row.statut === "termine" || row.date_debut < aujourdhuiPortoNovo();
   return {
     slug: row.slug,
     titre: row.titre,
@@ -144,6 +165,7 @@ export async function getEvenementParSlug(
     date_debut: row.date_debut,
     heure: row.heure,
     affiche_url: row.affiche_url,
+    estTermine,
     ticketTypes: row.ticket_types
       .map((t) => ({
         id: t.id,
@@ -160,7 +182,8 @@ export async function getCategoriesPubliees(): Promise<string[]> {
   const { data, error } = await supabase
     .from("events")
     .select("categorie")
-    .eq("statut", "publie");
+    .eq("statut", "publie")
+    .gte("date_debut", aujourdhuiPortoNovo());
 
   if (error || !data) return [];
 

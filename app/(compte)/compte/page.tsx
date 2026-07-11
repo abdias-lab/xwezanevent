@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import AfficheEvenement from "@/components/AfficheEvenement";
 import { creerClientServeur } from "@/lib/supabase-server";
+import { aujourdhuiPortoNovo } from "@/lib/date";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -114,7 +115,7 @@ export default async function Compte() {
     (c) => c.events !== null
   );
 
-  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const aujourdhui = aujourdhuiPortoNovo();
   const aVenir = commandes.filter((c) => c.events!.date_debut >= aujourdhui);
   const passes = commandes.filter((c) => c.events!.date_debut < aujourdhui);
 

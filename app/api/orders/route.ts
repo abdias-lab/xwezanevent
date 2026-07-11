@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { creerTransactionEtLien } from "@/lib/fedapay";
+import { aujourdhuiPortoNovo } from "@/lib/date";
 
 const FRAIS_TAUX = 0.06;
 
@@ -56,12 +57,21 @@ export async function POST(req: NextRequest) {
   // 3. Événement publié + types de billets (source de vérité des prix/stock)
   const { data: ev } = await supabaseAdmin
     .from("events")
-    .select("id, titre, ticket_types(id, nom, prix, quantite_totale, quantite_vendue)")
+    .select("id, titre, date_debut, ticket_types(id, nom, prix, quantite_totale, quantite_vendue)")
     .eq("slug", slug)
     .eq("statut", "publie")
     .maybeSingle();
   if (!ev) {
     return NextResponse.json({ error: "Événement introuvable" }, { status: 404 });
+  }
+  // Vérifié par DATE, pas seulement par statut : reste correct même si
+  // cloturer_evenements_passes()/pg_cron n'est pas encore passé sur cet
+  // événement (voir supabase/migrations/20260712120000_evenements_termines.sql).
+  if (ev.date_debut < aujourdhuiPortoNovo()) {
+    return NextResponse.json(
+      { error: "Cet événement est terminé, la billetterie est fermée" },
+      { status: 409 }
+    );
   }
   const parId = new Map<string, TicketTypeRow>(
     (ev.ticket_types as TicketTypeRow[]).map((t) => [t.id, t])

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import ActionsEvenement from "@/components/admin/ActionsEvenement";
 import ActionsEvenementGestion from "@/components/admin/ActionsEvenementGestion";
@@ -62,6 +63,9 @@ export default async function AdminEvenements({
     .single();
   if (!profil || profil.role !== "admin") redirect("/");
 
+  // Filet de sécurité si pg_cron n'est pas disponible/activé sur ce projet.
+  await supabaseAdmin.rpc("cloturer_evenements_passes");
+
   const statutFiltre = searchParams.statut ?? "";
 
   let query = supabase
@@ -90,6 +94,7 @@ export default async function AdminEvenements({
         <Link className="item" href="/admin/billets">🎟️ Billets</Link>
         <Link className="item" href="/admin/commissions">💰 Commissions</Link>
         <Link className="item" href="/admin/organisateurs">👥 Organisateurs</Link>
+        <Link className="item" href="/admin/evenements?statut=termine">🏁 Terminés</Link>
 
         <div className="bas">
           <BoutonDeconnexion />

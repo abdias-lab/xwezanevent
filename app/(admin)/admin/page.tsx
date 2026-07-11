@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import ActionsEvenement from "@/components/admin/ActionsEvenement";
 import ActionsPayout from "@/components/admin/ActionsPayout";
@@ -61,6 +62,11 @@ export default async function AdminPage() {
     .single();
 
   if (!profil || profil.role !== "admin") redirect("/");
+
+  // Filet de sécurité si pg_cron n'est pas disponible/activé sur ce projet
+  // Supabase : la colonne statut se met quand même à jour à chaque visite
+  // admin (voir supabase/migrations/20260712120000_evenements_termines.sql).
+  await supabaseAdmin.rpc("cloturer_evenements_passes");
 
   const debutMois = new Date(
     new Date().getFullYear(),
@@ -136,6 +142,7 @@ export default async function AdminPage() {
         <Link className="item" href="/admin/billets">🎟️ Billets</Link>
         <Link className="item" href="/admin/commissions">💰 Commissions</Link>
         <Link className="item" href="/admin/organisateurs">👥 Organisateurs</Link>
+        <Link className="item" href="/admin/evenements?statut=termine">🏁 Terminés</Link>
 
         <div className="bas">
           <div className="avatar">{initiale}</div>
