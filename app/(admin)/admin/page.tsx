@@ -5,6 +5,7 @@ import { creerClientServeur } from "@/lib/supabase-server";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import ActionsEvenement from "@/components/admin/ActionsEvenement";
 import ActionsPayout from "@/components/admin/ActionsPayout";
+import AfficheEvenement from "@/components/AfficheEvenement";
 
 export const metadata: Metadata = {
   title: "Administration — XwézanEvent",
@@ -31,6 +32,7 @@ interface EventEnAttente {
   id: string;
   titre: string;
   date_debut: string;
+  affiche_url: string | null;
   organisateur: { nom: string } | null;
   ticket_types: { prix: number; quantite_totale: number }[];
 }
@@ -89,7 +91,7 @@ export default async function AdminPage() {
     supabase
       .from("events")
       .select(
-        "id, titre, date_debut, organisateur:profiles(nom), ticket_types(prix, quantite_totale)"
+        "id, titre, date_debut, affiche_url, organisateur:profiles(nom), ticket_types(prix, quantite_totale)"
       )
       .eq("statut", "en_validation")
       .order("created_at", { ascending: true }),
@@ -191,6 +193,7 @@ export default async function AdminPage() {
             <table className="donnees">
               <thead>
                 <tr>
+                  <th>Affiche</th>
                   <th>Événement</th>
                   <th>Organisateur</th>
                   <th>Date</th>
@@ -210,6 +213,15 @@ export default async function AdminPage() {
                     : 0;
                   return (
                     <tr key={ev.id}>
+                      <td>
+                        <AfficheEvenement
+                          className="ev-affiche"
+                          src={ev.affiche_url}
+                          alt={ev.titre}
+                          width={44}
+                          height={44}
+                        />
+                      </td>
                       <td className="ev-nom">{ev.titre}</td>
                       <td>{ev.organisateur?.nom ?? "—"}</td>
                       <td>{formatDate(ev.date_debut)}</td>

@@ -1,8 +1,8 @@
 import Header from "@/components/Header";
 import Billetterie from "@/components/Billetterie";
+import AfficheEvenement from "@/components/AfficheEvenement";
 import { getEvenementParSlug } from "@/lib/events";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -54,9 +54,9 @@ export default async function EvenementDetail({
 
       {/* --------------------------- BANNIÈRE --------------------------- */}
       <div className="banniere">
-        <Image
+        <AfficheEvenement
           className="photo"
-          src={ev.affiche_url ?? "/images/vodun-days.jpg"}
+          src={ev.affiche_url}
           alt={ev.titre}
           fill
           priority

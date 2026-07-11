@@ -10,9 +10,12 @@ const nextConfig = {
     // (URL d'affiche saisie par les organisateurs).
     remotePatterns: [{ protocol: "https", hostname: "**" }],
   },
-  ...(surVercel
-    ? {}
-    : { experimental: { workerThreads: false, cpus: 1 } }),
+  experimental: {
+    // Par défaut Next limite le corps des Server Actions à 1 Mo : trop
+    // petit pour l'upload d'affiche (5 Mo max + marge multipart).
+    serverActions: { bodySizeLimit: "6mb" },
+    ...(surVercel ? {} : { workerThreads: false, cpus: 1 }),
+  },
 };
 
 export default nextConfig;

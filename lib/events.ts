@@ -25,7 +25,7 @@ export interface CarteData {
   prix: number;
   jour: string;
   mois: string;
-  image: string;
+  image: string | null;
   href: string;
 }
 
@@ -43,7 +43,7 @@ function mapRow(ev: EventRow): CarteData {
     prix,
     jour,
     mois: MOIS_COURTS[parseInt(mois, 10) - 1] ?? "",
-    image: ev.affiche_url ?? "/images/vodun-days.jpg",
+    image: ev.affiche_url,
     href: `/evenement/${ev.slug}`,
   };
 }

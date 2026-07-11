@@ -4,6 +4,8 @@ import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "crypto";
+import { TAILLE_AFFICHE_MAX, TYPES_AFFICHE_AUTORISES } from "@/lib/affiche";
 
 interface TicketSaisi {
   nom?: string;
@@ -19,6 +21,34 @@ function slugify(s: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Valide et envoie l'affiche dans le bucket Storage "affiches".
+ * Le nom d'origine n'est jamais utilisé : le fichier est renommé avec un
+ * UUID pour éviter collisions/traversal et ne pas exposer le nom du client.
+ */
+async function uploaderAffiche(fichier: File): Promise<string> {
+  const extension = TYPES_AFFICHE_AUTORISES[fichier.type];
+  if (!extension) {
+    throw new Error("Format d'image non supporté (JPG, PNG ou WebP uniquement).");
+  }
+  if (fichier.size > TAILLE_AFFICHE_MAX) {
+    throw new Error("L'affiche ne doit pas dépasser 5 Mo.");
+  }
+
+  const nomFichier = `${randomUUID()}.${extension}`;
+  const octets = new Uint8Array(await fichier.arrayBuffer());
+
+  const { error } = await supabaseAdmin.storage
+    .from("affiches")
+    .upload(nomFichier, octets, { contentType: fichier.type, upsert: false });
+  if (error) {
+    throw new Error(`Envoi de l'affiche impossible : ${error.message}`);
+  }
+
+  const { data } = supabaseAdmin.storage.from("affiches").getPublicUrl(nomFichier);
+  return data.publicUrl;
 }
 
 /**
@@ -43,7 +73,19 @@ export async function publierEvenement(formData: FormData) {
   const heure = String(formData.get("heure") || "") || null;
   const lieu = String(formData.get("lieu") || "").trim();
   const ville = String(formData.get("ville") || "").trim();
-  const affiche_url = String(formData.get("affiche_url") || "").trim() || null;
+
+  let affiche_url: string | null = null;
+  const fichierAffiche = formData.get("affiche");
+  if (fichierAffiche instanceof File && fichierAffiche.size > 0) {
+    let echec = false;
+    try {
+      affiche_url = await uploaderAffiche(fichierAffiche);
+    } catch (e) {
+      console.error("[creer] échec upload affiche :", (e as Error).message);
+      echec = true;
+    }
+    if (echec) redirect("/creer?erreur=affiche");
+  }
 
   let ticketsSaisis: TicketSaisi[] = [];
   try {

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import AfficheEvenement from "@/components/AfficheEvenement";
 import Link from "next/link";
 
 export interface CarteEvenementProps {
@@ -12,7 +12,7 @@ export interface CarteEvenementProps {
   prixLegende?: string;
   jour: string;
   mois: string;
-  image: string;
+  image: string | null;
   href?: string;
 }
 
@@ -38,7 +38,7 @@ export default function CarteEvenement({
     <article className="carte">
       <Link href={lien} aria-label={`${titre} — voir l'événement`}>
         <div className="visuel">
-          <Image
+          <AfficheEvenement
             className="photo"
             src={image}
             alt={titre}

@@ -2057,6 +2057,82 @@
     color: var(--accent);
     margin-top: 10px;
   }
+  .sans-affiche {
+    background: linear-gradient(135deg, var(--secondaire), color-mix(in srgb, var(--secondaire) 55%, black));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(251, 243, 228, 0.55);
+  }
+  .dropzone-affiche {
+    position: relative;
+    min-height: 190px;
+    border: 1.5px dashed var(--ligne);
+    border-radius: 14px;
+    background: var(--fond);
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .dropzone-affiche:has(input:hover),
+  .dropzone-affiche:has(input:focus-visible) {
+    border-color: var(--accent);
+  }
+  .dropzone-affiche input[type="file"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .dropzone-vide {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 190px;
+    padding: 20px;
+    color: var(--texte2);
+    font-size: 0.9rem;
+    text-align: center;
+    pointer-events: none;
+  }
+  .dropzone-vide svg {
+    color: var(--accent);
+  }
+  .dropzone-img-wrap {
+    position: relative;
+    width: 100%;
+    height: 220px;
+    pointer-events: none;
+  }
+  .dropzone-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .dropzone-retirer {
+    margin-top: 10px;
+    background: none;
+    border: 1px solid var(--ligne);
+    border-radius: 100px;
+    padding: 7px 15px;
+    color: var(--texte2);
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: var(--instrument);
+    transition: all 0.15s;
+  }
+  .dropzone-retirer:hover {
+    border-color: #c4502e;
+    color: #c4502e;
+  }
+  .ev-affiche {
+    border-radius: 8px;
+    object-fit: cover;
+  }
   .checklist {
     background: var(--surface);
     border: 1px solid var(--ligne);

@@ -1,8 +1,8 @@
 import Header from "@/components/Header";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
+import AfficheEvenement from "@/components/AfficheEvenement";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -65,9 +65,9 @@ function RangeeBillet({ cmd, passe }: { cmd: CommandeRow; passe?: boolean }) {
 
   return (
     <div className={`rangee-billet${passe ? " passe" : ""}`}>
-      <Image
+      <AfficheEvenement
         className="vignette"
-        src={ev.affiche_url ?? "/images/vodun-days.jpg"}
+        src={ev.affiche_url}
         alt={ev.titre}
         width={64}
         height={64}
