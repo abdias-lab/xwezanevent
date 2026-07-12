@@ -11,7 +11,7 @@ export function aujourdhuiPortoNovo(): string {
   return new Date(Date.now() + DECALAGE_PORTO_NOVO_MS).toISOString().slice(0, 10);
 }
 
-function ajouterJours(dateISO: string, jours: number): string {
+export function ajouterJours(dateISO: string, jours: number): string {
   const d = new Date(`${dateISO}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + jours);
   return d.toISOString().slice(0, 10);

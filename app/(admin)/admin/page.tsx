@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { payoutDisponible } from "@/lib/payouts";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import ActionsEvenement from "@/components/admin/ActionsEvenement";
 import ActionsPayout from "@/components/admin/ActionsPayout";
@@ -45,7 +46,7 @@ interface PayoutDemande {
   statut: string;
   created_at: string;
   organisateur: { nom: string } | null;
-  events: { titre: string } | null;
+  events: { titre: string; date_debut: string } | null;
 }
 
 export default async function AdminPage() {
@@ -105,7 +106,7 @@ export default async function AdminPage() {
       .order("created_at", { ascending: true }),
     supabase
       .from("payouts")
-      .select("id, montant, moyen, statut, created_at, organisateur:profiles(nom), events(titre)")
+      .select("id, montant, moyen, statut, created_at, organisateur:profiles(nom), events(titre, date_debut)")
       .in("statut", ["demande", "bloque"])
       .order("created_at", { ascending: true }),
   ]);
@@ -276,6 +277,7 @@ export default async function AdminPage() {
                 <tr>
                   <th>Organisateur</th>
                   <th>Événement</th>
+                  <th>Date événement</th>
                   <th>Montant</th>
                   <th>Moyen</th>
                   <th>Demandé le</th>
@@ -284,10 +286,21 @@ export default async function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {payouts.map((p) => (
+                {payouts.map((p) => {
+                  const eligible = p.events ? payoutDisponible(p.events) : true;
+                  return (
                   <tr key={p.id}>
                     <td className="ev-nom">{p.organisateur?.nom ?? "—"}</td>
                     <td>{p.events?.titre ?? "—"}</td>
+                    <td>
+                      {p.events ? formatDate(p.events.date_debut) : "—"}
+                      <br />
+                      {eligible ? (
+                        <span className="statut st-ok">✓ Éligible</span>
+                      ) : (
+                        <span className="statut st-attente">⚠️ Événement pas encore tenu</span>
+                      )}
+                    </td>
                     <td className="rev">{fmt(p.montant)} F</td>
                     <td>{p.moyen.toUpperCase()}</td>
                     <td>{formatDateCourte(p.created_at)}</td>
@@ -308,7 +321,8 @@ export default async function AdminPage() {
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           )}

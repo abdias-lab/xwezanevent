@@ -2424,6 +2424,15 @@
     display: flex;
     gap: 8px;
   }
+  .virement-attente {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .note-virement {
+    font-size: 0.72rem;
+    color: var(--texte2);
+  }
   .act .btn {
     padding: 7px 14px;
     font-size: 0.8rem;

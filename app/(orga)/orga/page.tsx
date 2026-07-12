@@ -3,6 +3,7 @@ import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import ActionsEvenementOrga from "@/components/orga/ActionsEvenementOrga";
 import DemandeVirement from "@/components/orga/DemandeVirement";
 import { creerClientServeur } from "@/lib/supabase-server";
+import { dateDisponibilitePayout, payoutDisponible } from "@/lib/payouts";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
@@ -84,7 +85,9 @@ export default async function Orga() {
     const disponible = STATUTS_SANS_VIREMENT.has(ev.statut)
       ? 0
       : Math.max(0, revenuNetEvenement - dejaDemande);
-    return { ev, vendus, capacite, revenu, disponible };
+    const peutDemander = payoutDisponible(ev);
+    const disponibleLe = formatDate(dateDisponibilitePayout(ev));
+    return { ev, vendus, capacite, revenu, disponible, peutDemander, disponibleLe };
   });
 
   const nbPublies = events.filter((e) => e.statut === "publie").length;
@@ -194,7 +197,7 @@ export default async function Orga() {
                 </tr>
               </thead>
               <tbody>
-                {lignes.map(({ ev, vendus, capacite, revenu, disponible }) => {
+                {lignes.map(({ ev, vendus, capacite, revenu, disponible, peutDemander, disponibleLe }) => {
                   const badge = BADGE[ev.statut] ?? { cls: "st-fini", txt: ev.statut };
                   return (
                     <tr key={ev.id}>
@@ -214,7 +217,13 @@ export default async function Orga() {
                       <td>
                         <div className="act">
                           {disponible > 0 && (
-                            <DemandeVirement eventId={ev.id} titre={ev.titre} disponible={disponible} />
+                            <DemandeVirement
+                              eventId={ev.id}
+                              titre={ev.titre}
+                              disponible={disponible}
+                              peutDemander={peutDemander}
+                              disponibleLe={disponibleLe}
+                            />
                           )}
                           {STATUTS_ANNULABLES.has(ev.statut) && (
                             <ActionsEvenementOrga eventId={ev.id} titre={ev.titre} />

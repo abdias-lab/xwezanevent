@@ -11,10 +11,16 @@ export default function DemandeVirement({
   eventId,
   titre,
   disponible,
+  peutDemander,
+  disponibleLe,
 }: {
   eventId: string;
   titre: string;
   disponible: number;
+  /** Calculé côté serveur (lib/payouts.ts, server-only) — jamais recalculé ici. */
+  peutDemander: boolean;
+  /** Date formatée (ex. "15 juil 2026"), déjà calculée côté serveur. */
+  disponibleLe: string;
 }) {
   const router = useRouter();
   const [ouverte, setOuverte] = useState(false);
@@ -50,6 +56,23 @@ export default function DemandeVirement({
       setErreur("Erreur réseau");
       setEnCours(false);
     }
+  }
+
+  if (!peutDemander) {
+    return (
+      <div className="virement-attente">
+        <button
+          type="button"
+          className="btn btn-ghost"
+          style={{ padding: "7px 14px", fontSize: "0.8rem" }}
+          disabled
+          title={`Les virements sont disponibles 3 jours après la tenue de l'événement, à partir du ${disponibleLe}.`}
+        >
+          Demander un virement
+        </button>
+        <span className="note-virement">Disponible le {disponibleLe}</span>
+      </div>
+    );
   }
 
   return (

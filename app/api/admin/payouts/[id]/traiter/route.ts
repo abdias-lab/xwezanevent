@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifierAdmin, journaliserActionAdmin } from "@/lib/admin-auth";
+import { dateDisponibilitePayout, payoutDisponible } from "@/lib/payouts";
 
 /**
  * Marque une demande de payout 'demande' → 'traite'.
@@ -15,6 +16,33 @@ export async function POST(
 ) {
   const { adminId, erreur } = await verifierAdmin();
   if (erreur) return erreur;
+
+  // Défense en profondeur : la route orga (app/api/orga/events/[id]/payouts)
+  // bloque déjà les demandes prématurées, mais on reprotège ici au cas où
+  // une ligne 'demande' antérieure à ce contrôle traînerait en base.
+  const { data: payout, error: payoutError } = await supabaseAdmin
+    .from("payouts")
+    .select("id, events(date_debut)")
+    .eq("id", params.id)
+    .maybeSingle();
+
+  if (payoutError) {
+    console.error("[api/admin/payouts/traiter] erreur :", payoutError.message);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  }
+  if (!payout) {
+    return NextResponse.json({ error: "Demande introuvable" }, { status: 404 });
+  }
+
+  const event = payout.events as unknown as { date_debut: string } | null;
+  if (event && !payoutDisponible(event)) {
+    return NextResponse.json(
+      {
+        error: `Les virements sont disponibles 3 jours après la tenue de l'événement (à partir du ${dateDisponibilitePayout(event)}).`,
+      },
+      { status: 403 }
+    );
+  }
 
   const { data, error } = await supabaseAdmin
     .from("payouts")
