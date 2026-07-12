@@ -17,8 +17,7 @@ export interface ConfirmationCommandeData {
   lieu: string;
   ville: string;
   billets: BilletEmail[];
-  sousTotal: number;
-  frais: number;
+  /** Prix exact des billets — aucun frais de service XwézanEvent ajouté (voir /tarifs). */
   total: number;
   lienBillets: string;
 }
@@ -59,9 +58,7 @@ export function emailConfirmationCommande(d: ConfirmationCommandeData): {
 ${billetsHtml}
 
 <table role="presentation" width="100%" style="margin:20px 0 0;font-size:13px;color:#b7a88f;">
-<tr><td>Sous-total</td><td align="right">${fmt(d.sousTotal)}</td></tr>
-<tr><td>Frais de service</td><td align="right">${fmt(d.frais)}</td></tr>
-<tr><td style="padding-top:8px;font-weight:700;color:#f3eada;font-size:14px;">Total</td><td align="right" style="padding-top:8px;font-weight:700;color:#e4a93f;font-size:14px;">${fmt(d.total)}</td></tr>
+<tr><td style="font-weight:700;color:#f3eada;font-size:14px;">Total payé</td><td align="right" style="font-weight:700;color:#e4a93f;font-size:14px;">${fmt(d.total)}</td></tr>
 </table>
 
 ${boutonEmail("Voir mes billets", d.lienBillets)}

@@ -37,8 +37,6 @@ async function envoyerConfirmationCommande(
   userId: string,
   eventId: string,
   panier: PanierItem[],
-  sousTotal: number,
-  fraisService: number,
   total: number,
   ticketsGeneres: { id: string; code_qr: string; ticket_type_id: string }[]
 ): Promise<void> {
@@ -78,8 +76,6 @@ async function envoyerConfirmationCommande(
       lieu: ev.lieu,
       ville: ev.ville,
       billets,
-      sousTotal,
-      frais: fraisService,
       total,
       lienBillets: `${origine}/confirmation?order=${orderId}`,
     });
@@ -166,8 +162,6 @@ export async function finaliserCommande(
     order.user_id,
     order.event_id,
     panier,
-    order.sous_total,
-    order.frais_service,
     order.total,
     ticketsGeneres
   );

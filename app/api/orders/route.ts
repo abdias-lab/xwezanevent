@@ -5,8 +5,6 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { creerTransactionEtLien } from "@/lib/fedapay";
 import { aujourdhuiPortoNovo } from "@/lib/date";
 
-const FRAIS_TAUX = 0.06;
-
 interface ItemSaisi {
   id: string;
   qte: number;
@@ -29,7 +27,12 @@ function origine(): string {
 
 /**
  * Crée une commande + initialise le paiement FedaPay.
- * - Prix, frais (6%) et stock recalculés/validés CÔTÉ SERVEUR (jamais le front).
+ * - Prix et stock recalculés/validés CÔTÉ SERVEUR (jamais le front).
+ * - Modèle économique : l'acheteur paie EXACTEMENT le prix affiché du
+ *   billet (aucun frais de service ajouté par XwézanEvent — seuls les
+ *   frais Mobile Money éventuels de FedaPay s'appliquent, hors de notre
+ *   contrôle). La commission XwézanEvent (6%) est prélevée côté
+ *   organisateur, au moment du reversement (voir lib/payouts.ts).
  * - Commande créée en « en_attente » avec un snapshot du panier.
  * - Les billets ne sont générés qu'après paiement (webhook / retour).
  */
@@ -98,8 +101,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Sélection vide" }, { status: 400 });
   }
 
-  const frais = Math.round(sousTotal * FRAIS_TAUX);
-  const total = sousTotal + frais;
+  // L'acheteur paie exactement le prix des billets : pas de frais de
+  // service XwézanEvent ajoutés. frais_service reste à 0 (colonne
+  // conservée pour compat historique / traçabilité, plus jamais
+  // alimentée depuis le 2026-07-12 — voir /tarifs).
+  const total = sousTotal;
 
   // 5. Commande en attente (avec snapshot du panier)
   const { data: order, error: errOrder } = await supabaseAdmin
@@ -108,7 +114,7 @@ export async function POST(req: NextRequest) {
       user_id: user.id,
       event_id: ev.id,
       sous_total: sousTotal,
-      frais_service: frais,
+      frais_service: 0,
       total,
       statut: "en_attente",
       panier,

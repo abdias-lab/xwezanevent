@@ -2723,6 +2723,192 @@
   }
 
   /* ==========================================================
+     PAGES DE CONTENU (/tarifs, /reversements, /remboursements,
+     /contact, /cgu)
+     ========================================================== */
+  .page-info {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 112px 20px 72px;
+  }
+  .page-info .eyebrow {
+    margin-bottom: 14px;
+  }
+  .page-info h1 {
+    font-family: var(--bricolage);
+    font-size: 2.1rem;
+    letter-spacing: -0.02em;
+  }
+  .page-info .intro {
+    color: var(--texte2);
+    font-size: 1.05rem;
+    margin-top: 12px;
+    line-height: 1.65;
+    max-width: 58ch;
+  }
+  .page-info .bloc {
+    margin-top: 44px;
+  }
+  .page-info h2 {
+    font-family: var(--bricolage);
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
+    margin-bottom: 12px;
+  }
+  .page-info h3 {
+    font-family: var(--instrument);
+    font-weight: 700;
+    font-size: 1rem;
+    margin: 18px 0 6px;
+    color: var(--texte);
+  }
+  .page-info p {
+    color: var(--texte2);
+    line-height: 1.75;
+    margin-bottom: 14px;
+  }
+  .page-info p strong,
+  .page-info li strong {
+    color: var(--texte);
+  }
+  .page-info ul {
+    padding-left: 20px;
+    color: var(--texte2);
+    line-height: 1.8;
+    margin-bottom: 14px;
+  }
+  .page-info li {
+    margin-bottom: 8px;
+  }
+  .page-info .encadre {
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 16px;
+    padding: 22px 24px;
+    margin: 20px 0;
+  }
+  .page-info .maj {
+    color: var(--texte2);
+    font-size: 0.85rem;
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--ligne);
+  }
+  .page-info a {
+    color: var(--accent);
+  }
+
+  /* /tarifs */
+  .gros-chiffre {
+    text-align: center;
+    padding: 28px 20px;
+  }
+  .gros-chiffre .n {
+    font-family: var(--bricolage);
+    font-size: 3.4rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .gros-chiffre .l {
+    color: var(--texte2);
+    margin-top: 8px;
+    font-size: 0.95rem;
+  }
+  .calc-tarif {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--ligne);
+    color: var(--texte2);
+    font-size: 0.95rem;
+  }
+  .calc-tarif:last-child {
+    border-bottom: none;
+  }
+  .calc-tarif .valeur {
+    color: var(--texte);
+    font-weight: 700;
+    font-family: var(--space);
+  }
+  .calc-tarif.final .valeur {
+    color: var(--accent);
+    font-size: 1.15rem;
+  }
+  .inclus-grille {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .inclus-item {
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 14px;
+    padding: 16px;
+    font-size: 0.88rem;
+    color: var(--texte2);
+  }
+  .inclus-item .ic {
+    font-size: 1.3rem;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  /* /contact */
+  .contact-grille {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 20px 0 8px;
+  }
+  .contact-carte {
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 16px;
+    padding: 20px;
+  }
+  .contact-carte .ic {
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .contact-carte h3 {
+    margin: 0 0 4px;
+    font-size: 0.95rem;
+  }
+  .contact-carte a {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+  .honeypot {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  @media (max-width: 560px) {
+    .page-info {
+      padding: 96px 16px 56px;
+    }
+    .page-info h1 {
+      font-size: 1.6rem;
+    }
+    .inclus-grille,
+    .contact-grille {
+      grid-template-columns: 1fr;
+    }
+    .gros-chiffre .n {
+      font-size: 2.6rem;
+    }
+  }
+
+  /* ==========================================================
      FOOTER
      ========================================================== */
   .footer {

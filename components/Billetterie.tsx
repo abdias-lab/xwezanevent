@@ -3,8 +3,6 @@
 import { useMemo, useState } from "react";
 import type { TicketTypeDetail } from "@/lib/events";
 
-const FRAIS_TAUX = 0.06; // 6% de frais de service
-
 function fmt(n: number): string {
   // toLocaleString('fr-FR') insère des espaces fines insécables : \s les
   // normalise (U+202F / U+00A0 inclus) en espaces ordinaires.
@@ -29,7 +27,9 @@ export default function Billetterie({
       return { ...prev, [id]: suivant };
     });
 
-  const { sousTotal, totalQte } = useMemo(() => {
+  // Le total payé par l'acheteur est exactement le prix des billets
+  // choisis : XwézanEvent n'ajoute aucun frais de service (voir /tarifs).
+  const { total, totalQte } = useMemo(() => {
     let st = 0;
     let q = 0;
     for (const t of ticketTypes) {
@@ -37,11 +37,8 @@ export default function Billetterie({
       st += t.prix * n;
       q += n;
     }
-    return { sousTotal: st, totalQte: q };
+    return { total: st, totalQte: q };
   }, [quantites, ticketTypes]);
-
-  const frais = Math.round(sousTotal * FRAIS_TAUX);
-  const total = sousTotal + frais;
 
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -132,14 +129,6 @@ export default function Billetterie({
       </div>
 
       <div className="totaux">
-        <div className="ligne-t">
-          <span>Sous-total</span>
-          <span className="m">{fmt(sousTotal)}</span>
-        </div>
-        <div className="ligne-t">
-          <span>Frais de service (6%)</span>
-          <span className="m">{fmt(frais)}</span>
-        </div>
         <div className="ligne-t total">
           <span>Total</span>
           <span className="m">{fmt(total)}</span>

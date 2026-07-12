@@ -22,6 +22,8 @@ interface EnvoiEmail {
   to: string;
   subject: string;
   html: string;
+  /** Permet au destinataire de répondre directement à l'expéditeur d'origine (ex. formulaire de contact). */
+  replyTo?: string;
 }
 
 /**
@@ -30,7 +32,7 @@ interface EnvoiEmail {
  * erreur réseau...), pour ne jamais faire échouer l'opération métier qui
  * déclenche l'envoi (paiement validé, événement validé/refusé...).
  */
-export async function envoyerEmail({ to, subject, html }: EnvoiEmail): Promise<boolean> {
+export async function envoyerEmail({ to, subject, html, replyTo }: EnvoiEmail): Promise<boolean> {
   if (!process.env.RESEND_API_KEY) {
     console.warn(`[email] RESEND_API_KEY absente — email "${subject}" à ${to} non envoyé`);
     return false;
@@ -41,6 +43,7 @@ export async function envoyerEmail({ to, subject, html }: EnvoiEmail): Promise<b
       to,
       subject,
       html,
+      ...(replyTo ? { replyTo } : {}),
     });
     if (error) {
       console.error(`[email] échec d'envoi "${subject}" à ${to} :`, error);
