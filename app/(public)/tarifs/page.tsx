@@ -97,7 +97,7 @@ export default function Tarifs() {
         </div>
 
         <div className="bloc" style={{ textAlign: "center" }}>
-          <BoutonOr href="/creer">Créer un événement</BoutonOr>
+          <BoutonOr href="/creer">Publier un événement</BoutonOr>
         </div>
       </main>
 
