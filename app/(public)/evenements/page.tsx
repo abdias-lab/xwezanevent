@@ -34,19 +34,36 @@ const LABEL_QUAND: Record<string, string> = {
   mois: "Ce mois-ci",
 };
 
+type ParamsRecherche = { cat?: string; quand?: string; q?: string; ville?: string };
+
+function hrefEvenements(actifs: ParamsRecherche, overrides: ParamsRecherche): string {
+  const merged = { ...actifs, ...overrides };
+  const params = new URLSearchParams();
+  if (merged.cat) params.set("cat", merged.cat);
+  if (merged.quand) params.set("quand", merged.quand);
+  if (merged.q) params.set("q", merged.q);
+  if (merged.ville) params.set("ville", merged.ville);
+  const qs = params.toString();
+  return qs ? `/evenements?${qs}` : "/evenements";
+}
+
 export default async function Evenements({
   searchParams,
 }: {
-  searchParams: { cat?: string; quand?: string };
+  searchParams: { cat?: string; quand?: string; q?: string; ville?: string };
 }) {
   const categorieActive = searchParams.cat;
   const quandActif = searchParams.quand;
+  const q = searchParams.q?.trim() || undefined;
+  const ville = searchParams.ville?.trim() || undefined;
+  const actifs: ParamsRecherche = { cat: categorieActive, quand: quandActif, q, ville };
   const [evenements, categories] = await Promise.all([
-    getEvenementsPublies({ categorie: categorieActive, quand: quandActif }),
+    getEvenementsPublies({ categorie: categorieActive, quand: quandActif, q, ville }),
     getCategoriesPubliees(),
   ]);
 
   const nb = evenements.length;
+  const filtresActifs = Boolean(categorieActive || quandActif || q || ville);
 
   return (
     <>
@@ -59,26 +76,21 @@ export default async function Evenements({
             <h3>Catégorie</h3>
             <div className="puces">
               <Link
-                href={quandActif ? `/evenements?quand=${encodeURIComponent(quandActif)}` : "/evenements"}
+                href={hrefEvenements(actifs, { cat: undefined })}
                 className={`puce${!categorieActive ? " active" : ""}`}
               >
                 Tous
               </Link>
-              {categories.map((cat) => {
-                const params = new URLSearchParams();
-                params.set("cat", cat);
-                if (quandActif) params.set("quand", quandActif);
-                return (
-                  <Link
-                    key={cat}
-                    href={`/evenements?${params.toString()}`}
-                    className={`puce${categorieActive === cat ? " active" : ""}`}
-                  >
-                    {EMOJI_CATEGORIE[cat] ? `${EMOJI_CATEGORIE[cat]} ` : ""}
-                    {cat}
-                  </Link>
-                );
-              })}
+              {categories.map((cat) => (
+                <Link
+                  key={cat}
+                  href={hrefEvenements(actifs, { cat })}
+                  className={`puce${categorieActive === cat ? " active" : ""}`}
+                >
+                  {EMOJI_CATEGORIE[cat] ? `${EMOJI_CATEGORIE[cat]} ` : ""}
+                  {cat}
+                </Link>
+              ))}
             </div>
           </div>
 
@@ -115,6 +127,8 @@ export default async function Evenements({
           <div className="entete-resultats">
             <p className="nb">
               <b>{nb}</b> {nb > 1 ? "événements trouvés" : "événement trouvé"}
+              {q ? ` · « ${q} »` : ""}
+              {ville ? ` · ${ville}` : ""}
               {categorieActive ? ` · ${categorieActive}` : ""}
               {quandActif ? ` · ${LABEL_QUAND[quandActif] ?? quandActif}` : ""}
             </p>
@@ -143,14 +157,18 @@ export default async function Evenements({
                   <path d="m21 21-4.3-4.3" />
                 </svg>
               </div>
-              <h3>Aucun événement ne correspond</h3>
+              <h3>
+                {q
+                  ? `Aucun événement trouvé pour « ${q} »`
+                  : "Aucun événement ne correspond"}
+              </h3>
               <p>
-                {categorieActive
-                  ? "Aucun événement publié dans cette catégorie pour l'instant."
+                {filtresActifs
+                  ? "Essaie de retirer un ou plusieurs filtres pour élargir ta recherche."
                   : "Aucun événement publié pour l'instant. Revenez très bientôt !"}
               </p>
-              {categorieActive ? (
-                <BoutonOr href="/evenements">Voir tous les événements</BoutonOr>
+              {filtresActifs ? (
+                <BoutonOr href="/evenements">Réinitialiser les filtres</BoutonOr>
               ) : (
                 <BoutonOr href="/creer">Publier un événement</BoutonOr>
               )}

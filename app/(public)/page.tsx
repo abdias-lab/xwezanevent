@@ -2,7 +2,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CarteEvenement from "@/components/CarteEvenement";
 import BoutonOr from "@/components/BoutonOr";
-import { getEvenementsPublies } from "@/lib/events";
+import { getEvenementsPublies, getVillesPubliees } from "@/lib/events";
 import type { ReactNode } from "react";
 
 // Régénération incrémentale : la page est reconstruite au plus une fois par minute
@@ -92,7 +92,10 @@ const TICKER = [
 ];
 
 export default async function Accueil() {
-  const evenements = await getEvenementsPublies();
+  const [evenements, villes] = await Promise.all([
+    getEvenementsPublies(),
+    getVillesPubliees(),
+  ]);
 
   return (
     <>
@@ -114,30 +117,41 @@ export default async function Accueil() {
             <strong>Paiement Mobile Money, billet QR instantané.</strong>
           </p>
 
-          <form className="recherche" role="search" aria-label="Rechercher un événement">
+          <form
+            className="recherche"
+            role="search"
+            aria-label="Rechercher un événement"
+            action="/evenements"
+            method="GET"
+          >
             <div className="champ">
               <label htmlFor="q">Quoi</label>
               <input id="q" name="q" type="text" placeholder="Concert, festival, soirée…" />
             </div>
             <div className="champ">
-              <label htmlFor="ou">Où</label>
-              <select id="ou" name="ou" defaultValue="Tout le Bénin">
-                <option>Tout le Bénin</option>
-                <option>Cotonou</option>
-                <option>Porto-Novo</option>
-                <option>Ouidah</option>
-                <option>Abomey</option>
-                <option>Parakou</option>
-                <option>Grand-Popo</option>
-              </select>
+              <label htmlFor="ville">Où</label>
+              <input
+                id="ville"
+                name="ville"
+                type="text"
+                list="villes-recherche"
+                placeholder="Tout le Bénin"
+                autoComplete="off"
+              />
+              <datalist id="villes-recherche">
+                {villes.map((v) => (
+                  <option key={v} value={v} />
+                ))}
+              </datalist>
             </div>
             <div className="champ">
               <label htmlFor="quand">Quand</label>
-              <select id="quand" name="quand" defaultValue="N'importe quand">
-                <option>N&apos;importe quand</option>
-                <option>Ce week-end</option>
-                <option>Cette semaine</option>
-                <option>Ce mois-ci</option>
+              <select id="quand" name="quand" defaultValue="">
+                <option value="">N&apos;importe quand</option>
+                <option value="aujourdhui">Aujourd&apos;hui</option>
+                <option value="week-end">Ce week-end</option>
+                <option value="semaine">Cette semaine</option>
+                <option value="mois">Ce mois-ci</option>
               </select>
             </div>
             <BoutonOr type="submit">Rechercher</BoutonOr>

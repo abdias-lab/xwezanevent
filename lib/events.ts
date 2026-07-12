@@ -49,10 +49,17 @@ function mapRow(ev: EventRow): CarteData {
   };
 }
 
+/** Échappe une valeur pour l'insérer dans un filtre .or() de PostgREST (guillemets = échappement des virgules/parenthèses). */
+function echapperPourOr(valeur: string): string {
+  return valeur.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
 /**
  * Événements publiés + prix du ticket_type le moins cher (« à partir de »),
- * triés par date croissante. Filtre optionnel par catégorie et par période
- * ("quand" : aujourdhui, week-end, semaine, mois — voir plagePeriode()).
+ * triés par date croissante. Filtres optionnels : catégorie, période
+ * ("quand" : aujourdhui, week-end, semaine, mois — voir plagePeriode()),
+ * recherche texte (q, sur titre+description) et ville (saisie libre,
+ * correspondance partielle).
  *
  * Exclut les événements dont la date est passée par une comparaison de
  * date directe (pas seulement `statut = 'publie'`) : reste correct même
@@ -60,7 +67,7 @@ function mapRow(ev: EventRow): CarteData {
  * événement (voir supabase/migrations/20260712120000_evenements_termines.sql).
  */
 export async function getEvenementsPublies(
-  opts: { categorie?: string; quand?: string } = {}
+  opts: { categorie?: string; quand?: string; q?: string; ville?: string } = {}
 ): Promise<CarteData[]> {
   const periode = plagePeriode(opts.quand);
 
@@ -78,6 +85,16 @@ export async function getEvenementsPublies(
 
   if (opts.categorie) {
     query = query.eq("categorie", opts.categorie);
+  }
+
+  if (opts.ville?.trim()) {
+    query = query.ilike("ville", `%${opts.ville.trim()}%`);
+  }
+
+  const motCle = opts.q?.trim();
+  if (motCle) {
+    const echappe = echapperPourOr(motCle);
+    query = query.or(`titre.ilike."%${echappe}%",description.ilike."%${echappe}%"`);
   }
 
   const { data, error } = await query.order("date_debut", { ascending: true });
@@ -197,6 +214,23 @@ export async function getCategoriesPubliees(): Promise<string[]> {
   const set = new Set<string>();
   for (const row of data as { categorie: string | null }[]) {
     if (row.categorie) set.add(row.categorie);
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b, "fr"));
+}
+
+/** Liste distincte des villes présentes parmi les événements publiés (pour suggestion, saisie libre par ailleurs). */
+export async function getVillesPubliees(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("events")
+    .select("ville")
+    .eq("statut", "publie")
+    .gte("date_debut", aujourdhuiPortoNovo());
+
+  if (error || !data) return [];
+
+  const set = new Set<string>();
+  for (const row of data as { ville: string | null }[]) {
+    if (row.ville) set.add(row.ville);
   }
   return Array.from(set).sort((a, b) => a.localeCompare(b, "fr"));
 }
