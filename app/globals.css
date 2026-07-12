@@ -770,6 +770,30 @@
     font-size: 0.78rem;
     color: var(--texte2);
   }
+  .titre-resultats {
+    font-family: var(--bricolage);
+    font-weight: 700;
+    font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+  }
+  .puces-actives {
+    margin-bottom: 18px;
+  }
+  .puces-actives .puce span {
+    margin-left: 2px;
+    opacity: 0.75;
+  }
+  .puce-reset {
+    background: none;
+    border-color: transparent;
+    color: var(--texte2);
+    text-decoration: underline;
+  }
+  .puce-reset:hover {
+    color: var(--texte);
+    border-color: transparent;
+  }
   .entete-resultats {
     display: flex;
     align-items: center;

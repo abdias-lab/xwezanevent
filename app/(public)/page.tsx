@@ -3,14 +3,19 @@ import Footer from "@/components/Footer";
 import CarteEvenement from "@/components/CarteEvenement";
 import BoutonOr from "@/components/BoutonOr";
 import { getEvenementsPublies, getVillesPubliees } from "@/lib/events";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 // Régénération incrémentale : la page est reconstruite au plus une fois par minute
 export const revalidate = 60;
 
-const CATEGORIES: { nom: ReactNode; nb: string; glyphe: ReactNode }[] = [
+// `valeur` doit correspondre EXACTEMENT à events.categorie en base (voir la
+// liste des catégories créables dans components/FormulaireCreation.tsx :
+// Concert, Festival, Culture & Vodun, Sport, Humour, Soirée — au singulier).
+const CATEGORIES: { nom: ReactNode; valeur: string; nb: string; glyphe: ReactNode }[] = [
   {
     nom: "Concerts",
+    valeur: "Concert",
     nb: "128 événements",
     glyphe: (
       <>
@@ -22,6 +27,7 @@ const CATEGORIES: { nom: ReactNode; nb: string; glyphe: ReactNode }[] = [
   },
   {
     nom: "Festivals",
+    valeur: "Festival",
     nb: "42 événements",
     glyphe: (
       <>
@@ -32,6 +38,7 @@ const CATEGORIES: { nom: ReactNode; nb: string; glyphe: ReactNode }[] = [
   },
   {
     nom: "Culture & Vodun",
+    valeur: "Culture & Vodun",
     nb: "36 événements",
     glyphe: (
       <>
@@ -42,6 +49,7 @@ const CATEGORIES: { nom: ReactNode; nb: string; glyphe: ReactNode }[] = [
   },
   {
     nom: "Soirées",
+    valeur: "Soirée",
     nb: "94 événements",
     glyphe: (
       <>
@@ -52,6 +60,7 @@ const CATEGORIES: { nom: ReactNode; nb: string; glyphe: ReactNode }[] = [
   },
   {
     nom: "Sport",
+    valeur: "Sport",
     nb: "21 événements",
     glyphe: (
       <>
@@ -61,7 +70,10 @@ const CATEGORIES: { nom: ReactNode; nb: string; glyphe: ReactNode }[] = [
     ),
   },
   {
-    nom: "Conférences",
+    // "Conférences" n'existe pas parmi les catégories créables — remplacé
+    // par "Humour", la 6ᵉ catégorie réelle du formulaire de création.
+    nom: "Humour",
+    valeur: "Humour",
     nb: "17 événements",
     glyphe: (
       <>
@@ -235,8 +247,12 @@ export default async function Accueil() {
             <h2 className="titre-section">Explorez par envie</h2>
           </div>
           <div className="grille-cat">
-            {CATEGORIES.map((cat, i) => (
-              <a className="tuile" href="#" key={i}>
+            {CATEGORIES.map((cat) => (
+              <Link
+                className="tuile"
+                href={`/evenements?categorie=${encodeURIComponent(cat.valeur)}`}
+                key={cat.valeur}
+              >
                 <span className="glyphe" aria-hidden="true">
                   <svg
                     width="34"
@@ -250,7 +266,7 @@ export default async function Accueil() {
                 </span>
                 <span className="nom">{cat.nom}</span>
                 <span className="nb">{cat.nb}</span>
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -264,14 +280,18 @@ export default async function Accueil() {
           </div>
           <div className="liste-villes">
             {VILLES.map((v) => (
-              <a className="ville" href="#" key={v.rang}>
+              <Link
+                className="ville"
+                href={`/evenements?ville=${encodeURIComponent(v.nom)}`}
+                key={v.rang}
+              >
                 <span className="rang">{v.rang}</span>
                 <span className="nom-ville">{v.nom}</span>
                 <span className="detail">{v.detail}</span>
                 <span className="fleche" aria-hidden="true">
                   →
                 </span>
-              </a>
+              </Link>
             ))}
           </div>
         </div>
