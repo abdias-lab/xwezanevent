@@ -47,6 +47,8 @@ export default async function EvenementDetail({
 
   const heure = formatHeure(ev.heure);
   const placesTotales = ev.ticketTypes.reduce((s, t) => s + t.disponibles, 0);
+  const lieuComplet = [ev.lieu, ev.ville].filter(Boolean).join(", ");
+  const urlItineraire = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lieuComplet)}`;
 
   return (
     <>
@@ -138,7 +140,14 @@ export default async function EvenementDetail({
                 opacity=".7"
               />
             </svg>
-            <span className="epingle">📍 {ev.lieu}, {ev.ville}</span>
+            <a
+              className="epingle"
+              href={urlItineraire}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              📍 {ev.lieu}, {ev.ville}
+            </a>
           </div>
         </div>
 

@@ -997,6 +997,12 @@
     padding: 10px 18px;
     font-size: 0.9rem;
     color: var(--texte);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .epingle:hover {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, var(--fond));
   }
   .billetterie {
     position: sticky;
