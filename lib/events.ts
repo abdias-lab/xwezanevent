@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { aujourdhuiPortoNovo } from "@/lib/date";
+import { aujourdhuiPortoNovo, plagePeriode } from "@/lib/date";
 
 const MOIS_COURTS = [
   "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
@@ -51,7 +51,8 @@ function mapRow(ev: EventRow): CarteData {
 
 /**
  * Événements publiés + prix du ticket_type le moins cher (« à partir de »),
- * triés par date croissante. Filtre optionnel par catégorie.
+ * triés par date croissante. Filtre optionnel par catégorie et par période
+ * ("quand" : aujourdhui, week-end, semaine, mois — voir plagePeriode()).
  *
  * Exclut les événements dont la date est passée par une comparaison de
  * date directe (pas seulement `statut = 'publie'`) : reste correct même
@@ -59,15 +60,21 @@ function mapRow(ev: EventRow): CarteData {
  * événement (voir supabase/migrations/20260712120000_evenements_termines.sql).
  */
 export async function getEvenementsPublies(
-  opts: { categorie?: string } = {}
+  opts: { categorie?: string; quand?: string } = {}
 ): Promise<CarteData[]> {
+  const periode = plagePeriode(opts.quand);
+
   let query = supabase
     .from("events")
     .select(
       "slug, titre, categorie, ville, lieu, date_debut, affiche_url, ticket_types(prix)"
     )
     .eq("statut", "publie")
-    .gte("date_debut", aujourdhuiPortoNovo());
+    .gte("date_debut", periode ? periode.debut : aujourdhuiPortoNovo());
+
+  if (periode) {
+    query = query.lte("date_debut", periode.fin);
+  }
 
   if (opts.categorie) {
     query = query.eq("categorie", opts.categorie);

@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import CarteEvenement from "@/components/CarteEvenement";
 import BoutonOr from "@/components/BoutonOr";
+import FiltreQuand from "@/components/FiltreQuand";
 import { getEvenementsPublies, getCategoriesPubliees } from "@/lib/events";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -26,14 +27,22 @@ const EMOJI_CATEGORIE: Record<string, string> = {
   Soirées: "🌙",
 };
 
+const LABEL_QUAND: Record<string, string> = {
+  aujourdhui: "Aujourd'hui",
+  "week-end": "Ce week-end",
+  semaine: "Cette semaine",
+  mois: "Ce mois-ci",
+};
+
 export default async function Evenements({
   searchParams,
 }: {
-  searchParams: { cat?: string };
+  searchParams: { cat?: string; quand?: string };
 }) {
   const categorieActive = searchParams.cat;
+  const quandActif = searchParams.quand;
   const [evenements, categories] = await Promise.all([
-    getEvenementsPublies({ categorie: categorieActive }),
+    getEvenementsPublies({ categorie: categorieActive, quand: quandActif }),
     getCategoriesPubliees(),
   ]);
 
@@ -50,33 +59,30 @@ export default async function Evenements({
             <h3>Catégorie</h3>
             <div className="puces">
               <Link
-                href="/evenements"
+                href={quandActif ? `/evenements?quand=${encodeURIComponent(quandActif)}` : "/evenements"}
                 className={`puce${!categorieActive ? " active" : ""}`}
               >
                 Tous
               </Link>
-              {categories.map((cat) => (
-                <Link
-                  key={cat}
-                  href={`/evenements?cat=${encodeURIComponent(cat)}`}
-                  className={`puce${categorieActive === cat ? " active" : ""}`}
-                >
-                  {EMOJI_CATEGORIE[cat] ? `${EMOJI_CATEGORIE[cat]} ` : ""}
-                  {cat}
-                </Link>
-              ))}
+              {categories.map((cat) => {
+                const params = new URLSearchParams();
+                params.set("cat", cat);
+                if (quandActif) params.set("quand", quandActif);
+                return (
+                  <Link
+                    key={cat}
+                    href={`/evenements?${params.toString()}`}
+                    className={`puce${categorieActive === cat ? " active" : ""}`}
+                  >
+                    {EMOJI_CATEGORIE[cat] ? `${EMOJI_CATEGORIE[cat]} ` : ""}
+                    {cat}
+                  </Link>
+                );
+              })}
             </div>
           </div>
 
-          {/* Filtres additionnels — présentation fidèle à la maquette,
-              interactivité branchée dans une étape ultérieure. */}
-          <div className="bloc-filtre">
-            <h3>Date</h3>
-            <label className="case"><input type="radio" name="d" defaultChecked /> N&apos;importe quand</label>
-            <label className="case"><input type="radio" name="d" /> Aujourd&apos;hui</label>
-            <label className="case"><input type="radio" name="d" /> Cette semaine</label>
-            <label className="case"><input type="radio" name="d" /> Ce mois-ci</label>
-          </div>
+          <FiltreQuand quandActif={quandActif} />
 
           <div className="bloc-filtre">
             <h3>Prix (FCFA)</h3>
@@ -110,6 +116,7 @@ export default async function Evenements({
             <p className="nb">
               <b>{nb}</b> {nb > 1 ? "événements trouvés" : "événement trouvé"}
               {categorieActive ? ` · ${categorieActive}` : ""}
+              {quandActif ? ` · ${LABEL_QUAND[quandActif] ?? quandActif}` : ""}
             </p>
             <div className="tri">
               <span>Trier :</span>
