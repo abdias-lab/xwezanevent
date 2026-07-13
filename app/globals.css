@@ -1113,6 +1113,21 @@
   .billetterie .btn-large {
     margin-top: 16px;
   }
+  .spinner {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    border: 2px solid color-mix(in srgb, var(--sur-accent) 35%, transparent);
+    border-top-color: var(--sur-accent);
+    border-radius: 50%;
+    animation: tourner 0.7s linear infinite;
+    vertical-align: -2px;
+  }
+  @keyframes tourner {
+    to {
+      transform: rotate(360deg);
+    }
+  }
   .securise {
     text-align: center;
     font-size: 0.8rem;
@@ -1635,6 +1650,23 @@
     align-items: center;
     justify-content: center;
     font-size: 2rem;
+  }
+  .croix {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    margin: 0 auto 22px;
+    background: color-mix(in srgb, #c4502e 18%, transparent);
+    border: 2px solid #c4502e;
+    color: #c4502e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+  }
+  .corps-c .btn-large {
+    margin: 26px auto 0;
+    max-width: 380px;
   }
   .corps-c h1 {
     font-family: var(--bricolage);
@@ -3097,6 +3129,9 @@
   .tuile,
   .visuel .photo {
     transition: none !important;
+  }
+  .spinner {
+    animation: none;
   }
   .carte:hover .visuel .photo {
     transform: none;
