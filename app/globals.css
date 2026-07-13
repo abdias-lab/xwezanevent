@@ -1170,6 +1170,29 @@
   .champ-bloc textarea::placeholder {
     color: var(--texte2);
   }
+  .champ-mdp {
+    position: relative;
+  }
+  .champ-mdp input {
+    padding-right: 44px;
+  }
+  .toggle-mdp {
+    position: absolute;
+    top: 50%;
+    right: 4px;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.05rem;
+    line-height: 1;
+    padding: 8px;
+    color: var(--texte2);
+  }
+  .toggle-mdp:hover {
+    color: var(--accent);
+  }
+
   .rangee {
     display: grid;
     grid-template-columns: 1fr 1fr;

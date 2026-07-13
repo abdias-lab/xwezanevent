@@ -14,6 +14,16 @@ export default async function Header() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  let role: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    role = profile?.role ?? null;
+  }
+
   return (
     <header className="header">
       <div className="nav">
@@ -31,6 +41,16 @@ export default async function Header() {
         <div className="nav-right">
           {user ? (
             <>
+              {role === "admin" && (
+                <Link className="connexion" href="/admin">
+                  Dashboard admin
+                </Link>
+              )}
+              {role === "organisateur" && (
+                <Link className="connexion" href="/orga">
+                  Mon espace orga
+                </Link>
+              )}
               <Link className="connexion" href="/compte">
                 Mon compte
               </Link>
@@ -47,7 +67,7 @@ export default async function Header() {
           </Link>
         </div>
 
-        <MenuBurger connecte={!!user} />
+        <MenuBurger connecte={!!user} role={role} />
       </div>
     </header>
   );

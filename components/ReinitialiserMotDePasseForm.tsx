@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { creerClientNavigateur } from "@/lib/supabase-browser";
+import ChampMotDePasse from "@/components/ChampMotDePasse";
 
 export default function ReinitialiserMotDePasseForm({
   lienValide,
@@ -69,23 +70,23 @@ export default function ReinitialiserMotDePasseForm({
           {erreur && <p className="alerte-erreur">{erreur}</p>}
           <div className="champ-bloc">
             <label htmlFor="mdp">Nouveau mot de passe</label>
-            <input
+            <ChampMotDePasse
               id="mdp"
-              type="password"
               placeholder="8 caractères minimum"
               value={motDePasse}
               onChange={(e) => setMotDePasse(e.target.value)}
+              autoComplete="new-password"
               required
             />
           </div>
           <div className="champ-bloc">
             <label htmlFor="mdp-confirm">Confirme le mot de passe</label>
-            <input
+            <ChampMotDePasse
               id="mdp-confirm"
-              type="password"
               placeholder="8 caractères minimum"
               value={confirmation}
               onChange={(e) => setConfirmation(e.target.value)}
+              autoComplete="new-password"
               required
             />
           </div>

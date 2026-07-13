@@ -8,7 +8,13 @@ import BoutonDeconnexion from "@/components/BoutonDeconnexion";
  * Menu burger mobile (<768px) : reprend exactement les mêmes liens
  * et actions que la nav desktop, masquée à cette largeur.
  */
-export default function MenuBurger({ connecte }: { connecte: boolean }) {
+export default function MenuBurger({
+  connecte,
+  role,
+}: {
+  connecte: boolean;
+  role: string | null;
+}) {
   const [ouvert, setOuvert] = useState(false);
 
   useEffect(() => {
@@ -74,6 +80,16 @@ export default function MenuBurger({ connecte }: { connecte: boolean }) {
         <div className="menu-mobile-compte">
           {connecte ? (
             <>
+              {role === "admin" && (
+                <Link className="connexion" href="/admin" onClick={fermer}>
+                  Dashboard admin
+                </Link>
+              )}
+              {role === "organisateur" && (
+                <Link className="connexion" href="/orga" onClick={fermer}>
+                  Mon espace orga
+                </Link>
+              )}
               <Link className="connexion" href="/compte" onClick={fermer}>
                 Mon compte
               </Link>

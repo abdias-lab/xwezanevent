@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { creerClientNavigateur } from "@/lib/supabase-browser";
+import ChampMotDePasse from "@/components/ChampMotDePasse";
 
 type Vue = "connexion" | "inscription";
 
@@ -127,12 +128,12 @@ export default function AuthForm({ redirect = "/" }: { redirect?: string }) {
           </div>
           <div className="champ-bloc">
             <label htmlFor="mdp">Mot de passe</label>
-            <input
+            <ChampMotDePasse
               id="mdp"
-              type="password"
               placeholder="••••••••"
               value={motDePasse}
               onChange={(e) => setMotDePasse(e.target.value)}
+              autoComplete="current-password"
               required
             />
           </div>
@@ -181,12 +182,12 @@ export default function AuthForm({ redirect = "/" }: { redirect?: string }) {
           </div>
           <div className="champ-bloc">
             <label htmlFor="mdp-i">Mot de passe</label>
-            <input
+            <ChampMotDePasse
               id="mdp-i"
-              type="password"
               placeholder="8 caractères minimum"
               value={motDePasse}
               onChange={(e) => setMotDePasse(e.target.value)}
+              autoComplete="new-password"
               required
             />
           </div>
