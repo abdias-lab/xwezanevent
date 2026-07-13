@@ -23,6 +23,23 @@ export default function Cgu() {
         </p>
 
         <div className="bloc">
+          <h2>Mentions légales</h2>
+          <p>
+            XwézanEvent est un service exploité par <strong>Digiflow</strong>,
+            établissement enregistré au RCCM sous le numéro{" "}
+            <strong>RB/COT/24 A 104638</strong> en date du 18-10-2024, N°
+            IFU <strong>1201526575807</strong>, sis Îlot 4941, Parcelle A,
+            DONATEN, Bénin.
+          </p>
+          <p>
+            {/* TODO : compléter avec l'email et le téléphone professionnels
+                dès qu'ils seront disponibles. */}
+            Contact : via le formulaire de la page{" "}
+            <a href="/contact">Contact</a>.
+          </p>
+        </div>
+
+        <div className="bloc">
           <h2>1. Qui fait quoi</h2>
           <p>
             XwézanEvent est une <strong>plateforme intermédiaire de
@@ -84,11 +101,21 @@ export default function Cgu() {
           <h2>4. Tarification et paiement</h2>
           <p>
             L&apos;acheteur paie le prix affiché du billet, sans frais de
-            service XwézanEvent additionnels. XwézanEvent prélève une
-            commission de 6% côté organisateur, au moment du reversement des
-            ventes. Le détail complet est disponible sur notre page{" "}
-            <a href="/tarifs">Tarifs</a>. Les paiements sont traités via
-            notre partenaire Mobile Money FedaPay.
+            service XwézanEvent additionnels (seuls d&apos;éventuels frais
+            Mobile Money appliqués par l&apos;opérateur de paiement peuvent
+            s&apos;ajouter à sa charge, indépendants de XwézanEvent).
+            XwézanEvent prélève une commission de 6% côté organisateur, au
+            moment du reversement des ventes.
+          </p>
+          <p>
+            Les reversements aux organisateurs sont effectués au plus tôt{" "}
+            <strong>3 jours après la tenue de l&apos;événement</strong> — un
+            délai de sécurité qui permet de traiter les éventuelles
+            annulations et litiges avant l&apos;envoi des fonds. Le détail
+            complet est disponible sur nos pages{" "}
+            <a href="/tarifs">Tarifs</a> et{" "}
+            <a href="/reversements">Reversements</a>. Les paiements sont
+            traités via notre partenaire Mobile Money FedaPay.
           </p>
         </div>
 
@@ -156,7 +183,7 @@ export default function Cgu() {
 
         <p className="maj">
           Ce document est susceptible d&apos;évoluer. Dernière mise à jour :
-          juillet 2026.
+          13 juillet 2026.
         </p>
       </main>
 
