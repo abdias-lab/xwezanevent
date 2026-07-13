@@ -28,19 +28,20 @@ function formatDateHeure(dateISO: string, heure: string | null): string {
 }
 
 /**
- * Envoie l'email de confirmation de commande (récap + billets avec QR).
- * Best-effort : n'importe quelle erreur ici est loguée et avalée, jamais
- * remontée — l'appelant (finaliserCommande) a déjà validé le paiement.
+ * Envoie (ou renvoie) l'email de confirmation de commande (récap + billets
+ * avec QR) pour des billets déjà en base. Best-effort : n'importe quelle
+ * erreur ici est loguée et avalée, jamais remontée. Retourne true si
+ * l'email a effectivement été envoyé.
  */
 async function envoyerConfirmationCommande(
   orderId: string,
   userId: string,
   eventId: string,
-  panier: PanierItem[],
   total: number,
   ticketsGeneres: { id: string; code_qr: string; ticket_type_id: string }[]
-): Promise<void> {
+): Promise<boolean> {
   try {
+    const idsTypes = Array.from(new Set(ticketsGeneres.map((t) => t.ticket_type_id)));
     const [destinataire, { data: ev }, { data: types }] = await Promise.all([
       emailUtilisateur(userId),
       supabaseAdmin
@@ -48,12 +49,9 @@ async function envoyerConfirmationCommande(
         .select("titre, date_debut, heure, lieu, ville")
         .eq("id", eventId)
         .maybeSingle(),
-      supabaseAdmin.from("ticket_types").select("id, nom").in(
-        "id",
-        panier.map((p) => p.ticket_type_id)
-      ),
+      supabaseAdmin.from("ticket_types").select("id, nom").in("id", idsTypes),
     ]);
-    if (!destinataire || !ev) return;
+    if (!destinataire || !ev) return false;
 
     const nomParId = new Map((types ?? []).map((t) => [t.id, t.nom]));
 
@@ -80,10 +78,36 @@ async function envoyerConfirmationCommande(
       lienBillets: `${origine}/confirmation?order=${orderId}`,
     });
 
-    await envoyerEmail({ to: destinataire, subject, html });
+    return await envoyerEmail({ to: destinataire, subject, html });
   } catch (e) {
     console.error("[commandes] échec envoi email confirmation :", e);
+    return false;
   }
+}
+
+/**
+ * Renvoie l'email de confirmation (récap + billets QR) d'une commande déjà
+ * payée, à partir de ses tickets actuels en base (pas seulement ceux
+ * fraîchement générés au paiement) — utilisé par "Retrouver mon billet"
+ * (app/api/billets/retrouver). Ne renvoie que les billets encore valides
+ * (exclut les billets annulés, ex. événement annulé depuis).
+ */
+export async function renvoyerConfirmationCommande(orderId: string): Promise<boolean> {
+  const { data: order } = await supabaseAdmin
+    .from("orders")
+    .select("id, user_id, event_id, total, statut")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order || order.statut !== "paye") return false;
+
+  const { data: tickets } = await supabaseAdmin
+    .from("tickets")
+    .select("id, code_qr, ticket_type_id")
+    .eq("order_id", orderId)
+    .neq("statut", "annule");
+  if (!tickets || tickets.length === 0) return false;
+
+  return envoyerConfirmationCommande(order.id, order.user_id, order.event_id, order.total, tickets);
 }
 
 /**
@@ -161,7 +185,6 @@ export async function finaliserCommande(
     orderId,
     order.user_id,
     order.event_id,
-    panier,
     order.total,
     ticketsGeneres
   );
