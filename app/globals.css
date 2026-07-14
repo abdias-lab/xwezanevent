@@ -92,14 +92,14 @@
     gap: 36px;
   }
   /* Logo 100% typographique (aucune icône) : "Xwézan" + "Event" forment UN
-     seul bloc (même lien, espacement serré comme deux mots d'un même titre).
+     seul mot collé "XwézanEvent" (même lien, aucun espace entre les deux).
      Les tailles des enfants sont en em pour suivre le font-size de .logo
      (voir .boite .logo / .lateral .logo qui l'ajustent en contexte). */
   .logo {
     font-size: 1.35rem;
     display: inline-flex;
     align-items: baseline;
-    gap: 4px;
+    gap: 0;
   }
   .logo .principal {
     font-family: var(--playfair);
@@ -109,6 +109,10 @@
     letter-spacing: -0.01em;
     line-height: 1;
     color: var(--accent);
+    /* L'italique réserve un espace après le dernier caractère (chasse du
+       glyphe) : on le compense pour que "Event" vienne vraiment coller
+       contre "Xwézan", en em pour rester proportionnel à toutes les tailles. */
+    margin-right: -0.4em;
   }
   .logo .secondaire {
     font-family: var(--instrument);
