@@ -93,6 +93,9 @@
   }
   /* Logo 100% typographique (aucune icône) : "Xwézan" + "Event" forment UN
      seul mot collé "XwézanEvent" (même lien, aucun espace entre les deux).
+     Classes préfixées "logo-" pour ne jamais entrer en collision avec
+     d'autres classes du site (ex. .principal / .secondaire déjà utilisées
+     pour le layout des dashboards admin/orga).
      Les tailles des enfants sont en em pour suivre le font-size de .logo
      (voir .boite .logo / .lateral .logo qui l'ajustent en contexte). */
   .logo {
@@ -101,7 +104,7 @@
     align-items: baseline;
     gap: 0;
   }
-  .logo .principal {
+  .logo .logo-principal {
     font-family: var(--playfair);
     font-style: italic;
     font-weight: 700;
@@ -109,18 +112,18 @@
     letter-spacing: -0.01em;
     line-height: 1;
     color: var(--accent);
-    /* L'italique réserve un espace après le dernier caractère (chasse du
-       glyphe) : on le compense pour que "Event" vienne vraiment coller
-       contre "Xwézan", en em pour rester proportionnel à toutes les tailles. */
-    margin-right: -0.6em;
+    margin: 0;
+    padding: 0;
   }
-  .logo .secondaire {
+  .logo .logo-secondaire {
     font-family: var(--instrument);
     font-weight: 600;
     font-size: 0.72em;
     letter-spacing: 0.02em;
     line-height: 1;
     color: var(--texte);
+    margin: 0;
+    padding: 0;
   }
   .nav-links {
     display: flex;
@@ -3251,10 +3254,10 @@
     height: 34px;
     margin-left: 0;
   }
-  .logo .principal {
+  .logo .logo-principal {
     font-size: 1.3rem;
   }
-  .logo .secondaire {
+  .logo .logo-secondaire {
     font-size: 0.85rem;
   }
 }

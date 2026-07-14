@@ -11,8 +11,8 @@ export default function Logo({ className }: { className?: string }) {
       className={className ? `logo ${className}` : "logo"}
       aria-label="XwézanEvent — accueil"
     >
-      <span className="principal">Xwézan</span>
-      <span className="secondaire">Event</span>
+      <span className="logo-principal">Xwézan</span>
+      <span className="logo-secondaire">Event</span>
     </Link>
   );
 }
