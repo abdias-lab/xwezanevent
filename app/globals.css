@@ -91,15 +91,15 @@
     align-items: center;
     gap: 36px;
   }
-  /* Logo 100% typographique (aucune icône) : "Xwézan" en Playfair Display
-     italique gras doré, "Event" en Instrument Sans ivoire, sur la même ligne.
+  /* Logo 100% typographique (aucune icône) : "Xwézan" + "Event" forment UN
+     seul bloc (même lien, espacement serré comme deux mots d'un même titre).
      Les tailles des enfants sont en em pour suivre le font-size de .logo
      (voir .boite .logo / .lateral .logo qui l'ajustent en contexte). */
   .logo {
     font-size: 1.35rem;
     display: inline-flex;
     align-items: baseline;
-    gap: 8px;
+    gap: 4px;
   }
   .logo .principal {
     font-family: var(--playfair);
@@ -123,7 +123,10 @@
     gap: 28px;
     font-size: 0.95rem;
     color: var(--texte2);
-    margin-left: 8px;
+    /* Marge large et volontaire : sépare clairement le bloc logo ("Xwézan
+       Event") du premier lien de nav, pour qu'on ne confonde pas "Event"
+       avec "Événements". */
+    margin-left: 32px;
   }
   .nav-links a {
     transition: color 0.2s;
@@ -3243,9 +3246,6 @@
     width: 34px;
     height: 34px;
     margin-left: 0;
-  }
-  .logo {
-    gap: 6px;
   }
   .logo .principal {
     font-size: 1.3rem;
