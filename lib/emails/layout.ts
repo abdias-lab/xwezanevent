@@ -26,7 +26,7 @@ ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;"
 <tr><td align="center">
 <table role="presentation" width="100%" style="max-width:560px;background:#1f1710;border:1px solid rgba(228,169,63,0.16);border-radius:20px;overflow:hidden;">
 <tr><td style="padding:26px 32px;border-bottom:1px solid rgba(228,169,63,0.16);">
-<span style="font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:19px;color:#f3eada;">Xwézan<span style="color:#e4a93f;">Event</span></span>
+<span style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:700;font-size:21px;color:#e4a93f;">Xwézan</span><span style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-weight:600;font-size:15px;letter-spacing:0.02em;color:#f3eada;margin-left:5px;">Event</span>
 </td></tr>
 <tr><td style="padding:32px;color:#f3eada;">
 ${contenu}

@@ -23,6 +23,7 @@
 
   --bricolage: var(--font-bricolage), sans-serif;
   --instrument: var(--font-instrument), sans-serif;
+  --playfair: var(--font-playfair), serif;
   --space: var(--font-space), monospace;
 }
 
@@ -90,33 +91,32 @@
     align-items: center;
     gap: 36px;
   }
+  /* Logo 100% typographique (aucune icône) : "Xwézan" en Playfair Display
+     italique gras doré, "Event" en Instrument Sans ivoire, sur la même ligne.
+     Les tailles des enfants sont en em pour suivre le font-size de .logo
+     (voir .boite .logo / .lateral .logo qui l'ajustent en contexte). */
   .logo {
-    font-family: var(--bricolage);
-    font-weight: 800;
     font-size: 1.35rem;
-    letter-spacing: -0.02em;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
   }
-  .logo .mark {
-    width: 30px;
-    height: 30px;
-    flex: none;
-    background: var(--accent);
-    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-    position: relative;
-  }
-  .logo .mark::after {
-    content: "";
-    position: absolute;
-    inset: 9px;
-    background: var(--fond);
-    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-  }
-  .logo em {
-    font-style: normal;
+  .logo .principal {
+    font-family: var(--playfair);
+    font-style: italic;
+    font-weight: 700;
+    font-size: 1.15em;
+    letter-spacing: -0.01em;
+    line-height: 1;
     color: var(--accent);
+  }
+  .logo .secondaire {
+    font-family: var(--instrument);
+    font-weight: 600;
+    font-size: 0.72em;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    color: var(--texte);
   }
   .nav-links {
     display: flex;
@@ -3223,6 +3223,35 @@
   }
   .cta-header .cta-court {
     display: inline;
+  }
+
+  /* Le logo texte (Xwézan + Event) est plus large qu'un pictogramme :
+     on resserre nav / CTA / burger et on réduit légèrement le logo pour que
+     tout tienne sur 360px sans que "Event" ne devienne illisible. */
+  .nav {
+    padding: 0 18px;
+    gap: 10px;
+  }
+  .nav-right {
+    gap: 10px;
+  }
+  .cta-header {
+    padding: 7px 13px;
+    font-size: 0.8rem;
+  }
+  .burger {
+    width: 34px;
+    height: 34px;
+    margin-left: 0;
+  }
+  .logo {
+    gap: 6px;
+  }
+  .logo .principal {
+    font-size: 1.3rem;
+  }
+  .logo .secondaire {
+    font-size: 0.85rem;
   }
 }
 

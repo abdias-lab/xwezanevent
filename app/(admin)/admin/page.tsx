@@ -8,6 +8,7 @@ import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import ActionsEvenement from "@/components/admin/ActionsEvenement";
 import ActionsPayout from "@/components/admin/ActionsPayout";
 import AfficheEvenement from "@/components/AfficheEvenement";
+import Logo from "@/components/Logo";
 
 export const metadata: Metadata = {
   title: "Administration — XwézanEvent",
@@ -129,10 +130,7 @@ export default async function AdminPage() {
   return (
     <div className="app">
       <aside className="lateral">
-        <Link className="logo" href="/">
-          <span className="mark" aria-hidden="true" />
-          Xwézan<em>Event</em>
-        </Link>
+        <Logo />
         <p className="role">Administration</p>
 
         <p className="groupe">Principal</p>

@@ -8,6 +8,7 @@ import ActionsEvenement from "@/components/admin/ActionsEvenement";
 import ActionsEvenementGestion from "@/components/admin/ActionsEvenementGestion";
 import FiltreStatutEvenements from "@/components/admin/FiltreStatutEvenements";
 import AfficheEvenement from "@/components/AfficheEvenement";
+import Logo from "@/components/Logo";
 
 export const metadata: Metadata = {
   title: "Événements — Administration — XwézanEvent",
@@ -82,10 +83,7 @@ export default async function AdminEvenements({
   return (
     <div className="app">
       <aside className="lateral">
-        <Link className="logo" href="/">
-          <span className="mark" aria-hidden="true" />
-          Xwézan<em>Event</em>
-        </Link>
+        <Logo />
         <p className="role">Administration</p>
 
         <p className="groupe">Principal</p>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { creerClientServeur } from "@/lib/supabase-server";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import MenuBurger from "@/components/MenuBurger";
+import Logo from "@/components/Logo";
 
 /**
  * En-tête sticky avec logo XwézanEvent (marque losange doré),
@@ -27,10 +28,7 @@ export default async function Header() {
   return (
     <header className="header">
       <div className="nav">
-        <Link href="/" className="logo" aria-label="XwézanEvent — accueil">
-          <span className="mark" aria-hidden="true" />
-          Xwézan<em>Event</em>
-        </Link>
+        <Logo />
 
         <nav className="nav-links" aria-label="Navigation principale">
           <Link href="/evenements">Événements</Link>

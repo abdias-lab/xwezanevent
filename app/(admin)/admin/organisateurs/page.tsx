@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
+import Logo from "@/components/Logo";
 
 export const metadata: Metadata = {
   title: "Organisateurs — Administration — XwézanEvent",
@@ -71,10 +72,7 @@ export default async function AdminOrganisateurs() {
   return (
     <div className="app">
       <aside className="lateral">
-        <Link className="logo" href="/">
-          <span className="mark" aria-hidden="true" />
-          Xwézan<em>Event</em>
-        </Link>
+        <Logo />
         <p className="role">Administration</p>
 
         <p className="groupe">Principal</p>

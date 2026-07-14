@@ -2,6 +2,7 @@ import Link from "next/link";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import ActionsEvenementOrga from "@/components/orga/ActionsEvenementOrga";
 import DemandeVirement from "@/components/orga/DemandeVirement";
+import Logo from "@/components/Logo";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { dateDisponibilitePayout, payoutDisponible } from "@/lib/payouts";
 import { redirect } from "next/navigation";
@@ -103,10 +104,7 @@ export default async function Orga() {
   return (
     <div className="app">
       <aside className="lateral">
-        <Link className="logo" href="/">
-          <span className="mark" aria-hidden="true" />
-          Xwézan<em>Event</em>
-        </Link>
+        <Logo />
         <p className="role">Organisateur</p>
 
         <p className="groupe">Principal</p>

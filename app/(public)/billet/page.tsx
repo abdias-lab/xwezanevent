@@ -1,6 +1,7 @@
 import Link from "next/link";
 import RetrouverBilletForm from "@/components/RetrouverBilletForm";
 import { creerClientServeur } from "@/lib/supabase-server";
+import Logo from "@/components/Logo";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -32,10 +33,7 @@ export default async function RetrouverBillet() {
 
       <div className="cote-form">
         <div className="boite">
-          <Link className="logo" href="/">
-            <span className="mark" aria-hidden="true" />
-            Xwézan<em>Event</em>
-          </Link>
+          <Logo />
 
           <h2>Retrouver mon billet</h2>
           <p className="sous">

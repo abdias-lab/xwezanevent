@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { creerClientNavigateur } from "@/lib/supabase-browser";
 import ChampMotDePasse from "@/components/ChampMotDePasse";
+import Logo from "@/components/Logo";
 
 type Vue = "connexion" | "inscription";
 
@@ -77,10 +78,7 @@ export default function AuthForm({ redirect = "/" }: { redirect?: string }) {
 
   return (
     <div className="boite">
-      <Link className="logo" href="/">
-        <span className="mark" aria-hidden="true" />
-        Xwézan<em>Event</em>
-      </Link>
+      <Logo />
 
       <h2>{vue === "connexion" ? "Bon retour 👋" : "Bienvenue 🎉"}</h2>
       <p className="sous">

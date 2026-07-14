@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { creerClientNavigateur } from "@/lib/supabase-browser";
+import Logo from "@/components/Logo";
 
 export default function MotDePasseOublieForm() {
   const supabase = creerClientNavigateur();
@@ -28,10 +29,7 @@ export default function MotDePasseOublieForm() {
 
   return (
     <div className="boite">
-      <Link className="logo" href="/">
-        <span className="mark" aria-hidden="true" />
-        Xwézan<em>Event</em>
-      </Link>
+      <Logo />
 
       <h2>Mot de passe oublié ?</h2>
       <p className="sous">

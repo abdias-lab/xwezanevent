@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { creerClientNavigateur } from "@/lib/supabase-browser";
 import ChampMotDePasse from "@/components/ChampMotDePasse";
+import Logo from "@/components/Logo";
 
 export default function ReinitialiserMotDePasseForm({
   lienValide,
@@ -47,10 +48,7 @@ export default function ReinitialiserMotDePasseForm({
 
   return (
     <div className="boite">
-      <Link className="logo" href="/">
-        <span className="mark" aria-hidden="true" />
-        Xwézan<em>Event</em>
-      </Link>
+      <Logo />
 
       <h2>Nouveau mot de passe</h2>
 

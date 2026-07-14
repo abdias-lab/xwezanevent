@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Logo from "@/components/Logo";
 
 export default function Footer() {
   return (
@@ -6,10 +7,7 @@ export default function Footer() {
       <div className="foot">
         <div className="foot-haut">
           <div>
-            <Link href="/" className="logo" aria-label="XwézanEvent">
-              <span className="mark" aria-hidden="true" />
-              Xwézan<em>Event</em>
-            </Link>
+            <Logo />
             <p className="pitch">
               La billetterie en ligne du Bénin. Découvrez, réservez, vibrez —
               payez comme vous vivez, en Mobile Money.
