@@ -112,7 +112,7 @@
     /* L'italique réserve un espace après le dernier caractère (chasse du
        glyphe) : on le compense pour que "Event" vienne vraiment coller
        contre "Xwézan", en em pour rester proportionnel à toutes les tailles. */
-    margin-right: -0.4em;
+    margin-right: -0.6em;
   }
   .logo .secondaire {
     font-family: var(--instrument);
