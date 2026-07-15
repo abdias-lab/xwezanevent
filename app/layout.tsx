@@ -31,6 +31,7 @@ const space = Space_Grotesk({
 export const metadata: Metadata = {
   title: "XwézanEvent — Billetterie du Bénin",
   description: "Concerts, festivals, soirées, culture — réservez vos tickets en quelques secondes",
+  themeColor: "#151009",
 };
 
 export default function RootLayout({
