@@ -1842,6 +1842,33 @@
     color: #c4502e;
     border: 1px solid color-mix(in srgb, #c4502e 45%, transparent);
   }
+  .st-avant {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .mise-en-avant {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .mise-en-avant .case {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: var(--texte2);
+    cursor: pointer;
+  }
+  .mise-en-avant .ordre {
+    width: 56px;
+    padding: 5px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--ligne);
+    background: var(--fond);
+    color: var(--texte);
+    font-size: 0.82rem;
+  }
   .corps-cp {
     max-width: 1240px;
     margin: 0 auto;

@@ -2,7 +2,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CarteEvenement from "@/components/CarteEvenement";
 import BoutonOr from "@/components/BoutonOr";
-import { getEvenementsPublies, getVillesPubliees } from "@/lib/events";
+import { getEvenementsPublies, getVillesPubliees, getEvenementsTicker } from "@/lib/events";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -94,19 +94,11 @@ const VILLES = [
   { rang: "06", nom: "Grand-Popo", detail: "9 événements à venir" },
 ];
 
-const TICKER = [
-  { date: "10 JAN", texte: "Vodun Days · Ouidah" },
-  { date: "17 JAN", texte: "Nuit de l'Afrobeat · Cotonou" },
-  { date: "24 JAN", texte: "Cotonou Comedy Night · Palais des Congrès" },
-  { date: "31 JAN", texte: "Festival des Masques · Porto-Novo" },
-  { date: "07 FÉV", texte: "Marathon de Cotonou · Boulevard de la Marina" },
-  { date: "14 FÉV", texte: "Soirée Zouk & Love · Fidjrossè Plage" },
-];
-
 export default async function Accueil() {
-  const [evenements, villes] = await Promise.all([
+  const [evenements, villes, ticker] = await Promise.all([
     getEvenementsPublies(),
     getVillesPubliees(),
+    getEvenementsTicker(),
   ]);
 
   return (
@@ -187,15 +179,17 @@ export default async function Accueil() {
       </div>
 
       {/* ======================= TICKER ======================= */}
-      <div className="ticker" aria-hidden="true">
-        <div className="ticker-piste">
-          {[...TICKER, ...TICKER].map((item, i) => (
-            <span key={i}>
-              <b>{item.date}</b> — {item.texte}
-            </span>
-          ))}
+      {ticker.length > 0 && (
+        <div className="ticker" aria-hidden="true">
+          <div className="ticker-piste">
+            {[...ticker, ...ticker].map((item, i) => (
+              <span key={i}>
+                <b>{item.date}</b> — {item.texte}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ======================= À L'AFFICHE ======================= */}
       <section className="section" id="evenements">

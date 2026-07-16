@@ -218,6 +218,74 @@ export async function getCategoriesPubliees(): Promise<string[]> {
   return Array.from(set).sort((a, b) => a.localeCompare(b, "fr"));
 }
 
+export interface TickerItem {
+  id: string;
+  date: string;
+  texte: string;
+}
+
+interface TickerRow {
+  id: string;
+  titre: string;
+  ville: string;
+  date_debut: string;
+}
+
+/** Nombre maximum d'événements affichés dans le ticker (lisibilité de la bande défilante). */
+export const LIMITE_TICKER = 6;
+
+function mapTicker(ev: TickerRow): TickerItem {
+  const [, mois, jour] = ev.date_debut.split("-");
+  return {
+    id: ev.id,
+    date: `${parseInt(jour, 10)} ${(MOIS_COURTS[parseInt(mois, 10) - 1] ?? "").toUpperCase()}`,
+    texte: `${ev.titre} · ${ev.ville}`,
+  };
+}
+
+/**
+ * Événements affichés dans la bande défilante ("ticker") de l'accueil.
+ * Sélection manuelle admin (mis_en_avant, triés par ordre_affiche puis date)
+ * si au moins un événement éligible est coché ; sinon repli sur les
+ * prochains événements publiés par date. Éligibilité dans les deux cas :
+ * statut 'publie' et date à venir — un événement coché mais passé, annulé
+ * ou dépublié depuis ne peut jamais apparaître. Limité à LIMITE_TICKER dans
+ * les deux branches pour rester lisible.
+ */
+export async function getEvenementsTicker(): Promise<TickerItem[]> {
+  const aujourdhui = aujourdhuiPortoNovo();
+
+  const { data: choisis, error: erreurChoisis } = await supabase
+    .from("events")
+    .select("id, titre, ville, date_debut")
+    .eq("statut", "publie")
+    .eq("mis_en_avant", true)
+    .gte("date_debut", aujourdhui)
+    .order("ordre_affiche", { ascending: true, nullsFirst: false })
+    .order("date_debut", { ascending: true })
+    .limit(LIMITE_TICKER);
+
+  if (erreurChoisis) {
+    console.error("[events] échec getEvenementsTicker (choisis) :", erreurChoisis.message);
+  } else if (choisis && choisis.length > 0) {
+    return (choisis as TickerRow[]).map(mapTicker);
+  }
+
+  const { data: repli, error: erreurRepli } = await supabase
+    .from("events")
+    .select("id, titre, ville, date_debut")
+    .eq("statut", "publie")
+    .gte("date_debut", aujourdhui)
+    .order("date_debut", { ascending: true })
+    .limit(LIMITE_TICKER);
+
+  if (erreurRepli || !repli) {
+    if (erreurRepli) console.error("[events] échec getEvenementsTicker (repli) :", erreurRepli.message);
+    return [];
+  }
+  return (repli as TickerRow[]).map(mapTicker);
+}
+
 /** Liste distincte des villes présentes parmi les événements publiés (pour suggestion, saisie libre par ailleurs). */
 export async function getVillesPubliees(): Promise<string[]> {
   const { data, error } = await supabase

@@ -7,8 +7,11 @@ import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import ActionsEvenement from "@/components/admin/ActionsEvenement";
 import ActionsEvenementGestion from "@/components/admin/ActionsEvenementGestion";
 import FiltreStatutEvenements from "@/components/admin/FiltreStatutEvenements";
+import ToggleMiseEnAvant from "@/components/admin/ToggleMiseEnAvant";
 import AfficheEvenement from "@/components/AfficheEvenement";
 import Logo from "@/components/Logo";
+import { aujourdhuiPortoNovo } from "@/lib/date";
+import { LIMITE_TICKER } from "@/lib/events";
 
 export const metadata: Metadata = {
   title: "Événements — Administration — XwézanEvent",
@@ -42,6 +45,8 @@ interface EventLigne {
   date_debut: string;
   statut: string;
   affiche_url: string | null;
+  mis_en_avant: boolean;
+  ordre_affiche: number | null;
   organisateur: { nom: string } | null;
   ticket_types: { prix: number; quantite_totale: number; quantite_vendue: number }[];
 }
@@ -68,17 +73,33 @@ export default async function AdminEvenements({
   await supabaseAdmin.rpc("cloturer_evenements_passes");
 
   const statutFiltre = searchParams.statut ?? "";
+  const aujourdhui = aujourdhuiPortoNovo();
 
   let query = supabase
     .from("events")
     .select(
-      "id, titre, slug, date_debut, statut, affiche_url, organisateur:profiles(nom), ticket_types(prix, quantite_totale, quantite_vendue)"
+      "id, titre, slug, date_debut, statut, affiche_url, mis_en_avant, ordre_affiche, organisateur:profiles(nom), ticket_types(prix, quantite_totale, quantite_vendue)"
     )
     .order("created_at", { ascending: false });
   if (statutFiltre) query = query.eq("statut", statutFiltre);
 
-  const { data } = await query;
+  const [{ data }, { count: enAvantEligibles }] = await Promise.all([
+    query,
+    supabaseAdmin
+      .from("events")
+      .select("id", { count: "exact", head: true })
+      .eq("statut", "publie")
+      .eq("mis_en_avant", true)
+      .gte("date_debut", aujourdhui),
+  ]);
   const evenements = (data as unknown as EventLigne[]) ?? [];
+  const totalEnAvant = enAvantEligibles ?? 0;
+  const badgeTicker =
+    totalEnAvant === 0
+      ? "Aucun événement en avant — repli sur les prochaines dates"
+      : totalEnAvant > LIMITE_TICKER
+        ? `${LIMITE_TICKER} en avant dans le ticker (${totalEnAvant} cochés, limite atteinte)`
+        : `${totalEnAvant} événement(s) en avant dans le ticker`;
 
   return (
     <div className="app">
@@ -105,9 +126,14 @@ export default async function AdminEvenements({
             <h1>Tous les événements</h1>
             <p className="sous">{evenements.length} événement(s)</p>
           </div>
-          <Link className="btn btn-ghost" href="/admin">
-            ← Vue d&apos;ensemble
-          </Link>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span className={`statut ${totalEnAvant > 0 ? "st-avant" : "st-fini"}`}>
+              {badgeTicker}
+            </span>
+            <Link className="btn btn-ghost" href="/admin">
+              ← Vue d&apos;ensemble
+            </Link>
+          </div>
         </div>
 
         <FiltreStatutEvenements valeur={statutFiltre} />
@@ -134,6 +160,7 @@ export default async function AdminEvenements({
                   <th>Date</th>
                   <th>Billets / Prix</th>
                   <th>Statut</th>
+                  <th>Ticker</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -166,6 +193,14 @@ export default async function AdminEvenements({
                       </td>
                       <td>
                         <span className={`statut ${badge.cls}`}>{badge.txt}</span>
+                      </td>
+                      <td>
+                        <ToggleMiseEnAvant
+                          eventId={ev.id}
+                          misEnAvant={ev.mis_en_avant}
+                          ordreAffiche={ev.ordre_affiche}
+                          eligible={ev.statut === "publie" && ev.date_debut >= aujourdhui}
+                        />
                       </td>
                       <td>
                         {ev.statut === "en_validation" ? (
