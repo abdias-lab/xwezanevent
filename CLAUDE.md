@@ -11,7 +11,8 @@ Billets avec QR code. Application PWA.
 - Next.js 14 (App Router) + TypeScript + Tailwind
 - Supabase (région eu-west-3), RLS strict sur toutes les tables
 - FedaPay en mode sandbox
-- Resend en mode test, limité à l'envoi vers gbedoloabdias@gmail.com
+- Resend en production, domaine xwezan.com vérifié, expéditeur piloté par
+  `RESEND_FROM_EMAIL`
 - Déploiement Vercel automatique sur push vers `main`
 
 Le projet Vercel est **déjà configuré**. Ne jamais proposer de le réimporter ou de le
@@ -55,6 +56,5 @@ comptes de test à nettoyer avant le lancement.
 
 - Nettoyage des comptes de test
 - Clés FedaPay live + `FEDAPAY_ENVIRONMENT=live`
-- Domaine + vérification Resend
 - Audit de sécurité externe
 - Revérifier le cas « paiement annulé » en conditions live

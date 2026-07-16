@@ -9,14 +9,12 @@ function resend(): Resend {
 }
 
 /**
- * Expéditeur des emails. Tant qu'aucun domaine n'est vérifié sur Resend,
- * il DOIT rester "onboarding@resend.dev" (seul expéditeur admis en mode
- * test) — une fois un domaine vérifié, il suffit de définir
- * RESEND_FROM_EMAIL (ex. "XwézanEvent <billets@xwezanevent.com>") en
- * variable d'environnement : aucun changement de code ailleurs.
+ * Expéditeur des emails. Piloté par la variable d'environnement
+ * RESEND_FROM_EMAIL (définie dans .env.local et sur Vercel) — domaine
+ * xwezan.com vérifié sur Resend. Le fallback ne sert qu'en son absence.
  */
 export const EXPEDITEUR_EMAIL =
-  process.env.RESEND_FROM_EMAIL ?? "XwézanEvent <onboarding@resend.dev>";
+  process.env.RESEND_FROM_EMAIL ?? "XwézanEvent <billets@xwezan.com>";
 
 interface EnvoiEmail {
   to: string;
