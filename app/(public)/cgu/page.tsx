@@ -32,10 +32,8 @@ export default function Cgu() {
             DONATEN, Bénin.
           </p>
           <p>
-            {/* TODO : compléter avec l'email et le téléphone professionnels
-                dès qu'ils seront disponibles. */}
-            Contact : via le formulaire de la page{" "}
-            <a href="/contact">Contact</a>.
+            Contact : <a href="mailto:contact@xwezan.com">contact@xwezan.com</a>{" "}
+            ou via le formulaire de la page <a href="/contact">Contact</a>.
           </p>
         </div>
 

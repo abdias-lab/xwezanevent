@@ -25,7 +25,7 @@ export default function Contact() {
           <div className="contact-carte">
             <span className="ic">✉️</span>
             <h3>Email</h3>
-            <a href="mailto:contact@xwezanevent.com">contact@xwezanevent.com</a>
+            <a href="mailto:contact@xwezan.com">contact@xwezan.com</a>
           </div>
           <div className="contact-carte">
             <span className="ic">💬</span>
