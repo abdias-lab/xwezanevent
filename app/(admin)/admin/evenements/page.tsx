@@ -210,6 +210,7 @@ export default async function AdminEvenements({
                             eventId={ev.id}
                             titre={ev.titre}
                             statut={ev.statut}
+                            ventes={vendus > 0}
                           />
                         )}
                       </td>

@@ -9,10 +9,12 @@ export default function ActionsEvenementGestion({
   eventId,
   titre,
   statut,
+  ventes,
 }: {
   eventId: string;
   titre: string;
   statut: string;
+  ventes: boolean;
 }) {
   const router = useRouter();
   const [modale, setModale] = useState<ModaleOuverte>(null);
@@ -57,16 +59,30 @@ export default function ActionsEvenementGestion({
             Dépublier / Annuler
           </button>
         )}
-        <button
-          type="button"
-          className="btn btn-supprimer"
-          onClick={() => {
-            setErreur(null);
-            setModale("supprimer");
-          }}
-        >
-          Supprimer
-        </button>
+        {ventes ? (
+          <div className="virement-attente">
+            <button
+              type="button"
+              className="btn btn-supprimer"
+              disabled
+              title="Des billets ont été vendus — utilisez l'annulation"
+            >
+              Supprimer
+            </button>
+            <span className="note-virement">Billets vendus — utilise l&apos;annulation</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-supprimer"
+            onClick={() => {
+              setErreur(null);
+              setModale("supprimer");
+            }}
+          >
+            Supprimer
+          </button>
+        )}
       </div>
 
       {modale && (
