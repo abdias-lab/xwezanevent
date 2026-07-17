@@ -253,8 +253,16 @@ export default function FormulaireCreation() {
           <div className="champ-bloc">
             <label htmlFor="affiche">
               Image de l&apos;affiche{" "}
-              <small>(JPG, PNG ou WebP — 5 Mo max, 1200×628px recommandé)</small>
+              <small>(JPG, PNG ou WebP — 5 Mo max)</small>
             </label>
+            <p className="aide-affiche">
+              Format paysage 1,91:1 recommandé (1200×628 ou 1600×838px).
+              Garde le sujet centré, avec une marge de sécurité
+              d&apos;environ 20% sur les côtés, et évite de placer des
+              éléments importants tout en bas de l&apos;image — elle est
+              recadrée différemment selon les écrans (voir les aperçus
+              ci-contre).
+            </p>
             <div className="dropzone-affiche">
               {affichePreview ? (
                 <div className="dropzone-img-wrap">
@@ -382,6 +390,23 @@ export default function FormulaireCreation() {
               {prixMin !== null ? `à partir de ${fmt(prixMin)}` : "Tarifs à définir"}
             </p>
           </div>
+        </div>
+
+        <div className="apercu-banniere" aria-label="Aperçu du recadrage sur la page événement">
+          <p className="apercu-banniere-titre">
+            Aperçu bannière (page événement, grand écran)
+          </p>
+          <div className="apercu-banniere-visuel">
+            {affichePreview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={affichePreview} alt="" />
+            ) : (
+              <span className="apercu-banniere-vide">Aucune image</span>
+            )}
+          </div>
+          <p className="apercu-banniere-note">
+            Sur mobile, une portion plus haute de l&apos;image reste visible.
+          </p>
         </div>
 
         <div className="checklist">

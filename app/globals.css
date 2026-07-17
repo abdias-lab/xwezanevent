@@ -2217,6 +2217,55 @@
     justify-content: center;
     color: rgba(251, 243, 228, 0.55);
   }
+  .aide-affiche {
+    font-size: 0.8rem;
+    color: var(--texte2);
+    line-height: 1.5;
+    margin: 6px 0 12px;
+  }
+  .apercu-banniere {
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 18px;
+    padding: 16px 20px 20px;
+  }
+  .apercu-banniere-titre {
+    font-family: var(--space);
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--texte2);
+    margin-bottom: 12px;
+  }
+  .apercu-banniere-visuel {
+    position: relative;
+    aspect-ratio: 1240 / 380;
+    border-radius: 12px;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--secondaire), color-mix(in srgb, var(--secondaire) 55%, black));
+  }
+  .apercu-banniere-visuel img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 30%;
+  }
+  .apercu-banniere-vide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(251, 243, 228, 0.55);
+    font-size: 0.82rem;
+  }
+  .apercu-banniere-note {
+    font-size: 0.76rem;
+    color: var(--texte2);
+    margin-top: 10px;
+  }
   .dropzone-affiche {
     position: relative;
     min-height: 190px;
