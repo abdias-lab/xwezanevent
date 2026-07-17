@@ -46,7 +46,7 @@ interface PayoutDemande {
   moyen: string;
   statut: string;
   created_at: string;
-  organisateur: { nom: string } | null;
+  organisateur: { nom: string; telephone: string | null } | null;
   events: { titre: string; date_debut: string } | null;
 }
 
@@ -105,9 +105,14 @@ export default async function AdminPage() {
       )
       .eq("statut", "en_validation")
       .order("created_at", { ascending: true }),
-    supabase
+    // supabaseAdmin : le téléphone de l'organisateur (nécessaire pour
+    // effectuer le virement Mobile Money) n'est plus lisible via le rôle
+    // Postgres `authenticated` (voir migration 20260717140000) — le
+    // contrôle de rôle applicatif reste assuré par la vérification
+    // `profil.role !== "admin"` ci-dessus, faite via le client de session.
+    supabaseAdmin
       .from("payouts")
-      .select("id, montant, moyen, statut, created_at, organisateur:profiles(nom), events(titre, date_debut)")
+      .select("id, montant, moyen, statut, created_at, organisateur:profiles(nom, telephone), events(titre, date_debut)")
       .in("statut", ["demande", "bloque"])
       .order("created_at", { ascending: true }),
   ]);
@@ -274,6 +279,7 @@ export default async function AdminPage() {
               <thead>
                 <tr>
                   <th>Organisateur</th>
+                  <th>Téléphone</th>
                   <th>Événement</th>
                   <th>Date événement</th>
                   <th>Montant</th>
@@ -289,6 +295,7 @@ export default async function AdminPage() {
                   return (
                   <tr key={p.id}>
                     <td className="ev-nom">{p.organisateur?.nom ?? "—"}</td>
+                    <td>{p.organisateur?.telephone ?? "—"}</td>
                     <td>{p.events?.titre ?? "—"}</td>
                     <td>
                       {p.events ? formatDate(p.events.date_debut) : "—"}

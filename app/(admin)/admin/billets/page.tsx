@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import FiltreEvenementBillets from "@/components/admin/FiltreEvenementBillets";
 import Logo from "@/components/Logo";
@@ -33,7 +34,7 @@ interface TicketLigne {
     events: { id: string; titre: string } | null;
   } | null;
   orders: {
-    profiles: { nom: string } | null;
+    profiles: { nom: string; telephone: string | null } | null;
   } | null;
 }
 
@@ -67,10 +68,16 @@ export default async function AdminBillets({
   // ticket_types!inner : force un vrai JOIN pour que le filtre sur
   // event_id restreigne effectivement les lignes retournées (et donc que
   // la LIMITE porte sur le résultat filtré, pas sur l'ensemble global).
-  let query = supabase
+  //
+  // supabaseAdmin : le téléphone de l'acheteur (nécessaire pour les
+  // remboursements Mobile Money en cas d'annulation) n'est plus lisible
+  // via le rôle Postgres `authenticated` (voir migration 20260717140000)
+  // — le contrôle de rôle applicatif reste assuré par la vérification
+  // `profil.role !== "admin"` ci-dessus, faite via le client de session.
+  let query = supabaseAdmin
     .from("tickets")
     .select(
-      "id, statut, created_at, ticket_types!inner(nom, event_id, events(id, titre)), orders(profiles(nom))"
+      "id, statut, created_at, ticket_types!inner(nom, event_id, events(id, titre)), orders(profiles(nom, telephone))"
     )
     .order("created_at", { ascending: false })
     .limit(LIMITE);
@@ -140,6 +147,7 @@ export default async function AdminBillets({
                   <th>Événement</th>
                   <th>Type de billet</th>
                   <th>Acheteur</th>
+                  <th>Téléphone</th>
                   <th>Statut</th>
                   <th>Acheté le</th>
                 </tr>
@@ -152,6 +160,7 @@ export default async function AdminBillets({
                       <td className="ev-nom">{b.ticket_types?.events?.titre ?? "—"}</td>
                       <td>{b.ticket_types?.nom ?? "—"}</td>
                       <td>{b.orders?.profiles?.nom ?? "—"}</td>
+                      <td>{b.orders?.profiles?.telephone ?? "—"}</td>
                       <td>
                         <span className={`statut ${badge.cls}`}>{badge.txt}</span>
                       </td>

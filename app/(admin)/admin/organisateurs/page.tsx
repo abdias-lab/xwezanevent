@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import Logo from "@/components/Logo";
 
@@ -21,6 +22,7 @@ interface EventAgrege {
 interface OrganisateurLigne {
   id: string;
   nom: string;
+  telephone: string | null;
   nbEvenements: number;
   billetsVendus: number;
   revenu: number;
@@ -40,8 +42,13 @@ export default async function AdminOrganisateurs() {
     .single();
   if (!profil || profil.role !== "admin") redirect("/");
 
+  // supabaseAdmin : le téléphone de l'organisateur (nécessaire pour le
+  // joindre / effectuer un virement) n'est plus lisible via le rôle
+  // Postgres `authenticated` (voir migration 20260717140000) — le
+  // contrôle de rôle applicatif reste assuré par la vérification
+  // `profil.role !== "admin"` ci-dessus, faite via le client de session.
   const [{ data: organisateursData }, { data: eventsData }] = await Promise.all([
-    supabase.from("profiles").select("id, nom").eq("role", "organisateur"),
+    supabaseAdmin.from("profiles").select("id, nom, telephone").eq("role", "organisateur"),
     supabase.from("events").select("organisateur_id, ticket_types(prix, quantite_vendue)"),
   ]);
 
@@ -62,10 +69,12 @@ export default async function AdminOrganisateurs() {
     parOrganisateur.set(ev.organisateur_id, agg);
   }
 
-  const lignes: OrganisateurLigne[] = ((organisateursData ?? []) as { id: string; nom: string }[])
+  const lignes: OrganisateurLigne[] = (
+    (organisateursData ?? []) as { id: string; nom: string; telephone: string | null }[]
+  )
     .map((o) => {
       const agg = parOrganisateur.get(o.id) ?? { nbEvenements: 0, billetsVendus: 0, revenu: 0 };
-      return { id: o.id, nom: o.nom, ...agg };
+      return { id: o.id, nom: o.nom, telephone: o.telephone, ...agg };
     })
     .sort((a, b) => b.revenu - a.revenu);
 
@@ -116,6 +125,7 @@ export default async function AdminOrganisateurs() {
               <thead>
                 <tr>
                   <th>Organisateur</th>
+                  <th>Téléphone</th>
                   <th>Événements</th>
                   <th>Billets vendus</th>
                   <th>Revenu généré</th>
@@ -125,6 +135,7 @@ export default async function AdminOrganisateurs() {
                 {lignes.map((l) => (
                   <tr key={l.id}>
                     <td className="ev-nom">{l.nom}</td>
+                    <td>{l.telephone ?? "—"}</td>
                     <td>{fmt(l.nbEvenements)}</td>
                     <td>{fmt(l.billetsVendus)}</td>
                     <td className="rev">{fmt(l.revenu)} F</td>
