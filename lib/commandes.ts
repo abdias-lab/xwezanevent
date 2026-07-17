@@ -144,8 +144,40 @@ export async function finaliserCommande(
 
   const panier = (order.panier ?? []) as PanierItem[];
 
-  // Génère un billet par unité
-  const billets = panier.flatMap((p) =>
+  // Réserve le stock de façon atomique (UPDATE conditionnel en base, voir
+  // migration 20260717160000) AVANT de générer le moindre billet : deux
+  // commandes concurrentes sur le même dernier billet ne peuvent plus
+  // toutes les deux réussir. Le paiement est déjà capturé à ce stade (on
+  // est appelé depuis le webhook FedaPay) : si la réservation échoue
+  // malgré le contrôle de stock fait à la création de la commande (cas
+  // extrêmement rare de course serrée), le ou les billets correspondants
+  // ne sont pas émis — remboursement/traitement manuel requis, journalisé
+  // en erreur pour intervention.
+  const panierReserve: PanierItem[] = [];
+  for (const p of panier) {
+    const { data: ok, error } = await supabaseAdmin.rpc("reserver_stock_billet", {
+      p_ticket_type_id: p.ticket_type_id,
+      p_quantite: p.quantite,
+    });
+    if (error) {
+      console.error(
+        `[commandes] échec réservation stock (ticket_type=${p.ticket_type_id}, commande=${orderId}) :`,
+        error.message
+      );
+      continue;
+    }
+    if (ok) {
+      panierReserve.push(p);
+    } else {
+      console.error(
+        `[commandes] SURVENTE ÉVITÉE — stock insuffisant pour ticket_type=${p.ticket_type_id} ` +
+          `(commande=${orderId} déjà payée, ${p.quantite} billet(s) non émis, remboursement/traitement manuel requis)`
+      );
+    }
+  }
+
+  // Génère un billet par unité, uniquement pour le stock effectivement réservé
+  const billets = panierReserve.flatMap((p) =>
     Array.from({ length: p.quantite }, () => ({
       order_id: orderId,
       ticket_type_id: p.ticket_type_id,
@@ -158,27 +190,6 @@ export async function finaliserCommande(
       .insert(billets)
       .select("id, code_qr, ticket_type_id");
     ticketsGeneres = inseres ?? [];
-  }
-
-  // Décrémente le stock (incrémente quantite_vendue)
-  const ids = panier.map((p) => p.ticket_type_id);
-  if (ids.length > 0) {
-    const { data: types } = await supabaseAdmin
-      .from("ticket_types")
-      .select("id, quantite_vendue")
-      .in("id", ids);
-    const venduParId = new Map(
-      ((types ?? []) as { id: string; quantite_vendue: number }[]).map((t) => [
-        t.id,
-        t.quantite_vendue,
-      ])
-    );
-    for (const p of panier) {
-      await supabaseAdmin
-        .from("ticket_types")
-        .update({ quantite_vendue: (venduParId.get(p.ticket_type_id) ?? 0) + p.quantite })
-        .eq("id", p.ticket_type_id);
-    }
   }
 
   await envoyerConfirmationCommande(
