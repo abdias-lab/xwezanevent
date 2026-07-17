@@ -1,0 +1,26 @@
+-- Corrige M2 (audit sécurité) : la policy INSERT sur storage.objects pour
+-- le bucket "affiches" ("Upload des affiches par les utilisateurs
+-- authentifiés", 20260711120000) autorise TOUT compte authentifié
+-- (n'importe quel `visiteur`, pas seulement `organisateur`/`admin`) à
+-- uploader directement un fichier via l'API REST Storage (clé anon +
+-- JWT), qui devient aussitôt public sous le domaine Supabase du projet —
+-- risque d'abus de stockage / hébergement de contenu non désiré sous une
+-- URL de confiance.
+--
+-- Vérification faite (même raisonnement que C1/E1/DELETE events) :
+-- AUCUN chemin de l'application n'uploade vers ce bucket via le rôle
+-- Postgres `authenticated` — seul uploaderAffiche()
+-- (app/(orga)/creer/actions.ts) écrit dans "affiches", exclusivement via
+-- `supabaseAdmin` (service_role, hors RLS). La policy n'a donc aucun cas
+-- d'usage légitime aujourd'hui, comme le confirmait déjà son propre
+-- commentaire ("l'app envoie les fichiers via le serveur ... cette
+-- policy est un filet de sécurité si l'anon key est utilisée pour un
+-- upload direct"). Blocage total plutôt qu'une simple restriction de
+-- rôle (organisateur/admin) : cohérent avec le pattern déjà appliqué sur
+-- events (INSERT/UPDATE/DELETE) et sur demandes_retrouver_billet (RLS
+-- activée, aucune policy = accès nul hors service_role).
+--
+-- La lecture publique ("Lecture publique des affiches") n'est pas
+-- touchée : les affiches doivent rester visibles publiquement.
+
+DROP POLICY IF EXISTS "Upload des affiches par les utilisateurs authentifiés" ON storage.objects;
