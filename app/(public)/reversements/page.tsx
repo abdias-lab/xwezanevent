@@ -52,6 +52,10 @@ export default function Reversements() {
               <span className="ic">📱</span>
               Moov Money
             </div>
+            <div className="inclus-item">
+              <span className="ic">📱</span>
+              Celtiis Money
+            </div>
           </div>
         </div>
 

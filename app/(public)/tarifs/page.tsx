@@ -40,7 +40,7 @@ export default function Tarifs() {
           <p>
             De ton côté, à chaque demande de reversement, XwézanEvent retient
             6% du montant des ventes de l&apos;événement concerné. Le reste
-            part directement sur ton compte MTN Mobile Money ou Moov Money.
+            part directement sur ton compte MTN, Moov ou Celtiis Money.
           </p>
 
           <div className="encadre">
@@ -69,7 +69,7 @@ export default function Tarifs() {
           <div className="inclus-grille">
             <div className="inclus-item">
               <span className="ic">📱</span>
-              Paiement Mobile Money (MTN &amp; Moov) intégré, prêt à
+              Paiement Mobile Money (MTN, Moov &amp; Celtiis) intégré, prêt à
               l&apos;emploi
             </div>
             <div className="inclus-item">

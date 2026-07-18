@@ -171,6 +171,10 @@ export default async function Accueil() {
               Moov Money
             </span>
             <span className="pastille">
+              <span className="dot-celtiis" aria-hidden="true" />
+              Celtiis Money
+            </span>
+            <span className="pastille">
               <span className="dot-qr" aria-hidden="true" />
               E-billet QR code immédiat
             </span>
@@ -301,7 +305,7 @@ export default async function Accueil() {
               Publiez votre événement en 10 minutes, encaissez par Mobile Money,
               suivez vos ventes en temps réel et contrôlez les entrées avec le
               scan QR. Vos revenus sont reversés directement sur votre compte
-              MoMo ou Moov.
+              MTN, Moov ou Celtiis.
             </p>
             <BoutonOr href="/creer">Créer mon événement</BoutonOr>
           </div>

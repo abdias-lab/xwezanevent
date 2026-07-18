@@ -458,6 +458,7 @@
   }
   .dot-mtn,
   .dot-moov,
+  .dot-celtiis,
   .dot-qr {
     width: 10px;
     height: 10px;
@@ -469,6 +470,11 @@
   }
   .dot-moov {
     background: #0a6cb4;
+  }
+  .dot-celtiis {
+    /* Couleur approximative, non vérifiée contre une charte officielle
+       Celtiis — à ajuster si besoin. */
+    background: #f7941d;
   }
   .dot-qr {
     background: #5e8c4a;

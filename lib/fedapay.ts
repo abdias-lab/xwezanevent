@@ -1,5 +1,5 @@
 /**
- * Intégration FedaPay via le SDK officiel (Mobile Money Bénin — MTN / Moov + carte).
+ * Intégration FedaPay via le SDK officiel (Mobile Money Bénin — MTN / Moov / Celtiis + carte).
  * ⚠️ SERVEUR UNIQUEMENT : utilise la clé secrète. Ne jamais importer côté client.
  */
 import { FedaPay, Transaction, Webhook } from "fedapay";
