@@ -114,6 +114,7 @@ export default async function Orga() {
           + Créer un événement
         </Link>
         <Link className="item" href="/scan" style={{ marginTop: 8 }}>📷 Scanner les billets</Link>
+        <Link className="item" href="/orga/reversements" style={{ marginTop: 8 }}>🏦 Mes reversements</Link>
 
         <div className="bas">
           <div className="avatar">{initiale}</div>
