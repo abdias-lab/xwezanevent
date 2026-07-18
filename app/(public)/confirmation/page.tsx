@@ -66,79 +66,93 @@ export default async function Confirmation({
   const ev = order.events;
   if (!ev) notFound();
 
+  const paye = order.statut === "paye";
+
   const numero = `#XWZ-${order.id.slice(0, 8).toUpperCase()}`;
   const titulaire =
     (user.user_metadata?.nom as string | undefined) ?? user.email ?? "";
   const dateHeure = formatDateHeure(ev.date_debut, ev.heure);
 
-  // Génère un QR (SVG) par billet à partir de son code unique
-  const billets = await Promise.all(
-    order.tickets.map(async (t) => ({
-      id: t.id,
-      nom: t.ticket_types?.nom ?? "Billet",
-      qr: await QRCode.toString(t.code_qr, {
-        type: "svg",
-        margin: 1,
-        width: 150,
-        color: { dark: "#151009", light: "#ffffff" },
-      }),
-    }))
-  );
+  // Les billets ne sont générés qu'à la finalisation du paiement (voir
+  // finaliserCommande) : tant que statut !== "paye", order.tickets est vide.
+  // On ne génère les QR que dans ce cas, pour ne jamais laisser un visuel de
+  // succès s'afficher sur une commande non payée.
+  const billets = paye
+    ? await Promise.all(
+        order.tickets.map(async (t) => ({
+          id: t.id,
+          nom: t.ticket_types?.nom ?? "Billet",
+          qr: await QRCode.toString(t.code_qr, {
+            type: "svg",
+            margin: 1,
+            width: 150,
+            color: { dark: "#151009", light: "#ffffff" },
+          }),
+        }))
+      )
+    : [];
 
   return (
     <>
       <Header />
 
       <main className="corps-c">
-        <div className="coche" aria-hidden="true">✓</div>
-        <h1>{order.statut === "paye" ? "Paiement confirmé !" : "Commande enregistrée !"}</h1>
-        <p className="sous">
-          {order.statut === "paye"
-            ? billets.length > 1
-              ? "Tes billets sont confirmés"
-              : "Ton billet est confirmé"
-            : billets.length > 1
-              ? "Tes billets sont réservés"
-              : "Ton billet est réservé"}{" "}
-          · envoyé à <b>{user.email}</b>
-        </p>
+        {paye ? (
+          <>
+            <div className="coche" aria-hidden="true">✓</div>
+            <h1>Paiement confirmé !</h1>
+            <p className="sous">
+              {billets.length > 1 ? "Tes billets sont confirmés" : "Ton billet est confirmé"}{" "}
+              · envoyé à <b>{user.email}</b>
+            </p>
 
-        {billets.map((b) => (
-          <div className="billet" key={b.id} aria-label="E-billet">
-            <div className="haut">
-              <div className="applique" aria-hidden="true" />
-              <h2>{ev.titre}</h2>
-              <p>
-                📅 {dateHeure} &nbsp;·&nbsp; 📍 {ev.lieu}, {ev.ville}
-              </p>
-            </div>
-            <div className="separation" />
-            <div className="bas">
-              <div className="detail">
-                <div className="l">Billet</div>
-                <div className="v">{b.nom}</div>
-                <div className="l">Titulaire</div>
-                <div className="v">{titulaire}</div>
-                <div className="l">N° de commande</div>
-                <div className="v num">{numero}</div>
+            {billets.map((b) => (
+              <div className="billet" key={b.id} aria-label="E-billet">
+                <div className="haut">
+                  <div className="applique" aria-hidden="true" />
+                  <h2>{ev.titre}</h2>
+                  <p>
+                    📅 {dateHeure} &nbsp;·&nbsp; 📍 {ev.lieu}, {ev.ville}
+                  </p>
+                </div>
+                <div className="separation" />
+                <div className="bas">
+                  <div className="detail">
+                    <div className="l">Billet</div>
+                    <div className="v">{b.nom}</div>
+                    <div className="l">Titulaire</div>
+                    <div className="v">{titulaire}</div>
+                    <div className="l">N° de commande</div>
+                    <div className="v num">{numero}</div>
+                  </div>
+                  <div
+                    className="zone-qr"
+                    dangerouslySetInnerHTML={{
+                      __html: `${b.qr}<span class="scan">Scanner à l'entrée</span>`,
+                    }}
+                  />
+                </div>
               </div>
-              <div
-                className="zone-qr"
-                dangerouslySetInnerHTML={{
-                  __html: `${b.qr}<span class="scan">Scanner à l'entrée</span>`,
-                }}
-              />
-            </div>
-          </div>
-        ))}
+            ))}
 
-        <p className="note-c">
-          Présente ce QR code à l&apos;entrée de l&apos;événement.
-          <br />
-          {order.statut === "paye"
-            ? "Un email de confirmation t'a été envoyé."
-            : "Paiement en attente — il sera confirmé dès la validation FedaPay."}
-        </p>
+            <p className="note-c">
+              Présente ce QR code à l&apos;entrée de l&apos;événement.
+              <br />
+              Un email de confirmation t&apos;a été envoyé.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="sablier" aria-hidden="true">⏳</div>
+            <h1>Paiement en cours de vérification</h1>
+            <p className="sous">
+              Nous n&apos;avons pas encore reçu la confirmation de FedaPay pour cette
+              commande. Si le paiement a bien été validé, ton billet apparaîtra
+              automatiquement ici et dans « Mes billets » d&apos;ici quelques instants.
+            </p>
+          </>
+        )}
+
         <Link className="suite" href="/compte">
           Voir mes billets →
         </Link>
