@@ -153,6 +153,7 @@ export default async function AdminPage() {
         <Link className="item" href="/admin/evenements">🗓️ Événements</Link>
         <Link className="item" href="/admin/billets">🎟️ Billets</Link>
         <Link className="item" href="/admin/commissions">💰 Commissions</Link>
+        <Link className="item" href="/admin/reversements">🏦 Reversements</Link>
         <Link className="item" href="/admin/organisateurs">👥 Organisateurs</Link>
         <Link className="item" href="/admin/evenements?statut=termine">🏁 Terminés</Link>
 
@@ -270,7 +271,12 @@ export default async function AdminPage() {
         </div>
 
         <div className="tableau-panneau">
-          <h3>Virements en attente</h3>
+          <h3 style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            Virements en attente
+            <Link href="/admin/reversements" className="btn btn-ghost" style={{ padding: "6px 12px", fontSize: "0.78rem" }}>
+              Voir tout l&apos;historique →
+            </Link>
+          </h3>
 
           {payouts.length === 0 ? (
             <div className="etat-vide" style={{ margin: "10px auto 4px" }}>

@@ -89,6 +89,7 @@ export default async function AdminOrganisateurs() {
         <Link className="item" href="/admin/evenements">🗓️ Événements</Link>
         <Link className="item" href="/admin/billets">🎟️ Billets</Link>
         <Link className="item" href="/admin/commissions">💰 Commissions</Link>
+        <Link className="item" href="/admin/reversements">🏦 Reversements</Link>
         <Link className="item actif" href="/admin/organisateurs">👥 Organisateurs</Link>
         <Link className="item" href="/admin/evenements?statut=termine">🏁 Terminés</Link>
 
