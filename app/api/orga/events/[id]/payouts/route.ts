@@ -8,6 +8,7 @@ import {
   dateDisponibilitePayout,
   payoutDisponible,
   normaliserNumeroBenin,
+  AIDE_NUMERO_BENIN,
 } from "@/lib/payouts";
 import { journaliserAction } from "@/lib/journal";
 
@@ -62,10 +63,7 @@ export async function POST(
   const numeroDestination =
     typeof numeroSaisi === "string" ? normaliserNumeroBenin(numeroSaisi) : null;
   if (!numeroDestination) {
-    return NextResponse.json(
-      { error: "Numéro de téléphone invalide (format béninois attendu, ex. 01 90 12 34 56)" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: AIDE_NUMERO_BENIN }, { status: 400 });
   }
 
   const disponible = await montantDisponible(params.id);

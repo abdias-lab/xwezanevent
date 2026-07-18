@@ -14,19 +14,30 @@ const LIBELLE_MOYEN: Record<MoyenPaiement, string> = {
   celtiis: "Celtiis Money",
 };
 
-/** Vérif côté client, uniquement pour activer/désactiver le bouton —
- * la validation réelle (et la normalisation stockée) est côté serveur. */
-function ressembleANumeroBenin(saisie: string): boolean {
+/**
+ * Miroir client de lib/payouts.ts::normaliserNumeroBenin — dupliqué ici
+ * car ce fichier est "server-only" et ne peut pas être importé pour sa
+ * valeur d'exécution dans un composant client (seul un `import type` le
+ * pourrait). Toute évolution du format doit être répercutée aux deux
+ * endroits. Utilisé uniquement pour activer/désactiver le bouton et
+ * afficher le récapitulatif — la validation qui compte, et la
+ * normalisation réellement stockée, restent côté serveur.
+ */
+function normaliserNumeroBeninClient(saisie: string): string | null {
   const nettoye = saisie.replace(/[\s().-]/g, "").replace(/^\+?229/, "");
-  return /^01\d{8}$/.test(nettoye);
+  if (/^01\d{8}$/.test(nettoye)) return nettoye;
+  if (/^\d{8}$/.test(nettoye)) return "01" + nettoye;
+  return null;
 }
 
-/** Formate un numéro à 10 chiffres pour l'affichage : "0190123456" → "01 90 12 34 56". */
-function formaterNumero(saisie: string): string {
-  const nettoye = saisie.replace(/[\s().-]/g, "").replace(/^\+?229/, "");
-  if (!/^\d{10}$/.test(nettoye)) return saisie;
-  return nettoye.replace(/(\d{2})(?=\d)/g, "$1 ").trim();
+/** Formate un numéro normalisé à 10 chiffres pour l'affichage : "0190123456" → "01 90 12 34 56". */
+function formaterNumero(n: string): string {
+  return n.replace(/(\d{2})(?=\d)/g, "$1 ").trim();
 }
+
+const AIDE_NUMERO =
+  "Le numéro doit comporter 10 chiffres et commencer par 01 — exemple : 01 97 12 34 56. " +
+  "Un numéro à 8 chiffres (ancien format) est aussi accepté, le 01 sera ajouté automatiquement.";
 
 export default function DemandeVirement({
   eventId,
@@ -59,10 +70,12 @@ export default function DemandeVirement({
     setErreur(null);
   }
 
+  const numeroNormalise = normaliserNumeroBeninClient(numero);
+
   function passerALaConfirmation() {
     setErreur(null);
-    if (!ressembleANumeroBenin(numero)) {
-      setErreur("Numéro invalide (format béninois attendu, ex. 01 90 12 34 56)");
+    if (!numeroNormalise) {
+      setErreur(AIDE_NUMERO);
       return;
     }
     setEtape("confirmation");
@@ -158,11 +171,12 @@ export default function DemandeVirement({
                   <input
                     id="numero"
                     type="tel"
-                    placeholder="01 90 12 34 56"
+                    placeholder="01 97 12 34 56"
                     value={numero}
                     onChange={(e) => setNumero(e.target.value)}
                     required
                   />
+                  <small className="note-virement">{AIDE_NUMERO}</small>
                 </div>
                 {erreur && <p style={{ color: "#c4502e" }}>{erreur}</p>}
                 <div className="modale-actions">
@@ -176,7 +190,7 @@ export default function DemandeVirement({
                       enCours ||
                       Number(montant) <= 0 ||
                       Number(montant) > disponible ||
-                      !ressembleANumeroBenin(numero)
+                      !numeroNormalise
                     }
                     onClick={passerALaConfirmation}
                   >
@@ -190,8 +204,13 @@ export default function DemandeVirement({
                 <p>
                   Vous allez recevoir <strong>{fmt(Number(montant))} FCFA</strong> sur le{" "}
                   <strong>{LIBELLE_MOYEN[moyen]}</strong> numéro{" "}
-                  <strong>{formaterNumero(numero)}</strong>.
+                  <strong>{numeroNormalise ? formaterNumero(numeroNormalise) : numero}</strong>.
                 </p>
+                {numeroNormalise && !numero.replace(/[\s().-]/g, "").replace(/^\+?229/, "").startsWith("01") && (
+                  <p style={{ color: "var(--texte2)", fontSize: "0.85rem" }}>
+                    (préfixe 01 ajouté automatiquement à ton numéro à 8 chiffres)
+                  </p>
+                )}
                 <p style={{ color: "var(--texte2)", fontSize: "0.85rem" }}>
                   Vérifiez bien ce numéro avant de confirmer — c&apos;est là que l&apos;argent sera envoyé.
                 </p>
