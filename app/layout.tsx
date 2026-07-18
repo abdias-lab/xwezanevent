@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Instrument_Sans, Playfair_Display, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
@@ -31,6 +31,9 @@ const space = Space_Grotesk({
 export const metadata: Metadata = {
   title: "XwézanEvent — Billetterie du Bénin",
   description: "Concerts, festivals, soirées, culture — réservez vos tickets en quelques secondes",
+};
+
+export const viewport: Viewport = {
   themeColor: "#151009",
 };
 
