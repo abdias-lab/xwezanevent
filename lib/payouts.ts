@@ -3,8 +3,23 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { aujourdhuiPortoNovo, ajouterJours } from "@/lib/date";
 
 export const TAUX_COMMISSION = 0.06;
-export const MOYENS_PAIEMENT = ["mtn", "moov"] as const;
+export const MOYENS_PAIEMENT = ["mtn", "moov", "celtiis"] as const;
 export type MoyenPaiement = (typeof MOYENS_PAIEMENT)[number];
+
+/**
+ * Normalise un numéro Mobile Money béninois saisi par un organisateur
+ * (donnée client, jamais de confiance) : tolère espaces/points/tirets et
+ * l'indicatif +229, rejette tout ce qui ne correspond pas au format
+ * actuel (migration ARCEP du 30 novembre 2024 : préfixe "01" + 8 chiffres, 10 chiffres
+ * au total). Retourne la forme stockée (ex. "0190123456") ou null si
+ * invalide. Ne vérifie pas la cohérence entre le préfixe et l'opérateur
+ * choisi (moyen) — volontairement, pour ne pas rejeter à tort un numéro
+ * valide sur la base d'une liste de préfixes non garantie à jour.
+ */
+export function normaliserNumeroBenin(saisie: string): string | null {
+  const nettoye = saisie.replace(/[\s().-]/g, "").replace(/^\+?229/, "");
+  return /^01\d{8}$/.test(nettoye) ? nettoye : null;
+}
 
 /** Délai (jours) après la tenue de l'événement avant qu'un virement soit demandable. */
 export const DELAI_PAYOUT_JOURS = 3;

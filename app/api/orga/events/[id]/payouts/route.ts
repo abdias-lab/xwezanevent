@@ -7,6 +7,7 @@ import {
   type MoyenPaiement,
   dateDisponibilitePayout,
   payoutDisponible,
+  normaliserNumeroBenin,
 } from "@/lib/payouts";
 import { journaliserAction } from "@/lib/journal";
 
@@ -57,6 +58,16 @@ export async function POST(
     return NextResponse.json({ error: "Moyen de paiement invalide" }, { status: 400 });
   }
 
+  const numeroSaisi = body?.numero as unknown;
+  const numeroDestination =
+    typeof numeroSaisi === "string" ? normaliserNumeroBenin(numeroSaisi) : null;
+  if (!numeroDestination) {
+    return NextResponse.json(
+      { error: "Numéro de téléphone invalide (format béninois attendu, ex. 01 90 12 34 56)" },
+      { status: 400 }
+    );
+  }
+
   const disponible = await montantDisponible(params.id);
   if (disponible <= 0) {
     return NextResponse.json({ error: "Aucun solde disponible pour cet événement" }, { status: 409 });
@@ -74,6 +85,7 @@ export async function POST(
       event_id: params.id,
       montant,
       moyen,
+      numero_destination: numeroDestination,
       statut: "demande",
     })
     .select("id")
@@ -89,6 +101,7 @@ export async function POST(
     event_id: params.id,
     montant,
     moyen,
+    numero_destination: numeroDestination,
   });
 
   return NextResponse.json({ ok: true, montant });

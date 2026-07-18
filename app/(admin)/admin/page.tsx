@@ -44,10 +44,16 @@ interface PayoutDemande {
   id: string;
   montant: number;
   moyen: string;
+  numero_destination: string;
   statut: string;
   created_at: string;
   organisateur: { nom: string; telephone: string | null } | null;
   events: { titre: string; date_debut: string } | null;
+}
+
+/** "0190123456" → "01 90 12 34 56", pour l'affichage admin. */
+function formaterNumero(n: string): string {
+  return /^\d{10}$/.test(n) ? n.replace(/(\d{2})(?=\d)/g, "$1 ").trim() : n;
 }
 
 export default async function AdminPage() {
@@ -112,7 +118,9 @@ export default async function AdminPage() {
     // `profil.role !== "admin"` ci-dessus, faite via le client de session.
     supabaseAdmin
       .from("payouts")
-      .select("id, montant, moyen, statut, created_at, organisateur:profiles(nom, telephone), events(titre, date_debut)")
+      .select(
+        "id, montant, moyen, numero_destination, statut, created_at, organisateur:profiles(nom, telephone), events(titre, date_debut)"
+      )
       .in("statut", ["demande", "bloque"])
       .order("created_at", { ascending: true }),
   ]);
@@ -284,6 +292,7 @@ export default async function AdminPage() {
                   <th>Date événement</th>
                   <th>Montant</th>
                   <th>Moyen</th>
+                  <th>Numéro de destination</th>
                   <th>Demandé le</th>
                   <th>Statut</th>
                   <th>Action</th>
@@ -308,6 +317,9 @@ export default async function AdminPage() {
                     </td>
                     <td className="rev">{fmt(p.montant)} F</td>
                     <td>{p.moyen.toUpperCase()}</td>
+                    <td style={{ fontFamily: "var(--space)", fontWeight: 700 }}>
+                      {formaterNumero(p.numero_destination)}
+                    </td>
                     <td>{formatDateCourte(p.created_at)}</td>
                     <td>
                       {p.statut === "bloque" ? (

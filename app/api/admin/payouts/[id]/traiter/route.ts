@@ -49,7 +49,7 @@ export async function POST(
     .update({ statut: "traite", traite_le: new Date().toISOString() })
     .eq("id", params.id)
     .eq("statut", "demande")
-    .select("id, organisateur_id, montant, moyen")
+    .select("id, organisateur_id, montant, moyen, numero_destination")
     .maybeSingle();
 
   if (error) {
@@ -68,6 +68,7 @@ export async function POST(
     organisateur_id: data.organisateur_id,
     montant: data.montant,
     moyen: data.moyen,
+    numero_destination: data.numero_destination,
   });
 
   return NextResponse.json({ ok: true });
