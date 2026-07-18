@@ -23,6 +23,11 @@ const MESSAGES: Record<string, { titre: string; detail: string }> = {
     titre: "Paiement momentanément indisponible",
     detail: "Le service de paiement FedaPay est momentanément indisponible. Réessaie dans un instant.",
   },
+  en_attente: {
+    titre: "Paiement non finalisé",
+    detail:
+      "Nous n'avons pas encore reçu la confirmation de FedaPay pour ce paiement. Si tu as bien validé la transaction, ton billet sera confirmé automatiquement d'ici quelques instants — sinon, réessaie ci-dessous.",
+  },
   defaut: {
     titre: "Paiement non abouti",
     detail: "Le paiement n'a pas pu être validé. Aucune somme n'a été débitée.",
