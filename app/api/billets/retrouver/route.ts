@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { renvoyerConfirmationCommande } from "@/lib/commandes";
+import { trouverUserIdParEmail } from "@/lib/utilisateurs";
 
 const DELAI_RELANCE_MS = 15 * 60 * 1000;
 const MESSAGE_GENERIQUE =
@@ -8,18 +9,6 @@ const MESSAGE_GENERIQUE =
 
 function emailValide(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-/** Recherche paginée par email (l'API admin Supabase ne filtre pas par email). */
-async function trouverUserIdParEmail(email: string): Promise<string | null> {
-  const perPage = 200;
-  for (let page = 1; ; page++) {
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
-    if (error || !data) return null;
-    const trouve = data.users.find((u) => u.email?.toLowerCase() === email);
-    if (trouve) return trouve.id;
-    if (data.users.length < perPage) return null;
-  }
 }
 
 /**
