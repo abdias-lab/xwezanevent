@@ -223,6 +223,13 @@ export default async function Orga() {
                               disponibleLe={disponibleLe}
                             />
                           )}
+                          <a
+                            className="btn btn-ghost"
+                            style={{ padding: "7px 14px", fontSize: "0.8rem" }}
+                            href={`/api/orga/events/${ev.id}/billets/export`}
+                          >
+                            Exporter CSV
+                          </a>
                           {STATUTS_ANNULABLES.has(ev.statut) && (
                             <ActionsEvenementOrga eventId={ev.id} titre={ev.titre} />
                           )}

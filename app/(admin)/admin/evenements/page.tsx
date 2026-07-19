@@ -204,16 +204,25 @@ export default async function AdminEvenements({
                         />
                       </td>
                       <td>
-                        {ev.statut === "en_validation" ? (
-                          <ActionsEvenement eventId={ev.id} titre={ev.titre} />
-                        ) : (
-                          <ActionsEvenementGestion
-                            eventId={ev.id}
-                            titre={ev.titre}
-                            statut={ev.statut}
-                            ventes={vendus > 0}
-                          />
-                        )}
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {ev.statut === "en_validation" ? (
+                            <ActionsEvenement eventId={ev.id} titre={ev.titre} />
+                          ) : (
+                            <ActionsEvenementGestion
+                              eventId={ev.id}
+                              titre={ev.titre}
+                              statut={ev.statut}
+                              ventes={vendus > 0}
+                            />
+                          )}
+                          <a
+                            className="btn btn-ghost"
+                            style={{ padding: "7px 14px", fontSize: "0.8rem" }}
+                            href={`/api/admin/events/${ev.id}/billets/export`}
+                          >
+                            Exporter CSV
+                          </a>
+                        </div>
                       </td>
                     </tr>
                   );
