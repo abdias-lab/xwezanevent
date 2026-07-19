@@ -97,8 +97,7 @@ export default async function Orga() {
   const revenuBrut = lignes.reduce((s, l) => s + l.revenu, 0);
   const revenuNet = Math.round(revenuBrut * 0.94);
 
-  const nom = (user.user_metadata?.nom as string | undefined) ?? user.email ?? "";
-  const prenom = nom.split(" ")[0] || "organisateur";
+  const nom = (user.user_metadata?.nom as string | undefined) ?? user.email ?? "organisateur";
   const initiale = nom.charAt(0).toUpperCase();
 
   return (
@@ -128,7 +127,7 @@ export default async function Orga() {
       <main className="principal">
         <div className="entete-app">
           <div>
-            <h1>Bonjour, {prenom} 👋</h1>
+            <h1>Bonjour, {nom} 👋</h1>
             <p className="sous">Voici comment se portent tes événements</p>
           </div>
           <Link className="btn btn-ghost" href="/">
