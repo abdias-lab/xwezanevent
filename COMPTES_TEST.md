@@ -4,26 +4,37 @@ Ces comptes existent uniquement pour les tests manuels / seed en développement.
 **À supprimer (Supabase Auth + tables associées) juste avant la mise en
 production**, en un seul nettoyage groupé.
 
-| Email | Rôle | Origine | Créé le |
-|---|---|---|---|
-| organisateur@xwezanevent-test.com | organisateur | `npm run seed` (scripts/seed.mts) | 2026-07-08 |
-| admin-test@xwezanevent-test.com | admin | créé manuellement en session de test | 2026-07-09 |
-| acheteur@xwezanevent-test.com | visiteur | créé pour tester le parcours d'échec de paiement (voir commit sur `paiement/echec`) | 2026-07-13 |
+## Nettoyage du 2026-07-19 (préparation démo commerciale)
 
-Les événements de seed (`vodun-days-2027`, `nuit-de-l-afrobeat-2027`,
-`soiree-zouk-and-love-2027`, organisés par `organisateur@xwezanevent-test.com`)
-et les commandes de test associées sont à supprimer avec.
+Nettoyage complet effectué en vue d'une démo auprès de vrais organisateurs.
+Comptes supprimés : `organisateur@xwezanevent-test.com`, `admin-test@xwezanevent-test.com`,
+`acheteur@xwezanevent-test.com`, ainsi que `gbedolosarah@gmail.com` (compte
+oublié, vide, aucune donnée rattachée).
 
-## Événements ad hoc (retest demande de virement)
+Les 3 événements vitrine (`vodun-days-2027`, `nuit-de-l-afrobeat-2027`,
+`soiree-zouk-and-love-2027`) ont été **conservés** mais :
+- transférés du compte de test vers `abdias@mentorshow.com` (compte réel,
+  conservé) — sinon ils auraient été supprimés en cascade avec le compte de
+  test ;
+- `profiles.nom` de ce compte renommé en **« Bénin Live Events »** pour un
+  affichage crédible en démo (ce nom n'apparaît que dans `/admin` et dans le
+  tableau de bord `/orga` du compte lui-même — la page publique d'un
+  événement n'affiche pas l'organisateur) ;
+- toutes les commandes/billets de test qui y étaient rattachés ont été
+  supprimés et `ticket_types.quantite_vendue` remis à 0 : ces 3 événements
+  démarrent la démo avec des compteurs propres.
 
-Créés via `npm run seed:payout-test` (`scripts/seed-payout-test.mts`), un
-nouvel événement à chaque exécution (slug horodaté) pour retester le
-formulaire de demande de virement (MTN/Moov/Celtiis) avec le délai J+3 déjà
-satisfait. Supprimer la ligne `events` correspondante suffit (cascade sur
-`ticket_types`/`orders`/`tickets`) ; supprimer le compte
-`organisateur@xwezanevent-test.com` ou `acheteur@xwezanevent-test.com` (voir
-tableau ci-dessus) supprime aussi tout le reste en cascade.
+⚠️ **Ne pas relancer `npm run seed`** sans y penser : le script recréerait le
+compte `organisateur@xwezanevent-test.com` (il ne retoucherait pas les 3
+événements vitrine, déjà réattribués par slug, mais réintroduirait un compte
+de test à re-nettoyer avant le vrai lancement).
 
-| Slug événement | Commande | Créé le |
+## Comptes/événements de test actuellement en base
+
+_Aucun à ce jour (voir nettoyage ci-dessus)._ Ajouter ici toute nouvelle
+donnée de test créée d'ici le lancement (ex. via `npm run seed` ou
+`npm run seed:payout-test`), pour ne pas la perdre de vue.
+
+| Email / Événement | Rôle / Origine | Créé le |
 |---|---|---|
-| `test-virement-2026-07-18T17-02-45` | `6b3571ac-269f-4240-b53c-65ceebfd7d8b` | 2026-07-18 |
+| _(vide)_ | | |
