@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import RechercheManuelle from "./RechercheManuelle";
 
 type ScanResult =
   | { ok: true; nom_titulaire: string; type_billet: string; event_titre: string }
@@ -34,6 +35,7 @@ function labelRaison(r: ScanResult & { ok: false }): string {
 }
 
 export default function ScannerClient() {
+  const [mode, setMode] = useState<"scan" | "recherche">("scan");
   const [result, setResult] = useState<ScanResult | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
@@ -46,6 +48,12 @@ export default function ScannerClient() {
     setResult(null);
   }, []);
 
+  // Démarrée une seule fois, au montage (jamais réinitialisée quand on
+  // bascule vers la recherche manuelle) : html5-qrcode s'attache au <div
+  // id={READER_ID}> et son stop() interne suppose que ce nœud existe
+  // encore. Le retirer du DOM pendant l'arrêt (ex. en le démontant selon
+  // `mode`) fait planter le rendu — on masque donc la zone caméra en CSS
+  // au lieu de la démonter.
   useEffect(() => {
     let alive = true;
 
@@ -148,13 +156,50 @@ export default function ScannerClient() {
         >
           Scan des billets
         </span>
+
+        <div style={{ marginLeft: "auto", display: "flex", gap: 4, background: "#1f1710", borderRadius: 10, padding: 3 }}>
+          <button
+            type="button"
+            onClick={() => setMode("scan")}
+            style={{
+              border: "none",
+              borderRadius: 8,
+              padding: "6px 12px",
+              fontSize: "0.82rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              background: mode === "scan" ? "#e4a93f" : "transparent",
+              color: mode === "scan" ? "#151009" : "#b7a88f",
+            }}
+          >
+            📷 Scanner
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("recherche")}
+            style={{
+              border: "none",
+              borderRadius: 8,
+              padding: "6px 12px",
+              fontSize: "0.82rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              background: mode === "recherche" ? "#e4a93f" : "transparent",
+              color: mode === "recherche" ? "#151009" : "#b7a88f",
+            }}
+          >
+            🔎 Recherche manuelle
+          </button>
+        </div>
       </div>
 
-      {/* Zone caméra */}
+      {/* Zone caméra — toujours montée (jamais démontée par le toggle de
+          mode), seulement masquée en CSS : voir le commentaire sur l'effet
+          plus haut. */}
       <div
         style={{
+          display: mode === "scan" ? "flex" : "none",
           flex: 1,
-          display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
@@ -190,8 +235,19 @@ export default function ScannerClient() {
         )}
       </div>
 
+      <div
+        style={{
+          display: mode === "recherche" ? "flex" : "none",
+          flex: 1,
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        <RechercheManuelle />
+      </div>
+
       {/* Overlay résultat */}
-      {result && (
+      {mode === "scan" && result && (
         <button
           onClick={resetScan}
           aria-label="Fermer le résultat"
