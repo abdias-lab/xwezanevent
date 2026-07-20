@@ -119,12 +119,42 @@ export async function POST(req: NextRequest) {
   const total = sousTotal;
   const signature = signaturePanier(panier);
 
-  // 5. Commande en attente (avec snapshot du panier), dédupliquée par
+  // 5a. Repli déjà payé pour ce panier exact : l'index unique partiel ne
+  // couvre QUE statut='en_attente' (volontairement, pour ne jamais bloquer
+  // un futur achat légitime — voir la migration) — une commande payée
+  // n'entre donc plus en conflit avec un nouvel INSERT identique, ce qui
+  // laisserait passer un doublon derrière un paiement déjà effectué. Pas
+  // racy pour la sécurité financière : si le paiement se produit PENDANT
+  // cette requête (juste après ce SELECT), l'INSERT plus bas entrera en
+  // conflit avec la ligne encore en_attente à ce moment-là et sera
+  // rattrapé par la résolution de conflit (23505) juste après.
+  const { data: dejaPayee } = await supabaseAdmin
+    .from("orders")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("event_id", ev.id)
+    .eq("panier_signature", signature)
+    .eq("statut", "paye")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (dejaPayee) {
+    return NextResponse.json(
+      {
+        error: "Tu as déjà une commande payée pour cette sélection.",
+        orderId: dejaPayee.id,
+        dejaPayee: true,
+      },
+      { status: 409 }
+    );
+  }
+
+  // 5b. Commande en attente (avec snapshot du panier), dédupliquée par
   // contrainte DB (voir supabase/migrations/20260720120000_...) : deux
   // requêtes concurrentes avec le même panier ne peuvent pas toutes les
   // deux insérer — Postgres refuse la seconde avec l'erreur 23505, qu'on
-  // résout ci-dessous (jamais un simple SELECT-puis-INSERT, sujet à la
-  // même race).
+  // résout ci-dessous (jamais un simple SELECT-puis-INSERT pour CE cas-là,
+  // sujet à la même race).
   let orderId: string | null = null;
   for (let tentative = 0; tentative < TENTATIVES_MAX && !orderId; tentative++) {
     const { data: order, error: errOrder } = await supabaseAdmin
