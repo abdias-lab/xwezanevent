@@ -23,7 +23,7 @@
 -- identiques produiraient des signatures différentes et ne seraient plus
 -- reconnus comme la même intention d'achat).
 
-ALTER TABLE public.orders ADD COLUMN panier_signature TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS panier_signature TEXT;
 
 -- Backfill des commandes en_attente existantes, pour qu'elles bénéficient
 -- aussi de la protection dès l'application de cette migration (les
@@ -54,6 +54,6 @@ WHERE o.id = sub.id AND o.statut = 'en_attente';
 -- elle sort du périmètre de cet index (WHERE statut = 'en_attente') et ne
 -- bloque plus un nouvel achat légitime.
 
-CREATE UNIQUE INDEX orders_pending_dedupe_idx
+CREATE UNIQUE INDEX IF NOT EXISTS orders_pending_dedupe_idx
   ON public.orders (user_id, event_id, panier_signature)
   WHERE statut = 'en_attente';
