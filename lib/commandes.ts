@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { envoyerEmail, emailUtilisateur } from "@/lib/email";
 import { emailConfirmationCommande, type BilletEmail } from "@/lib/emails/confirmation-commande";
+import { creerTransactionEtLien } from "@/lib/fedapay";
 import QRCode from "qrcode";
 
 interface PanierItem {
@@ -13,6 +14,47 @@ export type ResultatFinalisation =
   | "deja" // déjà finalisée (idempotent)
   | "montant" // le montant payé ne correspond pas au total
   | "introuvable";
+
+/**
+ * Signature canonique d'un panier (triée par ticket_type_id, format
+ * "id:quantite" joint par "|"), utilisée pour déduplication des commandes
+ * en_attente. IMPORTANT : ce calcul DOIT rester identique au backfill SQL
+ * dans supabase/migrations/20260720120000_dedoublonnage_commandes_en_attente.sql
+ * — toute divergence romprait silencieusement la déduplication.
+ */
+export function signaturePanier(panier: PanierItem[]): string {
+  return [...panier]
+    .sort((a, b) => a.ticket_type_id.localeCompare(b.ticket_type_id))
+    .map((p) => `${p.ticket_type_id}:${p.quantite}`)
+    .join("|");
+}
+
+/**
+ * Crée une nouvelle transaction FedaPay (+ lien de paiement) pour une
+ * commande déjà existante et l'enregistre sur celle-ci — jamais de nouvelle
+ * ligne `orders`. Utilisé aussi bien pour une commande fraîchement créée
+ * que pour une relance (/api/orders/[id]/reessayer) ou la réutilisation
+ * d'une commande en_attente récente sur double-clic (/api/orders).
+ */
+export async function creerTransactionPourCommande(params: {
+  orderId: string;
+  eventTitre: string;
+  total: number;
+  callbackUrl: string;
+  client: { firstname?: string; lastname?: string; email?: string };
+}): Promise<{ url: string }> {
+  const { id: trxId, url } = await creerTransactionEtLien({
+    description: `Commande ${params.orderId.slice(0, 8)} — ${params.eventTitre}`,
+    montant: params.total,
+    callbackUrl: params.callbackUrl,
+    client: params.client,
+  });
+  await supabaseAdmin
+    .from("orders")
+    .update({ fedapay_transaction_id: String(trxId) })
+    .eq("id", params.orderId);
+  return { url };
+}
 
 const MOIS_LONGS = [
   "janvier", "février", "mars", "avril", "mai", "juin",

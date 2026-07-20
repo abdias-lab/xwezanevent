@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { creerTransactionEtLien } from "@/lib/fedapay";
+import { creerTransactionPourCommande } from "@/lib/commandes";
 import { aujourdhuiPortoNovo } from "@/lib/date";
 
 interface PanierLigne {
@@ -88,9 +88,10 @@ export async function POST(
   const nom = (user.user_metadata?.nom as string | undefined) ?? "";
   const [firstname, ...reste] = nom.trim().split(" ");
   try {
-    const { id: trxId, url } = await creerTransactionEtLien({
-      description: `Commande ${order.id.slice(0, 8)} — ${ev.titre}`,
-      montant: order.total,
+    const { url } = await creerTransactionPourCommande({
+      orderId: order.id,
+      eventTitre: ev.titre,
+      total: order.total,
       callbackUrl: `${origine()}/paiement/retour?order=${order.id}`,
       client: {
         firstname: firstname || undefined,
@@ -98,10 +99,6 @@ export async function POST(
         email: user.email ?? undefined,
       },
     });
-    await supabaseAdmin
-      .from("orders")
-      .update({ fedapay_transaction_id: String(trxId) })
-      .eq("id", order.id);
     return NextResponse.json({ url });
   } catch (e) {
     console.error("[api/orders/reessayer] FedaPay :", e);
