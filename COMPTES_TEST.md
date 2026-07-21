@@ -63,6 +63,14 @@ Correctif poussé directement sur `main` (commit `9ef1e47`) suite à ce
 test — la version précédente sur `main` (commit `528a971`/`d9a3dfd`)
 avait la faille du point 2 ci-dessus.
 
+## Suivi du 2026-07-21 (renommage événement vitrine)
+
+L'événement vitrine `vodun-days-2027` a été renommé en base par Abdias :
+titre, slug (→ `racines-et-tambours-2027`) et description. Objectif : éviter
+toute confusion avec la Fête du Vodoun officielle (même date, 10 janvier,
+même ville, Ouidah). Aucun lien en dur vers l'ancien slug dans le code
+(vérifié). `scripts/seed.mts` déjà aligné sur le nouveau nom.
+
 ## Comptes/événements de test actuellement en base
 
 _Aucun à ce jour (voir nettoyages ci-dessus)._ Ajouter ici toute nouvelle
