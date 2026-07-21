@@ -16,8 +16,8 @@ export default function MotDePasseOublie() {
             Rejoins la scène <span className="fete">béninoise.</span>
           </h1>
           <p>
-            Concerts, festivals, Vodun Days, WeLovEya — tout le Bénin dans ta
-            poche, un billet à la fois.
+            Concerts, festivals, soirées — tout le Bénin dans ta poche, un
+            billet à la fois.
           </p>
         </div>
       </div>
