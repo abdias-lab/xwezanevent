@@ -49,10 +49,10 @@ interface SeedEvent {
 
 const EVENTS: SeedEvent[] = [
   {
-    titre: "Vodun Days 2027 — Célébration officielle",
-    slug: "vodun-days-2027",
+    titre: "Racines & Tambours 2027 — Nuit du patrimoine vaudou",
+    slug: "racines-et-tambours-2027",
     description:
-      "La grande célébration officielle du Vodun : danses, rituels, tambours et costumes traditionnels au cœur de Ouidah.",
+      "Une nuit dédiée aux racines et au patrimoine vaudou du Bénin : danses, rituels, tambours et costumes traditionnels au cœur de Ouidah.",
     categorie: "Culture & Vodun",
     ville: "Ouidah",
     lieu: "Place aux Enchères",
