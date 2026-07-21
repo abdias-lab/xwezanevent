@@ -24,6 +24,15 @@ function formatHeure(heure: string | null): string | null {
   return `${h}h${m}`;
 }
 
+/** Initiales (1 ou 2 lettres) pour l'avatar de repli de l'organisateur, ex. "Bénin Live Events" → "BL". */
+function initiales(nom: string): string {
+  const mots = nom.trim().split(/\s+/).filter(Boolean);
+  return mots
+    .slice(0, 2)
+    .map((m) => m[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -94,6 +103,18 @@ export default async function EvenementDetail({
                 <p key={i}>{para}</p>
               ))}
             </>
+          )}
+
+          {ev.organisateurNom && (
+            <div className="organisateur-ev">
+              <div className="avatar-orga" aria-hidden="true">
+                {initiales(ev.organisateurNom)}
+              </div>
+              <div>
+                <div className="l">Organisé par</div>
+                <div className="v">{ev.organisateurNom}</div>
+              </div>
+            </div>
           )}
 
           <h2>Infos pratiques</h2>

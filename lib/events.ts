@@ -125,6 +125,8 @@ export interface EvenementDetail {
   affiche_url: string | null;
   /** true si l'événement est passé (date_debut < aujourd'hui, ou statut déjà 'termine') */
   estTermine: boolean;
+  /** Nom public de l'organisateur (profiles.nom, seule colonne accordée à anon/public sur profiles). */
+  organisateurNom: string | null;
   ticketTypes: TicketTypeDetail[];
 }
 
@@ -139,6 +141,7 @@ interface EventDetailRow {
   heure: string | null;
   affiche_url: string | null;
   statut: string;
+  organisateur: { nom: string } | null;
   ticket_types: {
     id: string;
     nom: string;
@@ -165,7 +168,7 @@ export async function getEvenementParSlug(
   const { data, error } = await supabase
     .from("events")
     .select(
-      "slug, titre, description, categorie, ville, lieu, date_debut, heure, affiche_url, statut, ticket_types(id, nom, prix, quantite_totale, quantite_vendue)"
+      "slug, titre, description, categorie, ville, lieu, date_debut, heure, affiche_url, statut, organisateur:profiles(nom), ticket_types(id, nom, prix, quantite_totale, quantite_vendue)"
     )
     .eq("slug", slug)
     .in("statut", ["publie", "termine"])
@@ -177,7 +180,7 @@ export async function getEvenementParSlug(
   }
   if (!data) return null;
 
-  const row = data as EventDetailRow;
+  const row = data as unknown as EventDetailRow;
   const estTermine = row.statut === "termine" || row.date_debut < aujourdhuiPortoNovo();
   return {
     slug: row.slug,
@@ -190,6 +193,7 @@ export async function getEvenementParSlug(
     heure: row.heure,
     affiche_url: row.affiche_url,
     estTermine,
+    organisateurNom: row.organisateur?.nom ?? null,
     ticketTypes: row.ticket_types
       .map((t) => ({
         id: t.id,

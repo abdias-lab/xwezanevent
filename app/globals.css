@@ -962,6 +962,43 @@
     margin-bottom: 12px;
     max-width: 62ch;
   }
+  .organisateur-ev {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    margin: 20px 0 8px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 13px;
+  }
+  .organisateur-ev .avatar-orga {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--accent) 22%, var(--surface));
+    color: var(--accent-clair);
+    font-family: var(--bricolage);
+    font-weight: 800;
+    font-size: 0.95rem;
+  }
+  .organisateur-ev .l {
+    font-family: var(--space);
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--texte2);
+  }
+  .organisateur-ev .v {
+    font-weight: 600;
+    margin-top: 3px;
+    font-size: 0.95rem;
+    color: var(--texte);
+  }
   .pratique {
     display: grid;
     grid-template-columns: 1fr 1fr;
