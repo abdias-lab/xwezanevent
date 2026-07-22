@@ -85,6 +85,9 @@ export default async function EvenementDetail({
               👥 {placesTotales.toLocaleString("fr-FR")} places
             </span>
           )}
+          {ev.estDemo && (
+            <span className="badge-ev chaud">⚠ Démonstration</span>
+          )}
         </div>
         <h1>{ev.titre}</h1>
         <div className="meta-ev">
@@ -172,7 +175,19 @@ export default async function EvenementDetail({
           </div>
         </div>
 
-        {ev.estTermine ? (
+        {ev.estDemo ? (
+          <aside className="billetterie" aria-label="Billetterie">
+            <h2>Événement de démonstration</h2>
+            <p className="limite">
+              Cet événement sert de vitrine pour présenter la plateforme — la
+              billetterie n&apos;est pas activée, aucun billet réel n&apos;est
+              en vente.
+            </p>
+            <Link className="btn btn-ghost" href="/evenements" style={{ display: "block", textAlign: "center" }}>
+              Voir les événements à venir →
+            </Link>
+          </aside>
+        ) : ev.estTermine ? (
           <aside className="billetterie" aria-label="Billetterie">
             <h2>Événement terminé</h2>
             <p className="limite">

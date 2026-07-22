@@ -603,6 +603,21 @@
     padding: 7px 13px;
     border-radius: 100px;
   }
+  .badge-demo {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 2;
+    background: color-mix(in srgb, var(--secondaire) 88%, black 8%);
+    border: 1px solid rgba(255, 248, 236, 0.22);
+    font-family: var(--space);
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #fbf3e4;
+    padding: 7px 13px;
+    border-radius: 100px;
+  }
   .date-souche {
     position: absolute;
     bottom: -1px;

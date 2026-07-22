@@ -14,6 +14,7 @@ interface EventRow {
   lieu: string;
   date_debut: string; // YYYY-MM-DD
   affiche_url: string | null;
+  est_demo: boolean;
   ticket_types: { prix: number }[];
 }
 
@@ -28,6 +29,8 @@ export interface CarteData {
   mois: string;
   image: string | null;
   href: string;
+  /** Événement vitrine (démo) : billetterie désactivée côté serveur, voir /api/orders. */
+  estDemo: boolean;
 }
 
 function mapRow(ev: EventRow): CarteData {
@@ -46,6 +49,7 @@ function mapRow(ev: EventRow): CarteData {
     mois: MOIS_COURTS[parseInt(mois, 10) - 1] ?? "",
     image: ev.affiche_url,
     href: `/evenement/${ev.slug}`,
+    estDemo: ev.est_demo,
   };
 }
 
@@ -74,7 +78,7 @@ export async function getEvenementsPublies(
   let query = supabase
     .from("events")
     .select(
-      "slug, titre, categorie, ville, lieu, date_debut, affiche_url, ticket_types(prix)"
+      "slug, titre, categorie, ville, lieu, date_debut, affiche_url, est_demo, ticket_types(prix)"
     )
     .eq("statut", "publie")
     .gte("date_debut", periode ? periode.debut : aujourdhuiPortoNovo());
@@ -127,6 +131,8 @@ export interface EvenementDetail {
   estTermine: boolean;
   /** Nom public de l'organisateur (profiles.nom, seule colonne accordée à anon/public sur profiles). */
   organisateurNom: string | null;
+  /** Événement vitrine (démo) : billetterie désactivée côté serveur, voir /api/orders. */
+  estDemo: boolean;
   ticketTypes: TicketTypeDetail[];
 }
 
@@ -141,6 +147,7 @@ interface EventDetailRow {
   heure: string | null;
   affiche_url: string | null;
   statut: string;
+  est_demo: boolean;
   organisateur: { nom: string } | null;
   ticket_types: {
     id: string;
@@ -168,7 +175,7 @@ export async function getEvenementParSlug(
   const { data, error } = await supabase
     .from("events")
     .select(
-      "slug, titre, description, categorie, ville, lieu, date_debut, heure, affiche_url, statut, organisateur:profiles(nom), ticket_types(id, nom, prix, quantite_totale, quantite_vendue)"
+      "slug, titre, description, categorie, ville, lieu, date_debut, heure, affiche_url, statut, est_demo, organisateur:profiles(nom), ticket_types(id, nom, prix, quantite_totale, quantite_vendue)"
     )
     .eq("slug", slug)
     .in("statut", ["publie", "termine"])
@@ -194,6 +201,7 @@ export async function getEvenementParSlug(
     affiche_url: row.affiche_url,
     estTermine,
     organisateurNom: row.organisateur?.nom ?? null,
+    estDemo: row.est_demo,
     ticketTypes: row.ticket_types
       .map((t) => ({
         id: t.id,

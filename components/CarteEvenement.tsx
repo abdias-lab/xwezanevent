@@ -14,6 +14,8 @@ export interface CarteEvenementProps {
   mois: string;
   image: string | null;
   href?: string;
+  /** Événement vitrine (démo) : affiche un badge d'avertissement, billetterie désactivée côté serveur. */
+  estDemo?: boolean;
 }
 
 /**
@@ -31,6 +33,7 @@ export default function CarteEvenement({
   mois,
   image,
   href,
+  estDemo = false,
 }: CarteEvenementProps) {
   const lien = href ?? `/evenement/${id}`;
 
@@ -47,6 +50,7 @@ export default function CarteEvenement({
           />
           <span className="voile" aria-hidden="true" />
           <span className="badge-cat">{categorie}</span>
+          {estDemo && <span className="badge-demo">Démo</span>}
           <div className="date-souche">
             <span className="jour">{jour}</span>
             <span className="mois">{mois}</span>
