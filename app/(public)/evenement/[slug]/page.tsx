@@ -137,7 +137,7 @@ export default async function EvenementDetail({
               <div className="v">{ev.ville}</div>
             </div>
             <div className="info-p">
-              <div className="l">💳 Paiement</div>
+              <div className="l">📱 Paiement</div>
               <div className="v">MTN, Moov &amp; Celtiis Money</div>
             </div>
           </div>

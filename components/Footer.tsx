@@ -25,7 +25,6 @@ export default function Footer() {
                 <span className="dot-celtiis" aria-hidden="true" />
                 Celtiis Money
               </span>
-              <span className="moyen">💳 Carte bancaire</span>
             </div>
           </div>
 
