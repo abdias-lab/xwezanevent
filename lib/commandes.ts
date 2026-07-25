@@ -97,16 +97,29 @@ async function envoyerConfirmationCommande(
 
     const nomParId = new Map((types ?? []).map((t) => [t.id, t.nom]));
 
-    const billets: BilletEmail[] = await Promise.all(
-      ticketsGeneres.map(async (t) => ({
-        nom: nomParId.get(t.ticket_type_id) ?? "Billet",
-        qrDataUrl: await QRCode.toDataURL(t.code_qr, {
+    // QR intégré en pièce jointe inline (CID), jamais en data-URI base64 :
+    // Gmail et de nombreux autres clients mail bloquent les images
+    // data:-URI dans le src d'un <img>, ce qui casse l'affichage du QR.
+    const qrPngParTicket = await Promise.all(
+      ticketsGeneres.map((t) =>
+        QRCode.toBuffer(t.code_qr, {
+          type: "png",
           margin: 1,
           width: 180,
           color: { dark: "#151009", light: "#ffffff" },
-        }),
-      }))
+        })
+      )
     );
+
+    const billets: BilletEmail[] = ticketsGeneres.map((t) => ({
+      nom: nomParId.get(t.ticket_type_id) ?? "Billet",
+      qrCid: `qr-${t.id}`,
+    }));
+    const piecesJointes = ticketsGeneres.map((t, i) => ({
+      filename: `billet-${t.id.slice(0, 8)}.png`,
+      content: qrPngParTicket[i],
+      contentId: `qr-${t.id}`,
+    }));
 
     const origine = process.env.NEXT_PUBLIC_SITE_URL ?? "https://xwezanevent.vercel.app";
     const { subject, html } = emailConfirmationCommande({
@@ -120,7 +133,7 @@ async function envoyerConfirmationCommande(
       lienBillets: `${origine}/confirmation?order=${orderId}`,
     });
 
-    return await envoyerEmail({ to: destinataire, subject, html });
+    return await envoyerEmail({ to: destinataire, subject, html, attachments: piecesJointes });
   } catch (e) {
     console.error("[commandes] échec envoi email confirmation :", e);
     return false;

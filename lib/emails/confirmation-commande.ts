@@ -6,8 +6,12 @@ function fmt(n: number): string {
 
 export interface BilletEmail {
   nom: string;
-  /** data:image/png;base64,... */
-  qrDataUrl: string;
+  /**
+   * Content-ID de la pièce jointe PNG du QR (référencée via `cid:` dans le
+   * HTML) — les data-URI base64 sont bloquées par Gmail et d'autres clients,
+   * l'image doit être une pièce jointe inline.
+   */
+  qrCid: string;
 }
 
 export interface ConfirmationCommandeData {
@@ -35,7 +39,7 @@ export function emailConfirmationCommande(d: ConfirmationCommandeData): {
 <div style="font-weight:600;color:#f3eada;font-size:14px;">${echapperHtml(b.nom)}</div>
 </td>
 <td style="padding:12px;text-align:right;width:100px;">
-<img src="${b.qrDataUrl}" width="84" height="84" alt="QR code du billet" style="display:block;margin-left:auto;border-radius:8px;" />
+<img src="cid:${b.qrCid}" width="84" height="84" alt="QR code du billet" style="display:block;margin-left:auto;border-radius:8px;" />
 </td>
 </tr>
 </table>`

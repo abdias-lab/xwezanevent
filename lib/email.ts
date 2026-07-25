@@ -16,12 +16,21 @@ function resend(): Resend {
 export const EXPEDITEUR_EMAIL =
   process.env.RESEND_FROM_EMAIL ?? "XwézanEvent <billets@xwezan.com>";
 
+interface PieceJointeEmail {
+  filename: string;
+  content: Buffer;
+  /** Référencée dans le HTML via `cid:<contentId>` — image intégrée plutôt qu'affichée comme pièce jointe. */
+  contentId: string;
+}
+
 interface EnvoiEmail {
   to: string;
   subject: string;
   html: string;
   /** Permet au destinataire de répondre directement à l'expéditeur d'origine (ex. formulaire de contact). */
   replyTo?: string;
+  /** Images intégrées (CID) — ex. QR code du billet, plus fiable qu'une data-URI (bloquée par Gmail). */
+  attachments?: PieceJointeEmail[];
 }
 
 /**
@@ -30,7 +39,13 @@ interface EnvoiEmail {
  * erreur réseau...), pour ne jamais faire échouer l'opération métier qui
  * déclenche l'envoi (paiement validé, événement validé/refusé...).
  */
-export async function envoyerEmail({ to, subject, html, replyTo }: EnvoiEmail): Promise<boolean> {
+export async function envoyerEmail({
+  to,
+  subject,
+  html,
+  replyTo,
+  attachments,
+}: EnvoiEmail): Promise<boolean> {
   if (!process.env.RESEND_API_KEY) {
     console.warn(`[email] RESEND_API_KEY absente — email "${subject}" à ${to} non envoyé`);
     return false;
@@ -42,6 +57,7 @@ export async function envoyerEmail({ to, subject, html, replyTo }: EnvoiEmail): 
       subject,
       html,
       ...(replyTo ? { replyTo } : {}),
+      ...(attachments && attachments.length > 0 ? { attachments } : {}),
     });
     if (error) {
       console.error(`[email] échec d'envoi "${subject}" à ${to} :`, error);
