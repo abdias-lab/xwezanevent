@@ -51,6 +51,7 @@ export default function Footer() {
           <div>
             <h4>Aide</h4>
             <ul>
+              <li><Link href="/faq">FAQ</Link></li>
               <li><Link href="/billet">Retrouver mon billet</Link></li>
               <li><Link href="/remboursements">Remboursements</Link></li>
               <li><Link href="/contact">Nous contacter</Link></li>

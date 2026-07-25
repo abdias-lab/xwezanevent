@@ -18,17 +18,29 @@ export default function Reversements() {
         <span className="eyebrow">Pour les organisateurs</span>
         <h1>Récupérer tes ventes</h1>
         <p className="intro">
-          Ton argent reste disponible dès qu&apos;un billet est vendu. Tu
-          demandes ton reversement quand tu veux, événement par événement,
-          directement depuis ton espace organisateur.
+          Tu demandes le reversement de tes ventes à partir de 3 jours après
+          la tenue de ton événement, événement par événement, directement
+          depuis ton espace organisateur.
         </p>
+
+        <div className="bloc">
+          <h2>Quand puis-je demander un reversement ?</h2>
+          <p>
+            Le reversement d&apos;un événement devient disponible{" "}
+            <strong>3 jours après sa tenue</strong> (sa date de fin, s&apos;il
+            se déroule sur plusieurs jours) — un délai de sécurité qui permet
+            de traiter d&apos;éventuelles annulations ou litiges avant
+            l&apos;envoi des fonds. Avant cette date, la demande est refusée
+            automatiquement.
+          </p>
+        </div>
 
         <div className="bloc">
           <h2>Comment demander un reversement</h2>
           <p>
-            Depuis ton <strong>tableau de bord</strong> (
-            <code>/orga</code>), chaque événement affiche le solde
-            disponible — les ventes encaissées, moins la commission
+            Une fois ce délai passé, ton <strong>tableau de bord</strong> (
+            <code>/orga</code>) affiche le solde disponible de
+            l&apos;événement — les ventes encaissées, moins la commission
             XwézanEvent de 6% (voir{" "}
             <a href="/tarifs">nos tarifs</a>). Clique sur{" "}
             <strong>« Demander un virement »</strong>, choisis le montant (le
@@ -37,7 +49,7 @@ export default function Reversements() {
           <p>
             Tu peux demander plusieurs reversements successifs sur un même
             événement, tant qu&apos;il reste du solde disponible — pas besoin
-            d&apos;attendre la fin des ventes.
+            d&apos;attendre entre deux demandes.
           </p>
         </div>
 
