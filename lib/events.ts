@@ -298,6 +298,33 @@ export async function getEvenementsTicker(): Promise<TickerItem[]> {
   return (repli as TickerRow[]).map(mapTicker);
 }
 
+/**
+ * Nombre d'événements réels (statut 'publie', date à venir, hors événements
+ * vitrine/démo) par catégorie — alimente les compteurs de la section
+ * "Explorez par envie" de l'accueil. Une catégorie absente du résultat n'a
+ * aucun événement réel à venir (compteur à masquer côté affichage).
+ */
+export async function getCompteursCategories(): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from("events")
+    .select("categorie")
+    .eq("statut", "publie")
+    .eq("est_demo", false)
+    .gte("date_debut", aujourdhuiPortoNovo());
+
+  if (error || !data) {
+    if (error) console.error("[events] échec getCompteursCategories :", error.message);
+    return {};
+  }
+
+  const compteurs: Record<string, number> = {};
+  for (const row of data as { categorie: string | null }[]) {
+    if (!row.categorie) continue;
+    compteurs[row.categorie] = (compteurs[row.categorie] ?? 0) + 1;
+  }
+  return compteurs;
+}
+
 /** Liste distincte des villes présentes parmi les événements publiés (pour suggestion, saisie libre par ailleurs). */
 export async function getVillesPubliees(): Promise<string[]> {
   const { data, error } = await supabase
@@ -313,4 +340,34 @@ export async function getVillesPubliees(): Promise<string[]> {
     if (row.ville) set.add(row.ville);
   }
   return Array.from(set).sort((a, b) => a.localeCompare(b, "fr"));
+}
+
+/**
+ * Nombre d'événements réels (statut 'publie', date à venir, hors événements
+ * vitrine/démo) par ville — alimente les compteurs de la section "Que faire
+ * ce soir à…" de l'accueil. Clé normalisée (minuscule, espaces coupés) pour
+ * absorber les variations de casse saisies par les organisateurs ; une ville
+ * absente du résultat n'a aucun événement réel à venir (compteur à masquer
+ * côté affichage).
+ */
+export async function getCompteursVilles(): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from("events")
+    .select("ville")
+    .eq("statut", "publie")
+    .eq("est_demo", false)
+    .gte("date_debut", aujourdhuiPortoNovo());
+
+  if (error || !data) {
+    if (error) console.error("[events] échec getCompteursVilles :", error.message);
+    return {};
+  }
+
+  const compteurs: Record<string, number> = {};
+  for (const row of data as { ville: string | null }[]) {
+    if (!row.ville) continue;
+    const cle = row.ville.trim().toLowerCase();
+    compteurs[cle] = (compteurs[cle] ?? 0) + 1;
+  }
+  return compteurs;
 }

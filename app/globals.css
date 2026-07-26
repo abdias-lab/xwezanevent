@@ -2910,10 +2910,15 @@
   .ville:hover .nom-ville {
     color: var(--accent);
   }
+  .ville .infos-droite {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-left: auto;
+  }
   .ville .detail {
     color: var(--texte2);
     font-size: 0.95rem;
-    margin-left: auto;
   }
   .ville .fleche {
     color: var(--accent);
@@ -3398,7 +3403,7 @@
     padding: 14px;
     justify-content: center;
   }
-  .ville .detail {
+  .ville .infos-droite {
     margin-left: 60px;
     width: 100%;
   }

@@ -2,7 +2,13 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CarteEvenement from "@/components/CarteEvenement";
 import BoutonOr from "@/components/BoutonOr";
-import { getEvenementsPublies, getVillesPubliees, getEvenementsTicker } from "@/lib/events";
+import {
+  getEvenementsPublies,
+  getVillesPubliees,
+  getEvenementsTicker,
+  getCompteursCategories,
+  getCompteursVilles,
+} from "@/lib/events";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -12,11 +18,10 @@ export const revalidate = 60;
 // `valeur` doit correspondre EXACTEMENT à events.categorie en base (voir la
 // liste des catégories créables dans components/FormulaireCreation.tsx :
 // Concert, Festival, Culture & Vodun, Sport, Humour, Soirée — au singulier).
-const CATEGORIES: { nom: ReactNode; valeur: string; nb: string; glyphe: ReactNode }[] = [
+const CATEGORIES: { nom: ReactNode; valeur: string; glyphe: ReactNode }[] = [
   {
     nom: "Concerts",
     valeur: "Concert",
-    nb: "128 événements",
     glyphe: (
       <>
         <path d="M9 18V5l12-2v13" />
@@ -28,7 +33,6 @@ const CATEGORIES: { nom: ReactNode; valeur: string; nb: string; glyphe: ReactNod
   {
     nom: "Festivals",
     valeur: "Festival",
-    nb: "42 événements",
     glyphe: (
       <>
         <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" />
@@ -39,7 +43,6 @@ const CATEGORIES: { nom: ReactNode; valeur: string; nb: string; glyphe: ReactNod
   {
     nom: "Culture & Vodun",
     valeur: "Culture & Vodun",
-    nb: "36 événements",
     glyphe: (
       <>
         <circle cx="12" cy="12" r="9" />
@@ -50,7 +53,6 @@ const CATEGORIES: { nom: ReactNode; valeur: string; nb: string; glyphe: ReactNod
   {
     nom: "Soirées",
     valeur: "Soirée",
-    nb: "94 événements",
     glyphe: (
       <>
         <path d="M8 21h8M12 17v4M6 3h12v5a6 6 0 0 1-12 0V3Z" />
@@ -61,7 +63,6 @@ const CATEGORIES: { nom: ReactNode; valeur: string; nb: string; glyphe: ReactNod
   {
     nom: "Sport",
     valeur: "Sport",
-    nb: "21 événements",
     glyphe: (
       <>
         <circle cx="12" cy="12" r="9" />
@@ -74,7 +75,6 @@ const CATEGORIES: { nom: ReactNode; valeur: string; nb: string; glyphe: ReactNod
     // par "Humour", la 6ᵉ catégorie réelle du formulaire de création.
     nom: "Humour",
     valeur: "Humour",
-    nb: "17 événements",
     glyphe: (
       <>
         <path d="M3 21v-2a6 6 0 0 1 6-6h0a6 6 0 0 1 6 6v2" />
@@ -86,19 +86,21 @@ const CATEGORIES: { nom: ReactNode; valeur: string; nb: string; glyphe: ReactNod
 ];
 
 const VILLES = [
-  { rang: "01", nom: "Cotonou", detail: "186 événements à venir" },
-  { rang: "02", nom: "Porto-Novo", detail: "54 événements à venir" },
-  { rang: "03", nom: "Ouidah", detail: "31 événements à venir" },
-  { rang: "04", nom: "Abomey", detail: "19 événements à venir" },
-  { rang: "05", nom: "Parakou", detail: "14 événements à venir" },
-  { rang: "06", nom: "Grand-Popo", detail: "9 événements à venir" },
+  { rang: "01", nom: "Cotonou" },
+  { rang: "02", nom: "Porto-Novo" },
+  { rang: "03", nom: "Ouidah" },
+  { rang: "04", nom: "Abomey" },
+  { rang: "05", nom: "Parakou" },
+  { rang: "06", nom: "Grand-Popo" },
 ];
 
 export default async function Accueil() {
-  const [evenements, villes, ticker] = await Promise.all([
+  const [evenements, villes, ticker, compteursCategories, compteursVilles] = await Promise.all([
     getEvenementsPublies(),
     getVillesPubliees(),
     getEvenementsTicker(),
+    getCompteursCategories(),
+    getCompteursVilles(),
   ]);
 
   return (
@@ -245,27 +247,34 @@ export default async function Accueil() {
             <h2 className="titre-section">Explorez par envie</h2>
           </div>
           <div className="grille-cat">
-            {CATEGORIES.map((cat) => (
-              <Link
-                className="tuile"
-                href={`/evenements?categorie=${encodeURIComponent(cat.valeur)}`}
-                key={cat.valeur}
-              >
-                <span className="glyphe" aria-hidden="true">
-                  <svg
-                    width="34"
-                    height="34"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    strokeWidth="1.6"
-                  >
-                    {cat.glyphe}
-                  </svg>
-                </span>
-                <span className="nom">{cat.nom}</span>
-                <span className="nb">{cat.nb}</span>
-              </Link>
-            ))}
+            {CATEGORIES.map((cat) => {
+              const nb = compteursCategories[cat.valeur] ?? 0;
+              return (
+                <Link
+                  className="tuile"
+                  href={`/evenements?categorie=${encodeURIComponent(cat.valeur)}`}
+                  key={cat.valeur}
+                >
+                  <span className="glyphe" aria-hidden="true">
+                    <svg
+                      width="34"
+                      height="34"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      strokeWidth="1.6"
+                    >
+                      {cat.glyphe}
+                    </svg>
+                  </span>
+                  <span className="nom">{cat.nom}</span>
+                  {nb > 0 && (
+                    <span className="nb">
+                      {nb} événement{nb > 1 ? "s" : ""}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -277,20 +286,29 @@ export default async function Accueil() {
             <h2 className="titre-section">Que faire ce soir à…</h2>
           </div>
           <div className="liste-villes">
-            {VILLES.map((v) => (
-              <Link
-                className="ville"
-                href={`/evenements?ville=${encodeURIComponent(v.nom)}`}
-                key={v.rang}
-              >
-                <span className="rang">{v.rang}</span>
-                <span className="nom-ville">{v.nom}</span>
-                <span className="detail">{v.detail}</span>
-                <span className="fleche" aria-hidden="true">
-                  →
-                </span>
-              </Link>
-            ))}
+            {VILLES.map((v) => {
+              const nb = compteursVilles[v.nom.toLowerCase()] ?? 0;
+              return (
+                <Link
+                  className="ville"
+                  href={`/evenements?ville=${encodeURIComponent(v.nom)}`}
+                  key={v.rang}
+                >
+                  <span className="rang">{v.rang}</span>
+                  <span className="nom-ville">{v.nom}</span>
+                  <span className="infos-droite">
+                    {nb > 0 && (
+                      <span className="detail">
+                        {nb} événement{nb > 1 ? "s" : ""} à venir
+                      </span>
+                    )}
+                    <span className="fleche" aria-hidden="true">
+                      →
+                    </span>
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
