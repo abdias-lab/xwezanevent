@@ -31,6 +31,7 @@ interface EventOrga {
   slug: string;
   date_debut: string;
   statut: string;
+  taux_commission: number;
   ticket_types: { prix: number; quantite_totale: number; quantite_vendue: number }[];
 }
 
@@ -56,7 +57,7 @@ export default async function Orga() {
     supabase
       .from("events")
       .select(
-        "id, titre, slug, date_debut, statut, ticket_types(prix, quantite_totale, quantite_vendue)"
+        "id, titre, slug, date_debut, statut, taux_commission, ticket_types(prix, quantite_totale, quantite_vendue)"
       )
       .eq("organisateur_id", user.id)
       .order("date_debut", { ascending: false }),
@@ -81,21 +82,24 @@ export default async function Orga() {
     const vendus = ev.ticket_types.reduce((s, t) => s + t.quantite_vendue, 0);
     const capacite = ev.ticket_types.reduce((s, t) => s + t.quantite_totale, 0);
     const revenu = ev.ticket_types.reduce((s, t) => s + t.prix * t.quantite_vendue, 0);
-    const revenuNetEvenement = Math.round(revenu * 0.94);
+    const revenuNetEvenement = Math.round(revenu * (1 - ev.taux_commission));
     const dejaDemande = dejaDemandeParEvenement.get(ev.id) ?? 0;
     const disponible = STATUTS_SANS_VIREMENT.has(ev.statut)
       ? 0
       : Math.max(0, revenuNetEvenement - dejaDemande);
     const peutDemander = payoutDisponible(ev);
     const disponibleLe = formatDate(dateDisponibilitePayout(ev));
-    return { ev, vendus, capacite, revenu, disponible, peutDemander, disponibleLe };
+    return { ev, vendus, capacite, revenu, revenuNetEvenement, disponible, peutDemander, disponibleLe };
   });
 
   const nbPublies = events.filter((e) => e.statut === "publie").length;
   const totalVendus = lignes.reduce((s, l) => s + l.vendus, 0);
   const totalCapacite = lignes.reduce((s, l) => s + l.capacite, 0);
   const revenuBrut = lignes.reduce((s, l) => s + l.revenu, 0);
-  const revenuNet = Math.round(revenuBrut * 0.94);
+  const revenuNet = lignes.reduce((s, l) => s + l.revenuNetEvenement, 0);
+  // Taux effectif affiché au KPI global : peut différer de 6% si un ou
+  // plusieurs événements ont une commission négociée (voir events.taux_commission).
+  const tauxEffectifGlobal = revenuBrut > 0 ? Math.round((1 - revenuNet / revenuBrut) * 100) : 6;
 
   const nom = (user.user_metadata?.nom as string | undefined) ?? user.email ?? "organisateur";
   const initiale = nom.charAt(0).toUpperCase();
@@ -141,7 +145,7 @@ export default async function Orga() {
             <div className="valeur">
               {fmt(revenuNet)} <small>FCFA</small>
             </div>
-            <div className="delta neutre">après 6% de frais</div>
+            <div className="delta neutre">après {tauxEffectifGlobal}% de frais</div>
           </div>
           <div className="kpi">
             <div className="libelle">Billets vendus</div>
@@ -219,6 +223,7 @@ export default async function Orga() {
                               eventId={ev.id}
                               titre={ev.titre}
                               disponible={disponible}
+                              tauxCommission={ev.taux_commission}
                               peutDemander={peutDemander}
                               disponibleLe={disponibleLe}
                             />

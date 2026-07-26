@@ -95,7 +95,7 @@ export default async function AdminPage() {
       .select("id", { count: "exact", head: true })
       .neq("statut", "annule")
       .gte("created_at", debutMois),
-    supabase.from("orders").select("total").eq("statut", "paye"),
+    supabase.from("orders").select("total, events(taux_commission)").eq("statut", "paye"),
     supabase
       .from("events")
       .select("id", { count: "exact", head: true })
@@ -126,11 +126,13 @@ export default async function AdminPage() {
   ]);
 
   const billetsVendusMois = billetsRes.count ?? 0;
-  const revenuPaye = (ordersPayesRes.data ?? []).reduce(
-    (s, o) => s + (o.total as number),
-    0
+  const commandesPayees = (ordersPayesRes.data ?? []) as unknown as {
+    total: number;
+    events: { taux_commission: number } | null;
+  }[];
+  const commissions = Math.round(
+    commandesPayees.reduce((s, o) => s + o.total * (o.events?.taux_commission ?? 0.06), 0)
   );
-  const commissions = Math.round(revenuPaye * 0.06);
   const eventsEnAttenteCount = eventsEnAttenteCountRes.count ?? 0;
   const organisateursActifs = organisateursActifsRes.count ?? 0;
 
@@ -188,7 +190,7 @@ export default async function AdminPage() {
             <div className="valeur">
               {fmt(commissions)} <small>FCFA</small>
             </div>
-            <div className="delta neutre">6% des commandes payées · détail par événement →</div>
+            <div className="delta neutre">sur les commandes payées · détail par événement →</div>
           </Link>
           <div className="kpi">
             <div className="libelle">Événements en attente</div>

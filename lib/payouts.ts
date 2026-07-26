@@ -2,7 +2,6 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { aujourdhuiPortoNovo, ajouterJours } from "@/lib/date";
 
-export const TAUX_COMMISSION = 0.06;
 export const MOYENS_PAIEMENT = ["mtn", "moov", "celtiis"] as const;
 export type MoyenPaiement = (typeof MOYENS_PAIEMENT)[number];
 
@@ -52,23 +51,26 @@ export function payoutDisponible(event: { date_debut: string; date_fin?: string 
 }
 
 /**
- * Solde disponible au retrait pour un événement : revenu net (94% des
- * ventes de billets, après commission plateforme) moins ce qui a déjà été
- * demandé ou traité pour cet événement. Les demandes 'bloque' (gelées suite
- * à une annulation) ne comptent plus contre le solde — l'événement étant
- * annulé, il n'y a de toute façon plus de nouvelle demande possible.
+ * Solde disponible au retrait pour un événement : revenu net (ventes de
+ * billets moins la commission plateforme propre à CET événement — voir
+ * events.taux_commission, 6% par défaut, ajustable au cas par cas pour un
+ * accord commercial particulier) moins ce qui a déjà été demandé ou traité
+ * pour cet événement. Les demandes 'bloque' (gelées suite à une annulation)
+ * ne comptent plus contre le solde — l'événement étant annulé, il n'y a de
+ * toute façon plus de nouvelle demande possible.
  */
 export async function montantDisponible(eventId: string): Promise<number> {
-  const { data: ticketTypes } = await supabaseAdmin
-    .from("ticket_types")
-    .select("prix, quantite_vendue")
-    .eq("event_id", eventId);
+  const [{ data: event }, { data: ticketTypes }] = await Promise.all([
+    supabaseAdmin.from("events").select("taux_commission").eq("id", eventId).single(),
+    supabaseAdmin.from("ticket_types").select("prix, quantite_vendue").eq("event_id", eventId),
+  ]);
 
+  const tauxCommission = Number(event?.taux_commission ?? 0.06);
   const revenuBrut = (ticketTypes ?? []).reduce(
     (s, t) => s + t.prix * t.quantite_vendue,
     0
   );
-  const revenuNet = Math.round(revenuBrut * (1 - TAUX_COMMISSION));
+  const revenuNet = Math.round(revenuBrut * (1 - tauxCommission));
 
   const { data: payoutsExistants } = await supabaseAdmin
     .from("payouts")

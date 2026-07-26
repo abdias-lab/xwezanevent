@@ -43,12 +43,15 @@ export default function DemandeVirement({
   eventId,
   titre,
   disponible,
+  tauxCommission,
   peutDemander,
   disponibleLe,
 }: {
   eventId: string;
   titre: string;
   disponible: number;
+  /** Taux de commission de CET événement (events.taux_commission, 6% par défaut, peut être 0 sur accord commercial). */
+  tauxCommission: number;
   /** Calculé côté serveur (lib/payouts.ts, server-only) — jamais recalculé ici. */
   peutDemander: boolean;
   /** Date formatée (ex. "15 juil 2026"), déjà calculée côté serveur. */
@@ -143,7 +146,9 @@ export default function DemandeVirement({
                 <h3>Virement — « {titre} »</h3>
                 <p>
                   Solde disponible : <strong>{fmt(disponible)} FCFA</strong>{" "}
-                  (net de la commission de 6%).
+                  {tauxCommission > 0
+                    ? `(net de la commission de ${Math.round(tauxCommission * 100)}%).`
+                    : "(aucune commission sur cet événement)."}
                 </p>
                 <div className="champ-bloc">
                   <label htmlFor="montant">Montant (FCFA)</label>

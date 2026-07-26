@@ -9,8 +9,6 @@ export const metadata: Metadata = {
   title: "Commissions — Administration — XwézanEvent",
 };
 
-const TAUX_COMMISSION = 0.06;
-
 function fmt(n: number): string {
   return n.toLocaleString("fr-FR");
 }
@@ -18,12 +16,13 @@ function fmt(n: number): string {
 interface OrderRow {
   event_id: string;
   total: number;
-  events: { titre: string } | null;
+  events: { titre: string; taux_commission: number } | null;
 }
 
 interface LigneCommission {
   eventId: string;
   titre: string;
+  tauxCommission: number;
   revenu: number;
   commission: number;
   nbCommandes: number;
@@ -45,24 +44,26 @@ export default async function AdminCommissions() {
 
   const { data } = await supabase
     .from("orders")
-    .select("event_id, total, events(titre)")
+    .select("event_id, total, events(titre, taux_commission)")
     .eq("statut", "paye");
 
   const commandes = (data as unknown as OrderRow[]) ?? [];
 
   const parEvenement = new Map<string, LigneCommission>();
   for (const c of commandes) {
+    const tauxCommission = c.events?.taux_commission ?? 0.06;
     const existant = parEvenement.get(c.event_id);
     if (existant) {
       existant.revenu += c.total;
       existant.nbCommandes += 1;
-      existant.commission = Math.round(existant.revenu * TAUX_COMMISSION);
+      existant.commission = Math.round(existant.revenu * existant.tauxCommission);
     } else {
       parEvenement.set(c.event_id, {
         eventId: c.event_id,
         titre: c.events?.titre ?? "Événement supprimé",
+        tauxCommission,
         revenu: c.total,
-        commission: Math.round(c.total * TAUX_COMMISSION),
+        commission: Math.round(c.total * tauxCommission),
         nbCommandes: 1,
       });
     }
@@ -97,8 +98,8 @@ export default async function AdminCommissions() {
           <div>
             <h1>Commissions par événement</h1>
             <p className="sous">
-              {fmt(totalCommission)} FCFA perçus au total ({TAUX_COMMISSION * 100}% de{" "}
-              {fmt(totalRevenu)} FCFA de commandes payées)
+              {fmt(totalCommission)} FCFA perçus au total (sur {fmt(totalRevenu)} FCFA de
+              commandes payées)
             </p>
           </div>
           <Link className="btn btn-ghost" href="/admin">
@@ -124,7 +125,8 @@ export default async function AdminCommissions() {
                   <th>Événement</th>
                   <th>Commandes payées</th>
                   <th>Revenu (commandes)</th>
-                  <th>Commission (6%)</th>
+                  <th>Taux</th>
+                  <th>Commission</th>
                 </tr>
               </thead>
               <tbody>
@@ -133,6 +135,7 @@ export default async function AdminCommissions() {
                     <td className="ev-nom">{l.titre}</td>
                     <td>{fmt(l.nbCommandes)}</td>
                     <td className="rev">{fmt(l.revenu)} F</td>
+                    <td>{Math.round(l.tauxCommission * 100)}%</td>
                     <td className="rev">{fmt(l.commission)} F</td>
                   </tr>
                 ))}
