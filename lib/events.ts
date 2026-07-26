@@ -69,6 +69,9 @@ function echapperPourOr(valeur: string): string {
  * date directe (pas seulement `statut = 'publie'`) : reste correct même
  * si cloturer_evenements_passes()/pg_cron n'est pas encore passé sur cet
  * événement (voir supabase/migrations/20260712120000_evenements_termines.sql).
+ * Exclut aussi les événements vitrine/démo (est_demo) : ils restent
+ * consultables par lien direct via getEvenementParSlug, mais ne doivent
+ * apparaître dans aucun listing public.
  */
 export async function getEvenementsPublies(
   opts: { categorie?: string; quand?: string; q?: string; ville?: string } = {}
@@ -81,6 +84,7 @@ export async function getEvenementsPublies(
       "slug, titre, categorie, ville, lieu, date_debut, affiche_url, est_demo, ticket_types(prix)"
     )
     .eq("statut", "publie")
+    .eq("est_demo", false)
     .gte("date_debut", periode ? periode.debut : aujourdhuiPortoNovo());
 
   if (periode) {
@@ -213,12 +217,13 @@ export async function getEvenementParSlug(
   };
 }
 
-/** Liste distincte des catégories présentes parmi les événements publiés. */
+/** Liste distincte des catégories présentes parmi les événements publiés (hors vitrine/démo). */
 export async function getCategoriesPubliees(): Promise<string[]> {
   const { data, error } = await supabase
     .from("events")
     .select("categorie")
     .eq("statut", "publie")
+    .eq("est_demo", false)
     .gte("date_debut", aujourdhuiPortoNovo());
 
   if (error || !data) return [];
@@ -260,9 +265,10 @@ function mapTicker(ev: TickerRow): TickerItem {
  * Sélection manuelle admin (mis_en_avant, triés par ordre_affiche puis date)
  * si au moins un événement éligible est coché ; sinon repli sur les
  * prochains événements publiés par date. Éligibilité dans les deux cas :
- * statut 'publie' et date à venir — un événement coché mais passé, annulé
- * ou dépublié depuis ne peut jamais apparaître. Limité à LIMITE_TICKER dans
- * les deux branches pour rester lisible.
+ * statut 'publie', date à venir et hors événements vitrine/démo — un
+ * événement coché mais passé, annulé, dépublié ou démo ne peut jamais
+ * apparaître. Limité à LIMITE_TICKER dans les deux branches pour rester
+ * lisible.
  */
 export async function getEvenementsTicker(): Promise<TickerItem[]> {
   const aujourdhui = aujourdhuiPortoNovo();
@@ -272,6 +278,7 @@ export async function getEvenementsTicker(): Promise<TickerItem[]> {
     .select("id, titre, ville, date_debut")
     .eq("statut", "publie")
     .eq("mis_en_avant", true)
+    .eq("est_demo", false)
     .gte("date_debut", aujourdhui)
     .order("ordre_affiche", { ascending: true, nullsFirst: false })
     .order("date_debut", { ascending: true })
@@ -287,6 +294,7 @@ export async function getEvenementsTicker(): Promise<TickerItem[]> {
     .from("events")
     .select("id, titre, ville, date_debut")
     .eq("statut", "publie")
+    .eq("est_demo", false)
     .gte("date_debut", aujourdhui)
     .order("date_debut", { ascending: true })
     .limit(LIMITE_TICKER);
@@ -325,12 +333,13 @@ export async function getCompteursCategories(): Promise<Record<string, number>> 
   return compteurs;
 }
 
-/** Liste distincte des villes présentes parmi les événements publiés (pour suggestion, saisie libre par ailleurs). */
+/** Liste distincte des villes présentes parmi les événements publiés (hors vitrine/démo, pour suggestion, saisie libre par ailleurs). */
 export async function getVillesPubliees(): Promise<string[]> {
   const { data, error } = await supabase
     .from("events")
     .select("ville")
     .eq("statut", "publie")
+    .eq("est_demo", false)
     .gte("date_debut", aujourdhuiPortoNovo());
 
   if (error || !data) return [];
