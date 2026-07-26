@@ -28,7 +28,7 @@ export default async function Header() {
   return (
     <header className="header">
       <div className="nav">
-        <Logo />
+        <Logo masquerEvent />
 
         <nav className="nav-links" aria-label="Navigation principale">
           <Link href="/evenements">Événements</Link>
