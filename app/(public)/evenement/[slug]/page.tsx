@@ -198,7 +198,7 @@ export default async function EvenementDetail({
             </Link>
           </aside>
         ) : (
-          <Billetterie slug={ev.slug} ticketTypes={ev.ticketTypes} />
+          <Billetterie slug={ev.slug} titre={ev.titre} ticketTypes={ev.ticketTypes} />
         )}
       </div>
 

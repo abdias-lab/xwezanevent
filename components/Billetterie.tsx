@@ -13,10 +13,12 @@ type Phase = "idle" | "creation" | "redirection";
 
 export default function Billetterie({
   slug,
+  titre,
   ticketTypes,
   limiteVente,
 }: {
   slug: string;
+  titre: string;
   ticketTypes: TicketTypeDetail[];
   limiteVente?: string;
 }) {
@@ -47,6 +49,32 @@ export default function Billetterie({
   const [phase, setPhase] = useState<Phase>("idle");
   const [erreur, setErreur] = useState<string | null>(null);
   const envoi = phase !== "idle";
+
+  const [lienCopie, setLienCopie] = useState(false);
+
+  /**
+   * navigator.share (mobile, essentiellement) ouvre la feuille de partage
+   * native — WhatsApp, Facebook, etc. Repli desktop : copie du lien dans le
+   * presse-papiers, avec confirmation visuelle temporaire sur le bouton.
+   */
+  async function partager() {
+    const url = window.location.href;
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: titre, url });
+      } catch {
+        // Partage annulé par l'utilisateur (ou API refusée) : rien à faire.
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setLienCopie(true);
+      setTimeout(() => setLienCopie(false), 2000);
+    } catch {
+      // Presse-papiers indisponible (contexte non sécurisé, permission refusée) : cas rare, pas de repli supplémentaire.
+    }
+  }
 
   async function payer() {
     if (envoi) return; // jamais deux envois simultanés
@@ -182,8 +210,9 @@ export default function Billetterie({
       </p>
 
       <div className="actions-ev">
-        <button className="btn btn-ghost" type="button" disabled={envoi}>🤍 Favori</button>
-        <button className="btn btn-ghost" type="button" disabled={envoi}>📤 Partager</button>
+        <button className="btn btn-ghost" type="button" onClick={partager} disabled={envoi}>
+          {lienCopie ? "✅ Lien copié" : "📤 Partager"}
+        </button>
       </div>
     </aside>
   );
