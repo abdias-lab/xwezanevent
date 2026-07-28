@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import Billetterie from "@/components/Billetterie";
-import AfficheEvenement from "@/components/AfficheEvenement";
+import CarrouselEvenement from "@/components/CarrouselEvenement";
 import { getEvenementParSlug } from "@/lib/events";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -63,52 +63,29 @@ export default async function EvenementDetail({
     <>
       <Header />
 
-      {/* --------------------------- BANNIÈRE --------------------------- */}
-      <div className="banniere">
-        <AfficheEvenement
-          className="photo"
-          src={ev.affiche_url}
-          alt={ev.titre}
-          fill
-          priority
-          sizes="100vw"
-        />
-        <div className="voile" aria-hidden="true" />
-      </div>
-
-      {/* --------------------------- EN-TÊTE --------------------------- */}
-      <div className="entete-ev">
-        <div className="badges-ev">
-          {ev.categories.map((c) => (
-            <span className="badge-ev" key={c}>{c}</span>
-          ))}
-          {placesTotales > 0 && (
-            <span className="badge-ev">
-              👥 {placesTotales.toLocaleString("fr-FR")} places
-            </span>
-          )}
-          {ev.estDemo && (
-            <span className="badge-ev chaud">⚠ Démonstration</span>
-          )}
+      {/* -------------------- BANNIÈRE + EN-TÊTE + CARROUSEL -------------------- */}
+      <CarrouselEvenement images={ev.images} afficheUrl={ev.affiche_url} titre={ev.titre}>
+        <div className="entete-ev">
+          <div className="badges-ev">
+            {ev.categories.map((c) => (
+              <span className="badge-ev" key={c}>{c}</span>
+            ))}
+            {placesTotales > 0 && (
+              <span className="badge-ev">
+                👥 {placesTotales.toLocaleString("fr-FR")} places
+              </span>
+            )}
+            {ev.estDemo && (
+              <span className="badge-ev chaud">⚠ Démonstration</span>
+            )}
+          </div>
+          <h1>{ev.titre}</h1>
+          <div className="meta-ev">
+            <span>📅 {formatDate(ev.date_debut)}{heure ? ` · ${heure}` : ""}</span>
+            <span>📍 {ev.lieu}, {ev.ville}</span>
+          </div>
         </div>
-        <h1>{ev.titre}</h1>
-        <div className="meta-ev">
-          <span>📅 {formatDate(ev.date_debut)}{heure ? ` · ${heure}` : ""}</span>
-          <span>📍 {ev.lieu}, {ev.ville}</span>
-        </div>
-      </div>
-
-      {/* -------------------------- CARROUSEL -------------------------- */}
-      {ev.images.length > 1 && (
-        <div className="carrousel-ev" aria-label="Autres photos de l'événement">
-          {ev.images.map((img) => (
-            <div className="carrousel-item" key={img.url}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.url} alt="" />
-            </div>
-          ))}
-        </div>
-      )}
+      </CarrouselEvenement>
 
       {/* ---------------------------- CORPS ---------------------------- */}
       <div className="corps-ev">
