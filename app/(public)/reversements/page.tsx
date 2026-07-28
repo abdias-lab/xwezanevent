@@ -41,7 +41,7 @@ export default function Reversements() {
             Une fois ce délai passé, ton <strong>tableau de bord</strong> (
             <code>/orga</code>) affiche le solde disponible de
             l&apos;événement — les ventes encaissées, moins la commission
-            XwézanEvent de 6% (voir{" "}
+            XwézanEvent de 8% (voir{" "}
             <a href="/tarifs">nos tarifs</a>). Clique sur{" "}
             <strong>« Demander un virement »</strong>, choisis le montant (le
             solde disponible ou une partie) et ton moyen de réception.

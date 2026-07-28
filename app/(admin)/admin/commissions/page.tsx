@@ -51,7 +51,7 @@ export default async function AdminCommissions() {
 
   const parEvenement = new Map<string, LigneCommission>();
   for (const c of commandes) {
-    const tauxCommission = c.events?.taux_commission ?? 0.06;
+    const tauxCommission = c.events?.taux_commission ?? 0.08;
     const existant = parEvenement.get(c.event_id);
     if (existant) {
       existant.revenu += c.total;

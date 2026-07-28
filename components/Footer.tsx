@@ -42,7 +42,7 @@ export default function Footer() {
             <h4>Organisateurs</h4>
             <ul>
               <li><Link href="/creer">Créer un événement</Link></li>
-              <li><Link href="/tarifs">Tarifs — 6% tout compris</Link></li>
+              <li><Link href="/tarifs">Tarifs — 8% tout compris</Link></li>
               <li><Link href="/scan">Scan &amp; contrôle d&apos;accès</Link></li>
               <li><Link href="/reversements">Reversements Mobile Money</Link></li>
             </ul>

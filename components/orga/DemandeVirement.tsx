@@ -50,7 +50,7 @@ export default function DemandeVirement({
   eventId: string;
   titre: string;
   disponible: number;
-  /** Taux de commission de CET événement (events.taux_commission, 6% par défaut, peut être 0 sur accord commercial). */
+  /** Taux de commission de CET événement (events.taux_commission, 8% par défaut, peut être 0 sur accord commercial). */
   tauxCommission: number;
   /** Calculé côté serveur (lib/payouts.ts, server-only) — jamais recalculé ici. */
   peutDemander: boolean;

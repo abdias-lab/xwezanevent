@@ -102,7 +102,7 @@ export default function Cgu() {
             service XwézanEvent additionnels (seuls d&apos;éventuels frais
             Mobile Money appliqués par l&apos;opérateur de paiement peuvent
             s&apos;ajouter à sa charge, indépendants de XwézanEvent).
-            XwézanEvent prélève une commission de 6% côté organisateur, au
+            XwézanEvent prélève une commission de 8% côté organisateur, au
             moment du reversement des ventes.
           </p>
           <p>

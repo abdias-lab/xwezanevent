@@ -97,9 +97,9 @@ export default async function Orga() {
   const totalCapacite = lignes.reduce((s, l) => s + l.capacite, 0);
   const revenuBrut = lignes.reduce((s, l) => s + l.revenu, 0);
   const revenuNet = lignes.reduce((s, l) => s + l.revenuNetEvenement, 0);
-  // Taux effectif affiché au KPI global : peut différer de 6% si un ou
+  // Taux effectif affiché au KPI global : peut différer de 8% si un ou
   // plusieurs événements ont une commission négociée (voir events.taux_commission).
-  const tauxEffectifGlobal = revenuBrut > 0 ? Math.round((1 - revenuNet / revenuBrut) * 100) : 6;
+  const tauxEffectifGlobal = revenuBrut > 0 ? Math.round((1 - revenuNet / revenuBrut) * 100) : 8;
 
   const nom = (user.user_metadata?.nom as string | undefined) ?? user.email ?? "organisateur";
   const initiale = nom.charAt(0).toUpperCase();

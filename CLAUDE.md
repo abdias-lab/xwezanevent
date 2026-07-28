@@ -3,7 +3,7 @@
 ## Projet
 
 XwézanEvent est une billetterie en ligne pour le Bénin : concerts, festivals, soirées,
-culture. Commission de 6% côté organisateur. Paiement Mobile Money via FedaPay.
+culture. Commission de 8% côté organisateur. Paiement Mobile Money via FedaPay.
 Billets avec QR code. Application PWA.
 
 ## Stack

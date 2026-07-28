@@ -3031,7 +3031,7 @@
   }
 
   /* ==========================================================
-     ORGANISATEURS (bande 6%)
+     ORGANISATEURS (bande 8%)
      ========================================================== */
   .organisateur {
     background: linear-gradient(120deg, var(--secondaire), color-mix(in srgb, var(--secondaire) 68%, black) 78%);

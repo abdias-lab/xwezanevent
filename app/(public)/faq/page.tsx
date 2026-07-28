@@ -106,7 +106,7 @@ const QUESTIONS_ORGANISATEURS: Question[] = [
     q: "Quelle est votre commission ?",
     r: (
       <>
-        Nous prélevons une commission de <Link href="/tarifs">6 %</Link> sur
+        Nous prélevons une commission de <Link href="/tarifs">8 %</Link> sur
         chaque billet vendu. C&apos;est tout : pas d&apos;abonnement, pas de
         frais d&apos;inscription, pas d&apos;avance. Si vous ne vendez pas,
         vous ne payez rien.

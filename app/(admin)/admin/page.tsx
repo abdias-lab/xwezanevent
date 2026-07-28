@@ -131,7 +131,7 @@ export default async function AdminPage() {
     events: { taux_commission: number } | null;
   }[];
   const commissions = Math.round(
-    commandesPayees.reduce((s, o) => s + o.total * (o.events?.taux_commission ?? 0.06), 0)
+    commandesPayees.reduce((s, o) => s + o.total * (o.events?.taux_commission ?? 0.08), 0)
   );
   const eventsEnAttenteCount = eventsEnAttenteCountRes.count ?? 0;
   const organisateursActifs = organisateursActifsRes.count ?? 0;

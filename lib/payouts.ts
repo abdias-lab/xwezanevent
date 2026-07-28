@@ -53,7 +53,7 @@ export function payoutDisponible(event: { date_debut: string; date_fin?: string 
 /**
  * Solde disponible au retrait pour un événement : revenu net (ventes de
  * billets moins la commission plateforme propre à CET événement — voir
- * events.taux_commission, 6% par défaut, ajustable au cas par cas pour un
+ * events.taux_commission, 8% par défaut, ajustable au cas par cas pour un
  * accord commercial particulier) moins ce qui a déjà été demandé ou traité
  * pour cet événement. Les demandes 'bloque' (gelées suite à une annulation)
  * ne comptent plus contre le solde — l'événement étant annulé, il n'y a de
@@ -65,7 +65,7 @@ export async function montantDisponible(eventId: string): Promise<number> {
     supabaseAdmin.from("ticket_types").select("prix, quantite_vendue").eq("event_id", eventId),
   ]);
 
-  const tauxCommission = Number(event?.taux_commission ?? 0.06);
+  const tauxCommission = Number(event?.taux_commission ?? 0.08);
   const revenuBrut = (ticketTypes ?? []).reduce(
     (s, t) => s + t.prix * t.quantite_vendue,
     0

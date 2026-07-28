@@ -42,7 +42,7 @@ const TENTATIVES_MAX = 3;
  * - Modèle économique : l'acheteur paie EXACTEMENT le prix affiché du
  *   billet (aucun frais de service ajouté par XwézanEvent — seuls les
  *   frais Mobile Money éventuels de FedaPay s'appliquent, hors de notre
- *   contrôle). La commission XwézanEvent (6%) est prélevée côté
+ *   contrôle). La commission XwézanEvent (8%) est prélevée côté
  *   organisateur, au moment du reversement (voir lib/payouts.ts).
  * - Commande créée en « en_attente » avec un snapshot du panier.
  * - Les billets ne sont générés qu'après paiement (webhook / retour).

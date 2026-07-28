@@ -4,9 +4,9 @@ import BoutonOr from "@/components/BoutonOr";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Tarifs — 6% tout compris — XwézanEvent",
+  title: "Tarifs — 8% tout compris — XwézanEvent",
   description:
-    "Une seule commission de 6%, prélevée uniquement sur les billets vendus. Pas d'abonnement, pas de frais cachés.",
+    "Une seule commission de 8%, prélevée uniquement sur les billets vendus. Pas d'abonnement, pas de frais cachés.",
 };
 
 export default function Tarifs() {
@@ -16,7 +16,7 @@ export default function Tarifs() {
 
       <main className="page-info">
         <span className="eyebrow">Pour les organisateurs</span>
-        <h1>6% tout compris, c&apos;est tout.</h1>
+        <h1>8% tout compris, c&apos;est tout.</h1>
         <p className="intro">
           Pas d&apos;abonnement, pas de frais d&apos;inscription, pas de coûts
           cachés. Tu ne payes que si tu vends — une seule commission,
@@ -24,7 +24,7 @@ export default function Tarifs() {
         </p>
 
         <div className="gros-chiffre">
-          <div className="n">6%</div>
+          <div className="n">8%</div>
           <div className="l">de commission sur chaque billet vendu, rien d&apos;autre</div>
         </div>
 
@@ -39,7 +39,7 @@ export default function Tarifs() {
           </p>
           <p>
             De ton côté, à chaque demande de reversement, XwézanEvent retient
-            6% du montant des ventes de l&apos;événement concerné. Le reste
+            8% du montant des ventes de l&apos;événement concerné. Le reste
             part directement sur ton compte MTN, Moov ou Celtiis Money.
           </p>
 
@@ -54,12 +54,12 @@ export default function Tarifs() {
               <span className="valeur">10 000 FCFA</span>
             </div>
             <div className="calc-tarif">
-              <span>Commission XwézanEvent (6%)</span>
-              <span className="valeur">− 600 FCFA</span>
+              <span>Commission XwézanEvent (8%)</span>
+              <span className="valeur">− 800 FCFA</span>
             </div>
             <div className="calc-tarif final">
               <span>Reversé à l&apos;organisateur</span>
-              <span className="valeur">9 400 FCFA</span>
+              <span className="valeur">9 200 FCFA</span>
             </div>
           </div>
         </div>
