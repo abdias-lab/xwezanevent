@@ -30,7 +30,9 @@ export default function Contact() {
           <div className="contact-carte">
             <span className="ic">💬</span>
             <h3>WhatsApp</h3>
-            <a href="#">+229 XX XX XX XX (à venir)</a>
+            <a href="https://wa.me/22953064872" target="_blank" rel="noopener noreferrer">
+              +229 53 06 48 72
+            </a>
           </div>
         </div>
 

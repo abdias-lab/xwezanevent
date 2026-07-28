@@ -61,8 +61,24 @@ export default function Footer() {
         </div>
 
         <div className="foot-bas">
-          <span>© 2026 XwézanEvent — Cotonou, Bénin</span>
-          <span className="fon">Mì wá djawá !&nbsp;· La fête vous attend.</span>
+          <div className="foot-legal">
+            <span>XwézanEvent by Digiflow</span>
+            <span className="sep" aria-hidden="true">·</span>
+            <span>Cotonou — N° RCCM RB/COT/24 A 104638</span>
+            <span className="sep" aria-hidden="true">·</span>
+            <span>N° IFU 1201526575807</span>
+            <span className="sep" aria-hidden="true">·</span>
+            <span>
+              WhatsApp :{" "}
+              <a href="https://wa.me/22953064872" target="_blank" rel="noopener noreferrer">
+                +229 53 06 48 72
+              </a>
+            </span>
+          </div>
+          <div className="foot-bas-ligne">
+            <span>© 2026 XwézanEvent — Cotonou, Bénin</span>
+            <span className="fon">Mì wá djawá !&nbsp;· La fête vous attend.</span>
+          </div>
         </div>
       </div>
     </footer>

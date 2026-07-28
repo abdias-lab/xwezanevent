@@ -3408,12 +3408,34 @@
     margin-top: 54px;
     padding-top: 26px;
     border-top: 1px solid var(--ligne);
+    color: var(--texte2);
+    font-size: 0.86rem;
+  }
+  .foot-legal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    margin-bottom: 14px;
+    font-size: 0.78rem;
+    color: var(--texte2);
+    opacity: 0.8;
+  }
+  .foot-legal a {
+    color: var(--texte2);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .foot-legal a:hover {
+    color: var(--texte);
+  }
+  .foot-legal .sep {
+    opacity: 0.5;
+  }
+  .foot-bas-ligne {
     display: flex;
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
-    color: var(--texte2);
-    font-size: 0.86rem;
   }
   .foot-bas .fon {
     color: var(--accent);
