@@ -6,3 +6,6 @@ export const TYPES_AFFICHE_AUTORISES: Record<string, string> = {
 };
 
 export const TAILLE_AFFICHE_MAX = 5 * 1024 * 1024; // 5 Mo
+
+/** Nombre maximum d'images par événement (1 principale + jusqu'à 3 secondaires pour le carrousel). */
+export const MAX_IMAGES = 4;

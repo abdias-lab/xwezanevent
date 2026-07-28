@@ -9,19 +9,20 @@ const MOIS_COURTS = [
 interface EventRow {
   slug: string;
   titre: string;
-  categorie: string | null;
   ville: string;
   lieu: string;
   date_debut: string; // YYYY-MM-DD
   affiche_url: string | null;
   est_demo: boolean;
   ticket_types: { prix: number }[];
+  event_categories: { categorie: string; ordre: number }[];
 }
 
 /** Données prêtes à passer à <CarteEvenement /> */
 export interface CarteData {
   id: string;
   titre: string;
+  /** Catégorie principale (la première par ordre) — la carte n'affiche qu'un seul badge. */
   categorie: string;
   lieu: string;
   prix: number;
@@ -33,6 +34,10 @@ export interface CarteData {
   estDemo: boolean;
 }
 
+function categoriePrincipale(categories: { categorie: string; ordre: number }[]): string {
+  return [...categories].sort((a, b) => a.ordre - b.ordre)[0]?.categorie ?? "Événement";
+}
+
 function mapRow(ev: EventRow): CarteData {
   const [, mois, jour] = ev.date_debut.split("-");
   const prix = ev.ticket_types.length
@@ -42,7 +47,7 @@ function mapRow(ev: EventRow): CarteData {
   return {
     id: ev.slug,
     titre: ev.titre,
-    categorie: ev.categorie ?? "Événement",
+    categorie: categoriePrincipale(ev.event_categories),
     lieu: `${ev.lieu}, ${ev.ville}`,
     prix,
     jour,
@@ -60,10 +65,11 @@ function echapperPourOr(valeur: string): string {
 
 /**
  * Événements publiés + prix du ticket_type le moins cher (« à partir de »),
- * triés par date croissante. Filtres optionnels : catégorie, période
- * ("quand" : aujourdhui, week-end, semaine, mois — voir plagePeriode()),
- * recherche texte (q, sur titre+description) et ville (saisie libre,
- * correspondance partielle).
+ * triés par date croissante. Filtres optionnels : catégorie (un événement
+ * peut avoir plusieurs catégories — voir event_categories — il apparaît dans
+ * le filtre dès qu'une seule correspond), période ("quand" : aujourdhui,
+ * week-end, semaine, mois — voir plagePeriode()), recherche texte (q, sur
+ * titre+description) et ville (saisie libre, correspondance partielle).
  *
  * Exclut les événements dont la date est passée par une comparaison de
  * date directe (pas seulement `statut = 'publie'`) : reste correct même
@@ -78,10 +84,18 @@ export async function getEvenementsPublies(
 ): Promise<CarteData[]> {
   const periode = plagePeriode(opts.quand);
 
+  // event_categories!inner (plutôt que la forme sans !inner) transforme le
+  // filtre .eq ci-dessous en jointure restrictive sur les événements
+  // eux-mêmes, pas seulement sur les lignes embarquées — nécessaire pour
+  // qu'un événement sans la catégorie demandée soit exclu du résultat.
+  const relationCategories = opts.categorie
+    ? "event_categories!inner(categorie, ordre)"
+    : "event_categories(categorie, ordre)";
+
   let query = supabase
     .from("events")
     .select(
-      "slug, titre, categorie, ville, lieu, date_debut, affiche_url, est_demo, ticket_types(prix)"
+      `slug, titre, ville, lieu, date_debut, affiche_url, est_demo, ticket_types(prix), ${relationCategories}`
     )
     .eq("statut", "publie")
     .eq("est_demo", false)
@@ -92,7 +106,7 @@ export async function getEvenementsPublies(
   }
 
   if (opts.categorie) {
-    query = query.eq("categorie", opts.categorie);
+    query = query.eq("event_categories.categorie", opts.categorie);
   }
 
   if (opts.ville?.trim()) {
@@ -111,7 +125,7 @@ export async function getEvenementsPublies(
     console.error("[events] échec de récupération :", error.message);
     return [];
   }
-  return (data as EventRow[]).map(mapRow);
+  return (data as unknown as EventRow[]).map(mapRow);
 }
 
 export interface TicketTypeDetail {
@@ -125,12 +139,14 @@ export interface EvenementDetail {
   slug: string;
   titre: string;
   description: string | null;
-  categorie: string | null;
+  categories: string[];
   ville: string;
   lieu: string;
   date_debut: string;
   heure: string | null;
   affiche_url: string | null;
+  /** Toutes les images (principale incluse), triées par ordre d'affichage — pour le carrousel de la page événement. */
+  images: { url: string; principale: boolean }[];
   /** true si l'événement est passé (date_debut < aujourd'hui, ou statut déjà 'termine') */
   estTermine: boolean;
   /** Nom public de l'organisateur (profiles.nom, seule colonne accordée à anon/public sur profiles). */
@@ -144,7 +160,6 @@ interface EventDetailRow {
   slug: string;
   titre: string;
   description: string | null;
-  categorie: string | null;
   ville: string;
   lieu: string;
   date_debut: string;
@@ -160,6 +175,8 @@ interface EventDetailRow {
     quantite_totale: number;
     quantite_vendue: number;
   }[];
+  event_categories: { categorie: string; ordre: number }[];
+  event_images: { url: string; principale: boolean; ordre: number }[];
 }
 
 /**
@@ -179,10 +196,12 @@ export async function getEvenementParSlug(
   const { data, error } = await supabase
     .from("events")
     .select(
-      "slug, titre, description, categorie, ville, lieu, date_debut, heure, affiche_url, statut, est_demo, organisateur:profiles(nom), ticket_types(id, nom, prix, quantite_totale, quantite_vendue)"
+      "slug, titre, description, ville, lieu, date_debut, heure, affiche_url, statut, est_demo, organisateur:profiles(nom), ticket_types(id, nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale, ordre)"
     )
     .eq("slug", slug)
     .in("statut", ["publie", "termine"])
+    .order("ordre", { foreignTable: "event_categories", ascending: true })
+    .order("ordre", { foreignTable: "event_images", ascending: true })
     .maybeSingle();
 
   if (error) {
@@ -197,12 +216,13 @@ export async function getEvenementParSlug(
     slug: row.slug,
     titre: row.titre,
     description: row.description,
-    categorie: row.categorie,
+    categories: row.event_categories.map((c) => c.categorie),
     ville: row.ville,
     lieu: row.lieu,
     date_debut: row.date_debut,
     heure: row.heure,
     affiche_url: row.affiche_url,
+    images: row.event_images.map((i) => ({ url: i.url, principale: i.principale })),
     estTermine,
     organisateurNom: row.organisateur?.nom ?? null,
     estDemo: row.est_demo,
@@ -220,17 +240,17 @@ export async function getEvenementParSlug(
 /** Liste distincte des catégories présentes parmi les événements publiés (hors vitrine/démo). */
 export async function getCategoriesPubliees(): Promise<string[]> {
   const { data, error } = await supabase
-    .from("events")
-    .select("categorie")
-    .eq("statut", "publie")
-    .eq("est_demo", false)
-    .gte("date_debut", aujourdhuiPortoNovo());
+    .from("event_categories")
+    .select("categorie, events!inner(statut, est_demo, date_debut)")
+    .eq("events.statut", "publie")
+    .eq("events.est_demo", false)
+    .gte("events.date_debut", aujourdhuiPortoNovo());
 
   if (error || !data) return [];
 
   const set = new Set<string>();
-  for (const row of data as { categorie: string | null }[]) {
-    if (row.categorie) set.add(row.categorie);
+  for (const row of data as unknown as { categorie: string }[]) {
+    set.add(row.categorie);
   }
   return Array.from(set).sort((a, b) => a.localeCompare(b, "fr"));
 }
@@ -309,16 +329,17 @@ export async function getEvenementsTicker(): Promise<TickerItem[]> {
 /**
  * Nombre d'événements réels (statut 'publie', date à venir, hors événements
  * vitrine/démo) par catégorie — alimente les compteurs de la section
- * "Explorez par envie" de l'accueil. Une catégorie absente du résultat n'a
+ * "Explorez par envie" de l'accueil. Un événement à plusieurs catégories
+ * est compté une fois dans chacune. Une catégorie absente du résultat n'a
  * aucun événement réel à venir (compteur à masquer côté affichage).
  */
 export async function getCompteursCategories(): Promise<Record<string, number>> {
   const { data, error } = await supabase
-    .from("events")
-    .select("categorie")
-    .eq("statut", "publie")
-    .eq("est_demo", false)
-    .gte("date_debut", aujourdhuiPortoNovo());
+    .from("event_categories")
+    .select("categorie, events!inner(statut, est_demo, date_debut)")
+    .eq("events.statut", "publie")
+    .eq("events.est_demo", false)
+    .gte("events.date_debut", aujourdhuiPortoNovo());
 
   if (error || !data) {
     if (error) console.error("[events] échec getCompteursCategories :", error.message);
@@ -326,8 +347,7 @@ export async function getCompteursCategories(): Promise<Record<string, number>> 
   }
 
   const compteurs: Record<string, number> = {};
-  for (const row of data as { categorie: string | null }[]) {
-    if (!row.categorie) continue;
+  for (const row of data as unknown as { categorie: string }[]) {
     compteurs[row.categorie] = (compteurs[row.categorie] ?? 0) + 1;
   }
   return compteurs;

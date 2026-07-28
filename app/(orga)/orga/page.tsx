@@ -236,6 +236,15 @@ export default async function Orga() {
                             Exporter CSV
                           </a>
                           {STATUTS_ANNULABLES.has(ev.statut) && (
+                            <Link
+                              className="btn btn-ghost"
+                              style={{ padding: "7px 14px", fontSize: "0.8rem" }}
+                              href={`/orga/evenements/${ev.id}/modifier`}
+                            >
+                              Modifier
+                            </Link>
+                          )}
+                          {STATUTS_ANNULABLES.has(ev.statut) && (
                             <ActionsEvenementOrga eventId={ev.id} titre={ev.titre} />
                           )}
                         </div>

@@ -79,7 +79,9 @@ export default async function EvenementDetail({
       {/* --------------------------- EN-TÊTE --------------------------- */}
       <div className="entete-ev">
         <div className="badges-ev">
-          {ev.categorie && <span className="badge-ev">{ev.categorie}</span>}
+          {ev.categories.map((c) => (
+            <span className="badge-ev" key={c}>{c}</span>
+          ))}
           {placesTotales > 0 && (
             <span className="badge-ev">
               👥 {placesTotales.toLocaleString("fr-FR")} places
@@ -95,6 +97,18 @@ export default async function EvenementDetail({
           <span>📍 {ev.lieu}, {ev.ville}</span>
         </div>
       </div>
+
+      {/* -------------------------- CARROUSEL -------------------------- */}
+      {ev.images.length > 1 && (
+        <div className="carrousel-ev" aria-label="Autres photos de l'événement">
+          {ev.images.map((img) => (
+            <div className="carrousel-item" key={img.url}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={img.url} alt="" />
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ---------------------------- CORPS ---------------------------- */}
       <div className="corps-ev">

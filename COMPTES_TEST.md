@@ -71,6 +71,39 @@ toute confusion avec la Fête du Vodoun officielle (même date, 10 janvier,
 même ville, Ouidah). Aucun lien en dur vers l'ancien slug dans le code
 (vérifié). `scripts/seed.mts` déjà aligné sur le nouveau nom.
 
+## Test du 2026-07-28 (édition d'événement publié — catégories/images multiples, notification date)
+
+Test en conditions réelles du flux d'édition organisateur ajouté ce jour
+(`app/(orga)/orga/evenements/[id]/modifier/`) : création multi-catégories
+(max 3) / multi-images (max 4) avec désignation d'image principale, édition
+(description, heure, ajout/retrait d'image, catégories), notification email
+sur changement de DATE, blocage d'accès croisé entre organisateurs.
+
+Créés puis supprimés :
+- `test-edition-orga-a@xwezanevent-test.com` / `test-edition-orga-b@xwezanevent-test.com`
+  (organisateurs)
+- Événement `[TEST] Édition multi-images` (3 catégories, jusqu'à 4 images), 1
+  ticket_type, 1 commande payée (acheteur : compte admin réel `abdias@mentorshow.com`
+  / `gbedoloabdias@gmail.com`, uniquement la commande de test a été créée puis
+  supprimée — le compte lui-même n'a pas été touché)
+
+Résultats :
+1. Création : 3 catégories + 4 images enregistrées dans l'ordre choisi,
+   `event_images.principale` et `events.affiche_url` (cache dénormalisé)
+   cohérents. Limites respectées côté formulaire : la 4e catégorie et la 5e
+   image sont refusées par l'UI (bouton désactivé / slot d'ajout masqué).
+2. Édition sans changement de date (description, heure, retrait d'une image,
+   changement de catégories) : base à jour, **aucun email envoyé** (attendu).
+3. Édition avec changement de DATE : email envoyé avec succès via Resend
+   (confirmé en log serveur + réception réelle à l'adresse de test) —
+   fonctionne comme prévu.
+4. Accès croisé : Organisateur Test B tente `/orga/evenements/<id de A>/modifier`
+   → `404`, accès bloqué.
+
+Aucun bug trouvé. Nettoyage complet en fin de session (comptes Auth + fichiers
+Storage) — vérification automatisée : plus aucune trace en base ni dans le
+bucket `affiches`.
+
 ## Comptes/événements de test actuellement en base
 
 _Aucun à ce jour (voir nettoyages ci-dessus)._ Ajouter ici toute nouvelle

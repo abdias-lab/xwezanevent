@@ -6,11 +6,14 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 interface ProprietaireAutorise {
   userId: string;
   titre: string;
+  /** Événement vitrine (démo) — les routes qui n'ont pas de sens sur un événement démo (ex. édition) doivent le rejeter elles-mêmes. */
+  estDemo: boolean;
   erreur: null;
 }
 interface ProprietaireRefuse {
   userId: null;
   titre: null;
+  estDemo: null;
   erreur: NextResponse;
 }
 
@@ -31,13 +34,14 @@ export async function verifierProprietaireEvenement(
     return {
       userId: null,
       titre: null,
+      estDemo: null,
       erreur: NextResponse.json({ error: "Connexion requise" }, { status: 401 }),
     };
   }
 
   const { data: event } = await supabaseAdmin
     .from("events")
-    .select("organisateur_id, titre")
+    .select("organisateur_id, titre, est_demo")
     .eq("id", eventId)
     .maybeSingle();
 
@@ -45,6 +49,7 @@ export async function verifierProprietaireEvenement(
     return {
       userId: null,
       titre: null,
+      estDemo: null,
       erreur: NextResponse.json({ error: "Événement introuvable" }, { status: 404 }),
     };
   }
@@ -53,9 +58,10 @@ export async function verifierProprietaireEvenement(
     return {
       userId: null,
       titre: null,
+      estDemo: null,
       erreur: NextResponse.json({ error: "Accès refusé" }, { status: 403 }),
     };
   }
 
-  return { userId: user.id, titre: event.titre, erreur: null };
+  return { userId: user.id, titre: event.titre, estDemo: event.est_demo, erreur: null };
 }

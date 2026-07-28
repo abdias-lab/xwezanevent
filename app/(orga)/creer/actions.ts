@@ -4,8 +4,9 @@ import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { randomUUID } from "crypto";
-import { TAILLE_AFFICHE_MAX, TYPES_AFFICHE_AUTORISES } from "@/lib/affiche";
+import { uploaderImageEvenement } from "@/lib/images-evenement";
+import { MAX_IMAGES } from "@/lib/affiche";
+import { MAX_CATEGORIES } from "@/lib/categories";
 
 interface TicketSaisi {
   nom?: string;
@@ -23,32 +24,16 @@ function slugify(s: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-/**
- * Valide et envoie l'affiche dans le bucket Storage "affiches".
- * Le nom d'origine n'est jamais utilisé : le fichier est renommé avec un
- * UUID pour éviter collisions/traversal et ne pas exposer le nom du client.
- */
-async function uploaderAffiche(fichier: File): Promise<string> {
-  const extension = TYPES_AFFICHE_AUTORISES[fichier.type];
-  if (!extension) {
-    throw new Error("Format d'image non supporté (JPG, PNG ou WebP uniquement).");
+function parserCategories(formData: FormData): string[] {
+  try {
+    const parsed = JSON.parse(String(formData.get("categories") || "[]"));
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((c): c is string => typeof c === "string" && c.trim().length > 0)
+      .slice(0, MAX_CATEGORIES);
+  } catch {
+    return [];
   }
-  if (fichier.size > TAILLE_AFFICHE_MAX) {
-    throw new Error("L'affiche ne doit pas dépasser 5 Mo.");
-  }
-
-  const nomFichier = `${randomUUID()}.${extension}`;
-  const octets = new Uint8Array(await fichier.arrayBuffer());
-
-  const { error } = await supabaseAdmin.storage
-    .from("affiches")
-    .upload(nomFichier, octets, { contentType: fichier.type, upsert: false });
-  if (error) {
-    throw new Error(`Envoi de l'affiche impossible : ${error.message}`);
-  }
-
-  const { data } = supabaseAdmin.storage.from("affiches").getPublicUrl(nomFichier);
-  return data.publicUrl;
 }
 
 /**
@@ -68,24 +53,39 @@ export async function publierEvenement(formData: FormData) {
 
   const titre = String(formData.get("titre") || "").trim();
   const description = String(formData.get("description") || "").trim();
-  const categorie = String(formData.get("categorie") || "").trim();
+  const categories = parserCategories(formData);
   const date_debut = String(formData.get("date_debut") || "");
   const heure = String(formData.get("heure") || "") || null;
   const lieu = String(formData.get("lieu") || "").trim();
   const ville = String(formData.get("ville") || "").trim();
 
-  let affiche_url: string | null = null;
-  const fichierAffiche = formData.get("affiche");
-  if (fichierAffiche instanceof File && fichierAffiche.size > 0) {
-    let echec = false;
+  const fichiersImages = formData
+    .getAll("images_nouvelles")
+    .filter((f): f is File => f instanceof File && f.size > 0)
+    .slice(0, MAX_IMAGES);
+
+  const urlsImages: string[] = [];
+  let echecUpload = false;
+  for (const fichier of fichiersImages) {
     try {
-      affiche_url = await uploaderAffiche(fichierAffiche);
+      urlsImages.push(await uploaderImageEvenement(fichier));
     } catch (e) {
-      console.error("[creer] échec upload affiche :", (e as Error).message);
-      echec = true;
+      console.error("[creer] échec upload image :", (e as Error).message);
+      echecUpload = true;
+      break;
     }
-    if (echec) redirect("/creer?erreur=affiche");
   }
+  if (echecUpload) redirect("/creer?erreur=affiche");
+
+  const indexPrincipaleBrut = Number(formData.get("image_principale_valeur"));
+  const indexPrincipale =
+    formData.get("image_principale_type") === "nouvelle" &&
+    Number.isInteger(indexPrincipaleBrut) &&
+    indexPrincipaleBrut >= 0 &&
+    indexPrincipaleBrut < urlsImages.length
+      ? indexPrincipaleBrut
+      : 0;
+  const affiche_url = urlsImages[indexPrincipale] ?? null;
 
   let ticketsSaisis: TicketSaisi[] = [];
   try {
@@ -133,7 +133,6 @@ export async function publierEvenement(formData: FormData) {
       titre,
       slug,
       description: description || null,
-      categorie: categorie || null,
       ville,
       lieu,
       date_debut,
@@ -148,6 +147,20 @@ export async function publierEvenement(formData: FormData) {
     .single();
   if (error || !ev) {
     throw new Error(`Création événement impossible : ${error?.message}`);
+  }
+
+  if (categories.length > 0) {
+    const { error: eCat } = await supabaseAdmin.from("event_categories").insert(
+      categories.map((categorie, i) => ({ event_id: ev.id, categorie, ordre: i }))
+    );
+    if (eCat) throw new Error(`Enregistrement des catégories impossible : ${eCat.message}`);
+  }
+
+  if (urlsImages.length > 0) {
+    const { error: eImg } = await supabaseAdmin.from("event_images").insert(
+      urlsImages.map((url, i) => ({ event_id: ev.id, url, principale: i === indexPrincipale, ordre: i }))
+    );
+    if (eImg) throw new Error(`Enregistrement des images impossible : ${eImg.message}`);
   }
 
   // Types de billets valides

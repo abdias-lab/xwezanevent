@@ -1,22 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { publierEvenement } from "@/app/(orga)/creer/actions";
-import { TAILLE_AFFICHE_MAX, TYPES_AFFICHE_AUTORISES } from "@/lib/affiche";
-
-const CATEGORIES = [
-  "🎵 Concert",
-  "🎪 Festival",
-  "🪘 Culture & Vodun",
-  "⚽ Sport",
-  "😂 Humour",
-  "🌙 Soirée",
-];
-// libellé affiché -> valeur stockée (sans emoji)
-function valeurCategorie(label: string): string {
-  return label.replace(/^\S+\s/, "");
-}
+import SelecteurCategories from "@/components/SelecteurCategories";
+import SelecteurImages from "@/components/SelecteurImages";
 
 const VILLES = ["Cotonou", "Porto-Novo", "Ouidah", "Abomey", "Parakou", "Grand-Popo"];
 
@@ -43,55 +31,15 @@ function BoutonPublier({ actif }: { actif: boolean }) {
 export default function FormulaireCreation() {
   const [titre, setTitre] = useState("");
   const [description, setDescription] = useState("");
-  const [categorie, setCategorie] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
   const [dateDebut, setDateDebut] = useState("");
   const [heure, setHeure] = useState("");
   const [lieu, setLieu] = useState("");
   const [ville, setVille] = useState(VILLES[0]);
-  const [affichePreview, setAffichePreview] = useState<string | null>(null);
-  const [afficheErreur, setAfficheErreur] = useState<string | null>(null);
-  const inputAfficheRef = useRef<HTMLInputElement>(null);
+  const [apercuPrincipal, setApercuPrincipal] = useState<string | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([
     { nom: "Standard", prix: "", quantite: "", venteJusqua: "" },
   ]);
-
-  // Révoque l'URL objet créée pour l'aperçu quand elle change ou au démontage.
-  useEffect(() => {
-    return () => {
-      if (affichePreview) URL.revokeObjectURL(affichePreview);
-    };
-  }, [affichePreview]);
-
-  function choisirAffiche(e: React.ChangeEvent<HTMLInputElement>) {
-    const fichier = e.target.files?.[0] ?? null;
-    setAfficheErreur(null);
-    if (!fichier) return;
-
-    if (!TYPES_AFFICHE_AUTORISES[fichier.type]) {
-      setAfficheErreur("Format non supporté — utilise un JPG, PNG ou WebP.");
-      e.target.value = "";
-      return;
-    }
-    if (fichier.size > TAILLE_AFFICHE_MAX) {
-      setAfficheErreur("L'image dépasse 5 Mo.");
-      e.target.value = "";
-      return;
-    }
-
-    setAffichePreview((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(fichier);
-    });
-  }
-
-  function retirerAffiche() {
-    setAffichePreview((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
-    setAfficheErreur(null);
-    if (inputAfficheRef.current) inputAfficheRef.current.value = "";
-  }
 
   const majTicket = (i: number, champ: keyof Ticket, val: string) =>
     setTickets((prev) => prev.map((t, j) => (j === i ? { ...t, [champ]: val } : t)));
@@ -112,11 +60,11 @@ export default function FormulaireCreation() {
     description: description.trim().length > 0,
     date: !!dateDebut,
     lieu: lieu.trim().length > 0 && !!ville,
-    affiche: !!affichePreview,
+    affiche: !!apercuPrincipal,
     billetterie: ticketsValides.length > 0,
   };
   const valide =
-    check.titre && check.date && check.lieu && !!categorie && check.billetterie;
+    check.titre && check.date && check.lieu && categories.length > 0 && check.billetterie;
 
   const dateApercu = dateDebut
     ? new Date(`${dateDebut}T00:00:00`).toLocaleDateString("fr-FR", {
@@ -131,7 +79,6 @@ export default function FormulaireCreation() {
       action={publierEvenement}
       encType="multipart/form-data"
     >
-      <input type="hidden" name="categorie" value={categorie} />
       <input type="hidden" name="tickets" value={JSON.stringify(tickets)} />
 
       <div>
@@ -169,25 +116,7 @@ export default function FormulaireCreation() {
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
-          <div className="champ-bloc">
-            <label>Catégorie *</label>
-            <div className="puces-cat">
-              {CATEGORIES.map((c) => {
-                const val = valeurCategorie(c);
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    className="puce-cat"
-                    aria-pressed={categorie === val}
-                    onClick={() => setCategorie(val)}
-                  >
-                    {c}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <SelecteurCategories valeurs={categories} onChange={setCategories} />
         </div>
 
         {/* 2. Date & Lieu */}
@@ -244,68 +173,22 @@ export default function FormulaireCreation() {
           </div>
         </div>
 
-        {/* 3. Affiche */}
+        {/* 3. Images */}
         <div className="bloc-form">
           <div className="num-titre">
             <span className="num">3</span>
-            <h2>Affiche</h2>
+            <h2>Images</h2>
           </div>
-          <div className="champ-bloc">
-            <label htmlFor="affiche">
-              Image de l&apos;affiche{" "}
-              <small>(JPG, PNG ou WebP — 5 Mo max)</small>
-            </label>
-            <p className="aide-affiche">
-              Format paysage 1,91:1 recommandé (1200×628 ou 1600×838px).
-              Garde le sujet centré, avec une marge de sécurité
-              d&apos;environ 20% sur les côtés, et évite de placer des
-              éléments importants tout en bas de l&apos;image — elle est
-              recadrée différemment selon les écrans (voir les aperçus
-              ci-contre).
-            </p>
-            <div className="dropzone-affiche">
-              {affichePreview ? (
-                <div className="dropzone-img-wrap">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={affichePreview} alt="Aperçu de l'affiche" />
-                </div>
-              ) : (
-                <div className="dropzone-vide">
-                  <svg
-                    width="28"
-                    height="28"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    aria-hidden="true"
-                  >
-                    <path d="M12 16V4m0 0 4 4m-4-4-4 4" />
-                    <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
-                  </svg>
-                  <span>Clique pour choisir une image</span>
-                </div>
-              )}
-              <input
-                ref={inputAfficheRef}
-                id="affiche"
-                name="affiche"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={choisirAffiche}
-              />
-            </div>
-            {affichePreview && (
-              <button type="button" className="dropzone-retirer" onClick={retirerAffiche}>
-                Retirer l&apos;image
-              </button>
-            )}
-            {afficheErreur && (
-              <p className="alerte-erreur" style={{ marginTop: 10 }}>
-                {afficheErreur}
-              </p>
-            )}
-          </div>
+          <p className="aide-affiche">
+            Format paysage 1,91:1 recommandé (1200×628 ou 1600×838px) pour
+            l&apos;image principale. Garde le sujet centré, avec une marge de
+            sécurité d&apos;environ 20% sur les côtés, et évite de placer des
+            éléments importants tout en bas de l&apos;image — elle est
+            recadrée différemment selon les écrans (voir les aperçus
+            ci-contre). Les autres images sont affichées en carrousel sur la
+            page événement.
+          </p>
+          <SelecteurImages onApercuPrincipalChange={setApercuPrincipal} />
         </div>
 
         {/* 4. Billetterie */}
@@ -373,11 +256,11 @@ export default function FormulaireCreation() {
         <div className="apercu" aria-label="Aperçu de la carte événement">
           <p className="titre-a">Aperçu</p>
           <div className="visuel-a">
-            {affichePreview && (
+            {apercuPrincipal && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={affichePreview} alt="" />
+              <img src={apercuPrincipal} alt="" />
             )}
-            <span className="badge-a">{categorie || "Catégorie"}</span>
+            <span className="badge-a">{categories[0] || "Catégorie"}</span>
           </div>
           <div className="infos-a">
             <h3>{titre || "Nom de l'événement"}</h3>
@@ -397,9 +280,9 @@ export default function FormulaireCreation() {
             Aperçu bannière (page événement, grand écran)
           </p>
           <div className="apercu-banniere-visuel">
-            {affichePreview ? (
+            {apercuPrincipal ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={affichePreview} alt="" />
+              <img src={apercuPrincipal} alt="" />
             ) : (
               <span className="apercu-banniere-vide">Aucune image</span>
             )}
@@ -417,8 +300,8 @@ export default function FormulaireCreation() {
               ["Description", check.description],
               ["Date", check.date],
               ["Lieu & ville", check.lieu],
-              ["Catégorie", !!categorie],
-              ["Affiche", check.affiche],
+              ["Catégories", categories.length > 0],
+              ["Images", check.affiche],
               ["Billetterie", check.billetterie],
             ] as [string, boolean][]
           ).map(([label, ok]) => (

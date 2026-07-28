@@ -197,7 +197,6 @@ async function seedEvenement(organisateurId: string, ev: SeedEvent) {
         titre: ev.titre,
         slug: ev.slug,
         description: ev.description,
-        categorie: ev.categorie,
         ville: ev.ville,
         lieu: ev.lieu,
         date_debut: ev.date_debut,
@@ -211,6 +210,17 @@ async function seedEvenement(organisateurId: string, ev: SeedEvent) {
     eventId = data.id;
     console.log(`  ＋ Événement créé : « ${ev.titre} » (${ev.slug})`);
   }
+
+  // Catégorie (event_categories) : upsert dans les deux branches pour rester
+  // idempotent même si l'événement existait déjà avant l'introduction de
+  // cette table (voir supabase/migrations/20260728120000_categories_multiples_evenements.sql).
+  const { error: catError } = await supabaseAdmin
+    .from("event_categories")
+    .upsert(
+      { event_id: eventId, categorie: ev.categorie, ordre: 0 },
+      { onConflict: "event_id,categorie" }
+    );
+  if (catError) throw catError;
 
   // ticket_types : on n'insère que ceux qui manquent (par nom, pour cet event)
   const { data: existants, error: ttSelError } = await supabaseAdmin
