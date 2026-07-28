@@ -327,9 +327,9 @@ export default async function Accueil() {
             </p>
             <BoutonOr href="/creer">Créer mon événement</BoutonOr>
           </div>
-          <div className="six">
+          <div className="huit">
             <div className="chiffre">
-              6<sup>%</sup>
+              8<sup>%</sup>
             </div>
             <div className="legende">de commission, c&apos;est tout</div>
             <p className="note">

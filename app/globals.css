@@ -3070,7 +3070,7 @@
   .organisateur .btn-or:hover {
     background: #fff;
   }
-  .six {
+  .huit {
     text-align: center;
     background: rgba(15, 10, 6, 0.26);
     border: 1px solid rgba(255, 246, 232, 0.24);
@@ -3078,7 +3078,7 @@
     padding: 44px 30px;
     backdrop-filter: blur(4px);
   }
-  .six .chiffre {
+  .huit .chiffre {
     font-family: var(--bricolage);
     font-weight: 800;
     font-size: clamp(4rem, 7vw, 6rem);
@@ -3086,11 +3086,11 @@
     color: #fff6e8;
     letter-spacing: -0.03em;
   }
-  .six .chiffre sup {
+  .huit .chiffre sup {
     font-size: 0.4em;
     color: #ffd98a;
   }
-  .six .legende {
+  .huit .legende {
     font-family: var(--space);
     font-size: 0.78rem;
     letter-spacing: 0.2em;
@@ -3098,7 +3098,7 @@
     color: rgba(255, 246, 232, 0.78);
     margin-top: 10px;
   }
-  .six .note {
+  .huit .note {
     font-size: 0.9rem;
     color: rgba(255, 246, 232, 0.68);
     margin-top: 14px;
