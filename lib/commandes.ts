@@ -74,10 +74,16 @@ function formatDateHeure(dateISO: string, heure: string | null): string {
  * avec QR) pour des billets déjà en base. Best-effort : n'importe quelle
  * erreur ici est loguée et avalée, jamais remontée. Retourne true si
  * l'email a effectivement été envoyé.
+ *
+ * Destinataire résolu selon le type de commande (voir
+ * supabase/migrations/20260804120000_achat_invite.sql) : via le compte
+ * (auth.users, `userId`) pour un achat authentifié, ou directement
+ * `acheteurEmail` pour un achat invité — jamais les deux à la fois.
  */
 async function envoyerConfirmationCommande(
   orderId: string,
-  userId: string,
+  userId: string | null,
+  acheteurEmail: string | null,
   eventId: string,
   total: number,
   ticketsGeneres: { id: string; code_qr: string; ticket_type_id: string }[]
@@ -85,7 +91,7 @@ async function envoyerConfirmationCommande(
   try {
     const idsTypes = Array.from(new Set(ticketsGeneres.map((t) => t.ticket_type_id)));
     const [destinataire, { data: ev }, { data: types }] = await Promise.all([
-      emailUtilisateur(userId),
+      userId ? emailUtilisateur(userId) : Promise.resolve(acheteurEmail),
       supabaseAdmin
         .from("events")
         .select("titre, date_debut, heure, lieu, ville")
@@ -150,7 +156,7 @@ async function envoyerConfirmationCommande(
 export async function renvoyerConfirmationCommande(orderId: string): Promise<boolean> {
   const { data: order } = await supabaseAdmin
     .from("orders")
-    .select("id, user_id, event_id, total, statut")
+    .select("id, user_id, acheteur_email, event_id, total, statut")
     .eq("id", orderId)
     .maybeSingle();
   if (!order || order.statut !== "paye") return false;
@@ -162,7 +168,14 @@ export async function renvoyerConfirmationCommande(orderId: string): Promise<boo
     .neq("statut", "annule");
   if (!tickets || tickets.length === 0) return false;
 
-  return envoyerConfirmationCommande(order.id, order.user_id, order.event_id, order.total, tickets);
+  return envoyerConfirmationCommande(
+    order.id,
+    order.user_id,
+    order.acheteur_email,
+    order.event_id,
+    order.total,
+    tickets
+  );
 }
 
 /**
@@ -180,7 +193,7 @@ export async function finaliserCommande(
 ): Promise<ResultatFinalisation> {
   const { data: order } = await supabaseAdmin
     .from("orders")
-    .select("id, user_id, event_id, statut, total, sous_total, frais_service, panier")
+    .select("id, user_id, acheteur_email, event_id, statut, total, sous_total, frais_service, panier")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -250,6 +263,7 @@ export async function finaliserCommande(
   await envoyerConfirmationCommande(
     orderId,
     order.user_id,
+    order.acheteur_email,
     order.event_id,
     order.total,
     ticketsGeneres

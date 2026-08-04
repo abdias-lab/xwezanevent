@@ -10,6 +10,7 @@ function fmt(n: number): string {
 }
 
 type Phase = "idle" | "creation" | "redirection";
+type ModeAchat = "normal" | "choix" | "invite";
 
 export default function Billetterie({
   slug,
@@ -50,6 +51,14 @@ export default function Billetterie({
   const [erreur, setErreur] = useState<string | null>(null);
   const envoi = phase !== "idle";
 
+  // Achat sans compte : si /api/orders répond 401 (pas de session), on
+  // propose de continuer sans créer de compte plutôt que de rediriger
+  // directement vers /connexion (voir supabase/migrations/20260804120000_achat_invite.sql).
+  const [mode, setMode] = useState<ModeAchat>("normal");
+  const [inviteNom, setInviteNom] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteTelephone, setInviteTelephone] = useState("");
+
   const [lienCopie, setLienCopie] = useState(false);
 
   /**
@@ -76,7 +85,7 @@ export default function Billetterie({
     }
   }
 
-  async function payer() {
+  async function payer(invite?: { nom: string; email: string; telephone: string }) {
     if (envoi) return; // jamais deux envois simultanés
     const items = ticketTypes
       .map((t) => ({ id: t.id, qte: quantites[t.id] ?? 0 }))
@@ -89,10 +98,13 @@ export default function Billetterie({
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, items }),
+        body: JSON.stringify({ slug, items, ...(invite ? { invite } : {}) }),
       });
-      if (res.status === 401) {
-        window.location.href = `/connexion?redirect=/evenement/${slug}`;
+      if (res.status === 401 && !invite) {
+        // Pas connecté : propose de continuer sans compte plutôt que de
+        // forcer la connexion.
+        setPhase("idle");
+        setMode("choix");
         return;
       }
       const data = await res.json().catch(() => ({}));
@@ -115,6 +127,18 @@ export default function Billetterie({
       setErreur("Connexion impossible. Réessaie.");
       setPhase("idle");
     }
+  }
+
+  function envoyerInvite(e: React.FormEvent) {
+    e.preventDefault();
+    const nom = inviteNom.trim();
+    const email = inviteEmail.trim();
+    const telephone = inviteTelephone.trim();
+    if (!nom || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !telephone) {
+      setErreur("Renseigne ton nom, un email valide et ton numéro de téléphone.");
+      return;
+    }
+    payer({ nom, email, telephone });
   }
 
   const texteBouton =
@@ -194,16 +218,94 @@ export default function Billetterie({
 
       {erreur && <p className="note-paiement">{erreur}</p>}
 
-      <button
-        className="btn btn-or btn-large"
-        type="button"
-        onClick={payer}
-        disabled={totalQte === 0 || envoi}
-        aria-busy={envoi}
-      >
-        {envoi && <span className="spinner" aria-hidden="true" />}
-        {texteBouton}
-      </button>
+      {mode === "choix" ? (
+        <>
+          <p className="limite">Comment veux-tu continuer ?</p>
+          <div className="actions-ev">
+            <button
+              className="btn btn-or"
+              type="button"
+              onClick={() => (window.location.href = `/connexion?redirect=/evenement/${slug}`)}
+            >
+              Se connecter
+            </button>
+            <button className="btn btn-ghost" type="button" onClick={() => setMode("invite")}>
+              Continuer sans compte
+            </button>
+          </div>
+        </>
+      ) : mode === "invite" ? (
+        <form onSubmit={envoyerInvite}>
+          <div className="champ-bloc">
+            <label htmlFor="invite-nom">Nom complet</label>
+            <input
+              id="invite-nom"
+              type="text"
+              placeholder="Prénom Nom"
+              value={inviteNom}
+              onChange={(e) => setInviteNom(e.target.value)}
+              disabled={envoi}
+              required
+            />
+          </div>
+          <div className="champ-bloc">
+            <label htmlFor="invite-email">Email</label>
+            <input
+              id="invite-email"
+              type="email"
+              placeholder="ton@email.com"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              disabled={envoi}
+              required
+            />
+          </div>
+          <div className="champ-bloc">
+            <label htmlFor="invite-tel">
+              Téléphone <small>(pour Mobile Money)</small>
+            </label>
+            <input
+              id="invite-tel"
+              type="tel"
+              placeholder="+229 01 XX XX XX XX"
+              value={inviteTelephone}
+              onChange={(e) => setInviteTelephone(e.target.value)}
+              disabled={envoi}
+              required
+            />
+          </div>
+          <button
+            className="btn btn-or btn-large"
+            type="submit"
+            disabled={totalQte === 0 || envoi}
+            aria-busy={envoi}
+          >
+            {envoi && <span className="spinner" aria-hidden="true" />}
+            {texteBouton}
+          </button>
+          <p className="bascule">
+            <button
+              type="button"
+              className="lien-bascule"
+              onClick={() => setMode("choix")}
+              disabled={envoi}
+            >
+              ← Retour
+            </button>
+          </p>
+        </form>
+      ) : (
+        <button
+          className="btn btn-or btn-large"
+          type="button"
+          onClick={() => payer()}
+          disabled={totalQte === 0 || envoi}
+          aria-busy={envoi}
+        >
+          {envoi && <span className="spinner" aria-hidden="true" />}
+          {texteBouton}
+        </button>
+      )}
       <p className="securise">
         🔒 Paiement 100&nbsp;% sécurisé via FedaPay — Mobile Money MTN, Moov,
         Celtiis

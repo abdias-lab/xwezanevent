@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import RelancerPaiement from "@/components/RelancerPaiement";
 import { creerClientServeur } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -37,8 +38,11 @@ const MESSAGES: Record<string, { titre: string; detail: string }> = {
 interface OrderRow {
   id: string;
   statut: string;
+  user_id: string | null;
   events: { titre: string; slug: string } | null;
 }
+
+const SELECTION_COMMANDE = "id, statut, user_id, events(titre, slug)";
 
 export default async function PaiementEchec({
   searchParams,
@@ -52,19 +56,36 @@ export default async function PaiementEchec({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    redirect(`/connexion?redirect=${encodeURIComponent(`/paiement/echec?order=${orderId}`)}`);
+
+  // Compte connecté : lecture via RLS (policy `user_id = auth.uid()`).
+  let order: OrderRow | null = null;
+  if (user) {
+    const { data } = await supabase
+      .from("orders")
+      .select(SELECTION_COMMANDE)
+      .eq("id", orderId)
+      .maybeSingle();
+    order = data as unknown as OrderRow | null;
   }
 
-  // RLS : l'utilisateur ne peut lire que ses propres commandes.
-  const { data, error } = await supabase
-    .from("orders")
-    .select("id, statut, events(titre, slug)")
-    .eq("id", orderId)
-    .maybeSingle();
+  if (!order) {
+    // Peut-être une commande invité (voir /confirmation, même logique) :
+    // l'id de commande sert de jeton d'accès, pas de session à vérifier.
+    const { data } = await supabaseAdmin
+      .from("orders")
+      .select(SELECTION_COMMANDE)
+      .eq("id", orderId)
+      .is("user_id", null)
+      .maybeSingle();
+    order = data as unknown as OrderRow | null;
+  }
 
-  if (error || !data) notFound();
-  const order = data as unknown as OrderRow;
+  if (!order) {
+    if (!user) {
+      redirect(`/connexion?redirect=${encodeURIComponent(`/paiement/echec?order=${orderId}`)}`);
+    }
+    notFound();
+  }
 
   // Le paiement a en fait abouti entre-temps (webhook) : direction la confirmation.
   if (order.statut === "paye") {

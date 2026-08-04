@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import { creerClientServeur } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import QRCode from "qrcode";
@@ -22,10 +23,22 @@ function formatDateHeure(dateISO: string, heure: string | null): string {
   return `${d} · ${h}h${m}`;
 }
 
+// Cette page est accessible par id de commande seul pour un achat invité
+// (voir plus bas) : si cette URL fuite, l'email affiché ne doit pas être
+// lisible en clair par un tiers — seul le premier caractère reste visible.
+function masquerEmail(email: string): string {
+  const [local, domaine] = email.split("@");
+  if (!local || !domaine) return email;
+  return `${local[0]}•••@${domaine}`;
+}
+
 interface OrderRow {
   id: string;
   total: number;
   statut: string;
+  user_id: string | null;
+  acheteur_nom: string | null;
+  acheteur_email: string | null;
   events: {
     titre: string;
     date_debut: string;
@@ -35,6 +48,9 @@ interface OrderRow {
   } | null;
   tickets: { id: string; code_qr: string; ticket_types: { nom: string } | null }[];
 }
+
+const SELECTION_COMMANDE =
+  "id, total, statut, user_id, acheteur_nom, acheteur_email, events(titre, date_debut, heure, lieu, ville), tickets(id, code_qr, ticket_types(nom))";
 
 export default async function Confirmation({
   searchParams,
@@ -48,29 +64,55 @@ export default async function Confirmation({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    redirect(`/connexion?redirect=${encodeURIComponent(`/confirmation?order=${orderId}`)}`);
+
+  // Compte connecté : lecture via RLS (policy `user_id = auth.uid()`) —
+  // ne renvoie jamais la commande d'un autre compte, ni une commande
+  // invité (voir supabase/migrations/20260804120000_achat_invite.sql).
+  let order: OrderRow | null = null;
+  if (user) {
+    const { data } = await supabase
+      .from("orders")
+      .select(SELECTION_COMMANDE)
+      .eq("id", orderId)
+      .maybeSingle();
+    order = data as unknown as OrderRow | null;
   }
 
-  // RLS : l'utilisateur ne peut lire que ses propres commandes / billets
-  const { data, error } = await supabase
-    .from("orders")
-    .select(
-      "id, total, statut, events(titre, date_debut, heure, lieu, ville), tickets(id, code_qr, ticket_types(nom))"
-    )
-    .eq("id", orderId)
-    .maybeSingle();
+  if (!order) {
+    // Pas trouvé via RLS (pas connecté, ou connecté mais pas propriétaire) :
+    // peut-être une commande invité. Elle n'a pas de session à vérifier —
+    // l'id de commande (UUID non devinable) sert de jeton d'accès, comme
+    // /paiement/retour le fait déjà pour toutes les commandes.
+    const { data } = await supabaseAdmin
+      .from("orders")
+      .select(SELECTION_COMMANDE)
+      .eq("id", orderId)
+      .is("user_id", null)
+      .maybeSingle();
+    order = data as unknown as OrderRow | null;
+  }
 
-  if (error || !data) notFound();
-  const order = data as unknown as OrderRow;
+  if (!order) {
+    // Ni RLS, ni commande invité : exige la connexion (comportement
+    // historique, ex. lien confirmation d'un compte consulté déconnecté).
+    if (!user) {
+      redirect(`/connexion?redirect=${encodeURIComponent(`/confirmation?order=${orderId}`)}`);
+    }
+    notFound();
+  }
+
   const ev = order.events;
   if (!ev) notFound();
 
   const paye = order.statut === "paye";
 
   const numero = `#XWZ-${order.id.slice(0, 8).toUpperCase()}`;
-  const titulaire =
-    (user.user_metadata?.nom as string | undefined) ?? user.email ?? "";
+  const titulaire = order.user_id
+    ? ((user?.user_metadata?.nom as string | undefined) ?? user?.email ?? "")
+    : (order.acheteur_nom ?? "");
+  const emailAffiche = masquerEmail(
+    order.user_id ? (user?.email ?? "") : (order.acheteur_email ?? "")
+  );
   const dateHeure = formatDateHeure(ev.date_debut, ev.heure);
 
   // Les billets ne sont générés qu'à la finalisation du paiement (voir
@@ -103,7 +145,7 @@ export default async function Confirmation({
             <h1>Paiement confirmé !</h1>
             <p className="sous">
               {billets.length > 1 ? "Tes billets sont confirmés" : "Ton billet est confirmé"}{" "}
-              · envoyé à <b>{user.email}</b>
+              · envoyé à <b>{emailAffiche}</b>
             </p>
 
             {billets.map((b) => (

@@ -104,6 +104,73 @@ Aucun bug trouvé. Nettoyage complet en fin de session (comptes Auth + fichiers
 Storage) — vérification automatisée : plus aucune trace en base ni dans le
 bucket `affiches`.
 
+## Incident du 2026-08-04 (achat invité — commande de test sur événement réel)
+
+Pendant le test de la finalisation/email de l'achat invité (chantier guest
+checkout, voir `supabase/migrations/20260804120000_achat_invite.sql`), un
+achat de test (sandbox FedaPay, aucune somme réelle débitée) a été fait par
+erreur sur **« Hollydays Colors »**, un événement d'un organisateur réel
+(AHOUANDJINOU ENOCK), au lieu d'un événement de test dédié.
+
+Commande créée : `cfee5c8a-a0d5-48bc-a4c2-5e34e830ed19`, 1 billet Standard
+(5 000 FCFA), acheteur invité `gbedoloabdias@gmail.com`.
+
+**Nettoyage appliqué par Abdias (SQL Editor Supabase) le 2026-08-04** :
+billet et commande supprimés, `ticket_types.quantite_vendue` recrédité de 1.
+Vérifié : ticket_type Standard revenu à 200 places / 0 vendu, état propre.
+Aucune trace de cette commande de test dans le dashboard de l'organisateur.
+
+Correctif de process pour la suite : toujours utiliser un événement de test
+dédié (organisateur + event jetables, jamais un événement d'un organisateur
+réel) — voir l'entrée du 2026-08-04 ci-dessous pour l'exemple appliqué juste
+après.
+
+## Test du 2026-08-04 (achat invité — confirmation / paiement-echec)
+
+Test en conditions réelles de l'adaptation de `/confirmation`,
+`/paiement/echec` et `/api/orders/[id]/reessayer` à l'achat invité (accès par
+id de commande — UUID non devinable — plutôt que par session, pour les
+commandes sans compte). Sur un événement de test dédié cette fois, suite à
+l'incident ci-dessus.
+
+Créés puis supprimés (cascade via suppression du compte Auth organisateur —
+`profiles`/`events`/`orders`/`tickets` en `ON DELETE CASCADE`, vérifié en fin
+de session : plus aucune trace) :
+- `test-invite-orga@xwezanevent-test.com` (organisateur)
+- Événement `test-achat-invite` (« [TEST] Achat invité — confirmation /
+  paiement-echec »), 1 ticket_type Standard (100 FCFA × 50)
+- 2 commandes invité (`gbedoloabdias@gmail.com`) : 1 payée (sandbox
+  approuvé), 1 restée `en_attente` (sandbox non approuvé après relance —
+  comportement du bac à sable, pas un bug applicatif)
+
+Résultats :
+1. Paiement invité approuvé → `/confirmation` affiche correctement titulaire,
+   email et QR code sans passer par `/connexion` (accès par id de commande).
+2. Paiement invité non abouti → `/paiement/echec` s'affiche sans passer par
+   `/connexion`, et le bouton « Réessayer le paiement »
+   (`/api/orders/[id]/reessayer`) fonctionne pour une commande invité (plus
+   de blocage 401), génère bien une nouvelle transaction FedaPay sur la même
+   commande.
+3. Comptes/commandes liés à un compte authentifié : comportement inchangé
+   (accès toujours vérifié via RLS `user_id = auth.uid()`, avant le repli
+   invité).
+
+Aucun bug trouvé. Nettoyage complet en fin de session — vérification
+automatisée : plus aucune trace en base.
+
+**Suivi du même jour — masquage de l'email sur `/confirmation`** : suite à
+une question de sécurité (accès par id de commande seul = pas de mot de
+passe/email à vérifier pour un invité ; l'email du titulaire s'affichait en
+clair dans le HTML), `/confirmation` masque désormais l'email affiché
+(`g•••@gmail.com`). Revérifié en conditions réelles sur un nouvel événement
+de test dédié (`test-achat-invite`, organisateur + event + 1 commande
+invité payée), même procédure de nettoyage complet en fin de session.
+Confirmé également : aucun outil d'analytics/monitoring (Vercel Analytics,
+Sentry, etc.) n'est configuré dans le projet — aucune dépendance de ce type
+dans `package.json`, aucun script injecté dans `app/layout.tsx`, aucune
+config dans `next.config.js`/`vercel.json` — donc aucune URL de
+`/confirmation` ou `/paiement/echec` n'est envoyée à un service tiers.
+
 ## Comptes/événements de test actuellement en base
 
 _Aucun à ce jour (voir nettoyages ci-dessus)._ Ajouter ici toute nouvelle

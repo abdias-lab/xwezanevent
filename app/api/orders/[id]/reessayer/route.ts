@@ -33,23 +33,35 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const supabase = creerClientServeur();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Connexion requise" }, { status: 401 });
-  }
-
   const { data: order } = await supabaseAdmin
     .from("orders")
-    .select("id, user_id, event_id, total, statut, panier")
+    .select("id, user_id, acheteur_nom, acheteur_email, event_id, total, statut, panier")
     .eq("id", params.id)
     .maybeSingle();
 
-  if (!order || order.user_id !== user.id) {
+  if (!order) {
     return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
   }
+
+  // Identité de l'acheteur pour la relance : compte connecté (exige la
+  // session propriétaire, comme avant), ou commande invité — celle-ci n'a
+  // pas de session à vérifier, l'id de commande dans l'URL sert de jeton
+  // d'accès (même modèle que /paiement/retour, /confirmation,
+  // /paiement/echec — voir supabase/migrations/20260804120000_achat_invite.sql).
+  let acheteurNom = order.acheteur_nom ?? "";
+  let acheteurEmail = order.acheteur_email ?? "";
+  if (order.user_id) {
+    const supabase = creerClientServeur();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user || order.user_id !== user.id) {
+      return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
+    }
+    acheteurNom = (user.user_metadata?.nom as string | undefined) ?? "";
+    acheteurEmail = user.email ?? "";
+  }
+
   if (order.statut !== "en_attente") {
     return NextResponse.json(
       { error: "Cette commande n'est plus modifiable" },
@@ -94,8 +106,7 @@ export async function POST(
     }
   }
 
-  const nom = (user.user_metadata?.nom as string | undefined) ?? "";
-  const [firstname, ...reste] = nom.trim().split(" ");
+  const [firstname, ...reste] = acheteurNom.trim().split(" ");
   try {
     const { url } = await creerTransactionPourCommande({
       orderId: order.id,
@@ -105,7 +116,7 @@ export async function POST(
       client: {
         firstname: firstname || undefined,
         lastname: reste.join(" ") || undefined,
-        email: user.email ?? undefined,
+        email: acheteurEmail || undefined,
       },
     });
     return NextResponse.json({ url });

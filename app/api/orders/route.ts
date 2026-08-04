@@ -17,6 +17,10 @@ interface TicketTypeRow {
   quantite_vendue: number;
 }
 
+function emailValide(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 function origine(): string {
   const h = headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
@@ -48,17 +52,11 @@ const TENTATIVES_MAX = 3;
  * - Les billets ne sont générés qu'après paiement (webhook / retour).
  */
 export async function POST(req: NextRequest) {
-  // 1. Authentification
+  // 1. Authentification (facultative : achat invité possible, voir plus bas)
   const supabase = creerClientServeur();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json(
-      { error: "Connexion requise", redirect: "/connexion" },
-      { status: 401 }
-    );
-  }
 
   // 2. Entrée
   const body = await req.json().catch(() => null);
@@ -66,6 +64,42 @@ export async function POST(req: NextRequest) {
   const items: ItemSaisi[] = Array.isArray(body?.items) ? body.items : [];
   if (!slug || items.length === 0) {
     return NextResponse.json({ error: "Requête invalide" }, { status: 400 });
+  }
+
+  // 2b. Identité de l'acheteur : compte connecté, ou achat invité (nom/email/
+  // téléphone saisis au moment du paiement, aucun compte créé — voir
+  // supabase/migrations/20260804120000_achat_invite.sql). Pas d'objet
+  // `invite` du tout ET pas de session : on garde le 401 historique (couvre
+  // aussi un bundle front pas encore à jour), pour que le client sache qu'il
+  // doit soit se connecter, soit renvoyer avec `invite`.
+  let acheteurNom = "";
+  let acheteurEmail = "";
+  let champsInvite: { acheteur_nom: string; acheteur_email: string; acheteur_telephone: string } | null =
+    null;
+
+  if (user) {
+    acheteurNom = (user.user_metadata?.nom as string | undefined) ?? "";
+    acheteurEmail = user.email ?? "";
+  } else if (body?.invite) {
+    const nom = typeof body.invite.nom === "string" ? body.invite.nom.trim() : "";
+    const email =
+      typeof body.invite.email === "string" ? body.invite.email.trim().toLowerCase() : "";
+    const telephone =
+      typeof body.invite.telephone === "string" ? body.invite.telephone.trim() : "";
+    if (!nom || !emailValide(email) || !telephone) {
+      return NextResponse.json(
+        { error: "Nom, email et téléphone requis pour un achat sans compte" },
+        { status: 400 }
+      );
+    }
+    champsInvite = { acheteur_nom: nom, acheteur_email: email, acheteur_telephone: telephone };
+    acheteurNom = nom;
+    acheteurEmail = email;
+  } else {
+    return NextResponse.json(
+      { error: "Connexion requise", redirect: "/connexion" },
+      { status: 401 }
+    );
   }
 
   // 3. Événement publié + types de billets (source de vérité des prix/stock)
@@ -137,16 +171,18 @@ export async function POST(req: NextRequest) {
   // cette requête (juste après ce SELECT), l'INSERT plus bas entrera en
   // conflit avec la ligne encore en_attente à ce moment-là et sera
   // rattrapé par la résolution de conflit (23505) juste après.
-  const { data: dejaPayee } = await supabaseAdmin
+  let requeteDejaPayee = supabaseAdmin
     .from("orders")
     .select("id")
-    .eq("user_id", user.id)
     .eq("event_id", ev.id)
     .eq("panier_signature", signature)
     .eq("statut", "paye")
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+  requeteDejaPayee = user
+    ? requeteDejaPayee.eq("user_id", user.id)
+    : requeteDejaPayee.eq("acheteur_email", acheteurEmail);
+  const { data: dejaPayee } = await requeteDejaPayee.maybeSingle();
   if (dejaPayee) {
     return NextResponse.json(
       {
@@ -169,7 +205,7 @@ export async function POST(req: NextRequest) {
     const { data: order, error: errOrder } = await supabaseAdmin
       .from("orders")
       .insert({
-        user_id: user.id,
+        ...(user ? { user_id: user.id } : champsInvite),
         event_id: ev.id,
         sous_total: sousTotal,
         frais_service: 0,
@@ -201,15 +237,17 @@ export async function POST(req: NextRequest) {
 
     // Une commande en_attente identique existe déjà : retrouve celle qui a
     // provoqué le conflit pour décider quoi en faire.
-    const { data: existante } = await supabaseAdmin
+    let requeteExistante = supabaseAdmin
       .from("orders")
       .select("id, statut, created_at")
-      .eq("user_id", user.id)
       .eq("event_id", ev.id)
       .eq("panier_signature", signature)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    requeteExistante = user
+      ? requeteExistante.eq("user_id", user.id)
+      : requeteExistante.eq("acheteur_email", acheteurEmail);
+    const { data: existante } = await requeteExistante.maybeSingle();
 
     if (!existante) {
       // Conflit déjà résolu entre-temps par un autre appel : retente.
@@ -263,8 +301,7 @@ export async function POST(req: NextRequest) {
   // 6. Transaction FedaPay + lien de paiement (toujours une nouvelle
   // transaction, y compris pour une commande réutilisée — un lien
   // FedaPay est à usage unique).
-  const nom = (user.user_metadata?.nom as string | undefined) ?? "";
-  const [firstname, ...reste] = nom.trim().split(" ");
+  const [firstname, ...reste] = acheteurNom.trim().split(" ");
   try {
     const { url } = await creerTransactionPourCommande({
       orderId,
@@ -274,7 +311,7 @@ export async function POST(req: NextRequest) {
       client: {
         firstname: firstname || undefined,
         lastname: reste.join(" ") || undefined,
-        email: user.email ?? undefined,
+        email: acheteurEmail || undefined,
       },
     });
     return NextResponse.json({ url, orderId });
