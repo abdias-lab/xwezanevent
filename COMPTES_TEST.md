@@ -171,6 +171,38 @@ dans `package.json`, aucun script injecté dans `app/layout.tsx`, aucune
 config dans `next.config.js`/`vercel.json` — donc aucune URL de
 `/confirmation` ou `/paiement/echec` n'est envoyée à un service tiers.
 
+## Test du 2026-08-04 (achat invité — "Retrouver mon billet" + recherche organisateur/export)
+
+Test en conditions réelles du filet de sécurité indispensable pour un
+invité qui perd son email de confirmation : `app/api/billets/retrouver`,
+`lib/billets.ts::rechercherBillets` (recherche organisateur/admin, utilisée
+par `/scan` → Recherche manuelle) et `recupererBilletsPourExport` (export
+CSV) cherchent désormais aussi via `acheteur_email`/`acheteur_nom` en plus
+du chemin compte existant. Sur événement de test dédié, comme pour les deux
+sessions précédentes.
+
+Créés puis supprimés (cascade via suppression du compte Auth organisateur,
+vérifié en fin de session : plus aucune trace) :
+- `test-retrouver-orga@xwezanevent-test.com` (organisateur)
+- Événement `test-retrouver-billet-invite` (« [TEST] Retrouver mon billet —
+  achat invité »), 1 ticket_type Standard (100 FCFA × 50)
+- 1 commande invité payée (`gbedoloabdias@gmail.com` / « Fara Retrouvebillet
+  Test »)
+
+Résultats :
+1. `POST /api/billets/retrouver` avec l'email de l'invité → email de
+   confirmation effectivement renvoyé (confirmé en log serveur), alors
+   qu'avant cette étape rien n'était trouvé pour une commande invité.
+2. `/scan` → Recherche manuelle, en tant qu'organisateur connecté : le
+   billet invité apparaît en cherchant par email, par nom (fragment), et
+   par référence de commande (#XWZ-XXXXXXXX) — les trois modes.
+3. Export CSV (`recupererBilletsPourExport`, vérifié directement contre la
+   base réelle) : ligne de l'invité avec `acheteur_nom`/`acheteur_email`
+   correctement remplis (plus de `"—"`).
+
+Aucun bug trouvé. Nettoyage complet en fin de session — vérification
+automatisée : plus aucune trace en base.
+
 ## Comptes/événements de test actuellement en base
 
 _Aucun à ce jour (voir nettoyages ci-dessus)._ Ajouter ici toute nouvelle

@@ -48,7 +48,7 @@ interface OrdreCandidat {
   id: string;
   created_at: string;
   event_id: string;
-  user_id: string;
+  user_id: string | null;
 }
 
 const LIMITE_RESULTATS = 25;
@@ -104,6 +104,20 @@ export async function rechercherBillets(
         }
       }
     }
+
+    // Commandes invité (voir supabase/migrations/20260804120000_achat_invite.sql) :
+    // identité portée directement par la commande, pas par un compte —
+    // sans ce chemin, un invité serait introuvable par email/support.
+    const { data: commandesInvite } = await supabaseAdmin
+      .from("orders")
+      .select("id, created_at, event_id, user_id")
+      .eq("acheteur_email", requete.trim().toLowerCase())
+      .eq("statut", "paye");
+    for (const o of (commandesInvite ?? []) as OrdreCandidat[]) {
+      if (!eventIdsAutorises || eventIdsAutorises.includes(o.event_id)) {
+        ordreIds.add(o.id);
+      }
+    }
   } else {
     // Mode nom : profils dont le nom correspond, puis leurs commandes payées.
     const { data: profils } = await supabaseAdmin
@@ -122,6 +136,18 @@ export async function rechercherBillets(
         if (!eventIdsAutorises || eventIdsAutorises.includes(o.event_id)) {
           ordreIds.add(o.id);
         }
+      }
+    }
+
+    // Commandes invité dont le nom saisi à l'achat correspond.
+    const { data: commandesInviteNom } = await supabaseAdmin
+      .from("orders")
+      .select("id, created_at, event_id, user_id")
+      .ilike("acheteur_nom", `%${requete}%`)
+      .eq("statut", "paye");
+    for (const o of (commandesInviteNom ?? []) as OrdreCandidat[]) {
+      if (!eventIdsAutorises || eventIdsAutorises.includes(o.event_id)) {
+        ordreIds.add(o.id);
       }
     }
 
@@ -152,7 +178,7 @@ export async function rechercherBillets(
   const { data: tickets, error } = await supabaseAdmin
     .from("tickets")
     .select(
-      "id, statut, utilise_le, code_qr, order_id, ticket_types(nom, events(titre)), orders(id, created_at, profiles(nom))"
+      "id, statut, utilise_le, code_qr, order_id, ticket_types(nom, events(titre)), orders(id, created_at, profiles(nom), acheteur_nom)"
     )
     .in("order_id", Array.from(ordreIds))
     .order("created_at", { ascending: false })
@@ -165,7 +191,12 @@ export async function rechercherBillets(
     utilise_le: string | null;
     code_qr: string;
     ticket_types: { nom: string; events: { titre: string } | null } | null;
-    orders: { id: string; created_at: string; profiles: { nom: string } | null } | null;
+    orders: {
+      id: string;
+      created_at: string;
+      profiles: { nom: string } | null;
+      acheteur_nom: string | null;
+    } | null;
   }[]).map((t) => ({
     ticket_id: t.id,
     code_qr: t.code_qr,
@@ -173,7 +204,9 @@ export async function rechercherBillets(
     utilise_le: t.utilise_le,
     type_billet: t.ticket_types?.nom ?? "—",
     event_titre: t.ticket_types?.events?.titre ?? "—",
-    acheteur_nom: t.orders?.profiles?.nom ?? "—",
+    // Compte : nom via profiles. Invité : nom saisi à l'achat (acheteur_nom),
+    // orders.profiles est alors toujours null (voir migration achat_invite).
+    acheteur_nom: t.orders?.profiles?.nom ?? t.orders?.acheteur_nom ?? "—",
     reference_commande: `XWZ-${(t.orders?.id ?? "").slice(0, 8).toUpperCase()}`,
     commande_creee_le: t.orders?.created_at ?? "",
   }));
@@ -203,14 +236,21 @@ export async function recupererBilletsPourExport(eventId: string): Promise<Ligne
     statut: string;
     utilise_le: string | null;
     ticket_types: { nom: string; event_id: string } | null;
-    orders: { id: string; created_at: string; user_id: string; profiles: { nom: string } | null } | null;
+    orders: {
+      id: string;
+      created_at: string;
+      user_id: string | null;
+      acheteur_nom: string | null;
+      acheteur_email: string | null;
+      profiles: { nom: string } | null;
+    } | null;
   }[] = [];
 
   for (let offset = 0; ; offset += PAGE) {
     const { data, error } = await supabaseAdmin
       .from("tickets")
       .select(
-        "id, statut, utilise_le, ticket_types!inner(nom, event_id), orders!inner(id, created_at, user_id, profiles(nom))"
+        "id, statut, utilise_le, ticket_types!inner(nom, event_id), orders!inner(id, created_at, user_id, acheteur_nom, acheteur_email, profiles(nom))"
       )
       .eq("ticket_types.event_id", eventId)
       .order("created_at", { ascending: true })
@@ -230,8 +270,12 @@ export async function recupererBilletsPourExport(eventId: string): Promise<Ligne
   );
 
   return brut.map((t) => ({
-    acheteur_nom: t.orders?.profiles?.nom ?? "—",
-    acheteur_email: (t.orders?.user_id && emailParId.get(t.orders.user_id)) ?? "—",
+    // Compte : nom/email via profiles/auth.users. Invité : acheteur_nom/
+    // acheteur_email saisis à l'achat (orders.user_id est alors NULL, voir
+    // supabase/migrations/20260804120000_achat_invite.sql).
+    acheteur_nom: t.orders?.profiles?.nom ?? t.orders?.acheteur_nom ?? "—",
+    acheteur_email:
+      (t.orders?.user_id && emailParId.get(t.orders.user_id)) ?? t.orders?.acheteur_email ?? "—",
     type_billet: t.ticket_types?.nom ?? "—",
     reference_commande: `XWZ-${(t.orders?.id ?? "").slice(0, 8).toUpperCase()}`,
     statut: t.statut,

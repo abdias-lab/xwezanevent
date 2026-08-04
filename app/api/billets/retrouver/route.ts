@@ -48,6 +48,8 @@ export async function POST(req: NextRequest) {
           .from("demandes_retrouver_billet")
           .upsert({ email, derniere_demande: new Date().toISOString() });
 
+        const idsCommandes = new Set<string>();
+
         const userId = await trouverUserIdParEmail(email);
         if (userId) {
           const { data: commandes } = await supabaseAdmin
@@ -55,12 +57,23 @@ export async function POST(req: NextRequest) {
             .select("id")
             .eq("user_id", userId)
             .eq("statut", "paye");
+          for (const c of commandes ?? []) idsCommandes.add(c.id);
+        }
 
-          for (const commande of commandes ?? []) {
-            await renvoyerConfirmationCommande(commande.id).catch((e) =>
-              console.error("[api/billets/retrouver] échec renvoi commande", commande.id, e)
-            );
-          }
+        // Commandes invité (voir supabase/migrations/20260804120000_achat_invite.sql) :
+        // identité portée directement par la commande, pas par un compte —
+        // c'est le seul moyen pour un invité de retrouver son billet.
+        const { data: commandesInvite } = await supabaseAdmin
+          .from("orders")
+          .select("id")
+          .eq("acheteur_email", email)
+          .eq("statut", "paye");
+        for (const c of commandesInvite ?? []) idsCommandes.add(c.id);
+
+        for (const commandeId of Array.from(idsCommandes)) {
+          await renvoyerConfirmationCommande(commandeId).catch((e) =>
+            console.error("[api/billets/retrouver] échec renvoi commande", commandeId, e)
+          );
         }
       }
     }
