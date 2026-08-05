@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { renvoyerConfirmationCommande } from "@/lib/commandes";
+import { envoyerRecapitulatifBillets } from "@/lib/commandes";
 import { trouverUserIdParEmail } from "@/lib/utilisateurs";
 
 const DELAI_RELANCE_MS = 15 * 60 * 1000;
@@ -12,8 +12,9 @@ function emailValide(email: string): boolean {
 }
 
 /**
- * "Retrouver mon billet" : renvoie l'email de confirmation (avec billets QR)
- * de toutes les commandes payées d'un compte, à partir de son email.
+ * "Retrouver mon billet" : renvoie UN SEUL email récapitulatif (billets QR
+ * de toutes les commandes payées — compte et/ou invité) à partir de l'email
+ * saisi, plutôt qu'un email par commande (voir envoyerRecapitulatifBillets).
  *
  * Anti-énumération : la réponse est TOUJOURS le même message générique,
  * que l'email corresponde à un compte ou non, qu'il y ait des billets ou
@@ -70,9 +71,12 @@ export async function POST(req: NextRequest) {
           .eq("statut", "paye");
         for (const c of commandesInvite ?? []) idsCommandes.add(c.id);
 
-        for (const commandeId of Array.from(idsCommandes)) {
-          await renvoyerConfirmationCommande(commandeId).catch((e) =>
-            console.error("[api/billets/retrouver] échec renvoi commande", commandeId, e)
+        if (idsCommandes.size > 0) {
+          // Un seul email récapitulatif regroupant toutes les commandes
+          // trouvées, plutôt qu'un email par commande (voir
+          // lib/emails/recapitulatif-billets.ts).
+          await envoyerRecapitulatifBillets(Array.from(idsCommandes), email).catch(
+            (e: unknown) => console.error("[api/billets/retrouver] échec envoi récapitulatif", e)
           );
         }
       }

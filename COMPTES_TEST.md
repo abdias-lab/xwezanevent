@@ -237,6 +237,36 @@ Résultats :
 Aucun bug trouvé après correctif. Nettoyage complet en fin de session —
 vérification automatisée : plus aucune trace en base.
 
+## Test du 2026-08-05 (récapitulatif unique — "Retrouver mon billet")
+
+Amélioration produit : quand un acheteur a plusieurs commandes payées,
+`POST /api/billets/retrouver` envoyait auparavant **un email séparé par
+commande**. Nouveau comportement : un seul email récapitulatif regroupant
+toutes les commandes/billets trouvés — nouveau template
+`lib/emails/recapitulatif-billets.ts` (distinct du template "Paiement
+confirmé", non touché), nouvelle fonction `envoyerRecapitulatifBillets`
+dans `lib/commandes.ts` remplaçant `renvoyerConfirmationCommande` (supprimée).
+
+Créés puis supprimés (cascade via suppression du compte Auth organisateur,
+vérifié en fin de session) :
+- `test-recap-orga@xwezanevent-test.com` (organisateur)
+- 2 événements : `test-recap-billets-a` (2 billets Standard, 100 FCFA) et
+  `test-recap-billets-b` (1 billet Standard, 200 FCFA)
+- 2 commandes invité payées (`gbedoloabdias@gmail.com`)
+
+Résultat : `POST /api/billets/retrouver` avec cet email → **un seul**
+`[email] envoyé "Tes billets XwézanEvent (4 billets)"` en log (au lieu de
+plusieurs emails séparés). Le récapitulatif a correctement regroupé les 2
+commandes de test **et** une commande payée préexistante et non liée à ce
+test (`948c41fa-...`, CONCOURS VOICE TALENT AFRICA, acheteur `Abdias` —
+test manuel personnel, non touchée) : 3 commandes, 3 événements différents,
+4 billets, un seul email. Bonne validation en conditions réelles du
+regroupement multi-commandes/multi-événements.
+
+Aucun bug trouvé. Nettoyage complet en fin de session (uniquement les 2
+événements de test créés ici) — vérification automatisée : plus aucune
+trace de `test-recap-orga@...`, commande `948c41fa-...` intacte.
+
 ## Comptes/événements de test actuellement en base
 
 _Aucun à ce jour (voir nettoyages ci-dessus)._ Ajouter ici toute nouvelle
@@ -246,3 +276,11 @@ donnée de test créée d'ici le lancement (ex. via `npm run seed` ou
 | Email / Événement | Rôle / Origine | Créé le |
 |---|---|---|
 | _(vide)_ | | |
+
+Note (pas une donnée de test à nettoyer par nous) : une commande payée
+réelle existe sur l'événement vitrine CONCOURS VOICE TALENT AFRICA
+(`948c41fa-33fa-4369-9924-7716becea141`, acheteur `Abdias`,
+`gbedoloabdias@gmail.com`, 1 billet, 1 000 FCFA, créée le 2026-08-04) —
+test manuel personnel de l'achat invité. À garder en tête pour le nettoyage
+final avant lancement (même logique que les autres comptes de test de ce
+fichier), mais ne pas la supprimer sans confirmation.
