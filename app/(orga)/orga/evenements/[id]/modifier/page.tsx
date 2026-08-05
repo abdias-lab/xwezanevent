@@ -36,7 +36,7 @@ export default async function ModifierEvenementPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/connexion?redirect=/orga/evenements/${params.id}/modifier`);
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("events")
     .select(
       "id, titre, description, date_debut, heure, ville, lieu, organisateur_id, est_demo, pays:pays_code(nom, drapeau), event_categories(categorie, ordre), event_images(url, principale, ordre)"
@@ -45,6 +45,7 @@ export default async function ModifierEvenementPage({
     .order("ordre", { foreignTable: "event_categories", ascending: true })
     .order("ordre", { foreignTable: "event_images", ascending: true })
     .maybeSingle();
+  if (error) console.error("[orga/modifier] échec chargement événement :", error.message);
 
   const event = data as unknown as EventRow | null;
   // Propriété vérifiée ici (page) ET dans l'action serveur modifierEvenement
