@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import FormulaireCreation from "@/components/FormulaireCreation";
 import { creerClientServeur } from "@/lib/supabase-server";
+import { getPaysActifs } from "@/lib/pays";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -16,10 +17,12 @@ export default async function Creer() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/connexion?redirect=/creer");
 
+  const paysDisponibles = await getPaysActifs();
+
   return (
     <>
       <Header />
-      <FormulaireCreation />
+      <FormulaireCreation paysDisponibles={paysDisponibles} />
       <footer className="footer-mini">
         <div className="in">
           <span>

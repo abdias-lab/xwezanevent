@@ -58,6 +58,7 @@ export async function publierEvenement(formData: FormData) {
   const heure = String(formData.get("heure") || "") || null;
   const lieu = String(formData.get("lieu") || "").trim();
   const ville = String(formData.get("ville") || "").trim();
+  const pays_code = String(formData.get("pays_code") || "").trim();
 
   const fichiersImages = formData
     .getAll("images_nouvelles")
@@ -94,8 +95,22 @@ export async function publierEvenement(formData: FormData) {
     ticketsSaisis = [];
   }
 
-  if (!titre || !date_debut || !lieu || !ville) {
+  if (!titre || !date_debut || !lieu || !ville || !pays_code) {
     redirect("/creer?erreur=champs");
+  }
+
+  // Le sélecteur ne propose que les pays actifs, mais le formulaire n'est
+  // jamais source de vérité : on revalide contre la table `pays` (voir
+  // supabase/migrations/20260805120000_multi_pays_evenements.sql) plutôt
+  // que d'accepter n'importe quelle valeur postée.
+  const { data: paysValide } = await supabaseAdmin
+    .from("pays")
+    .select("code")
+    .eq("code", pays_code)
+    .eq("actif", true)
+    .maybeSingle();
+  if (!paysValide) {
+    redirect("/creer?erreur=pays");
   }
 
   // Promotion visiteur -> organisateur
@@ -133,6 +148,7 @@ export async function publierEvenement(formData: FormData) {
       titre,
       slug,
       description: description || null,
+      pays_code,
       ville,
       lieu,
       date_debut,

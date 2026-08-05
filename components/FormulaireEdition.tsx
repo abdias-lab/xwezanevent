@@ -18,14 +18,18 @@ function BoutonEnregistrer() {
  * Édition d'un événement déjà publié : description, date, heure, images,
  * catégories uniquement — titre/lieu/ville figés (affichés en lecture
  * seule) car dans le slug déjà indexé et imprimés sur les billets déjà
- * vendus. Réutilise SelecteurCategories/SelecteurImages, partagés avec la
- * création (components/FormulaireCreation.tsx).
+ * vendus. Pays figé pour la même raison, plus fort encore : il détermine
+ * les opérateurs Mobile Money proposés au reversement (voir la suite du
+ * chantier multi-pays) — le changer après coup risquerait d'incohérences
+ * avec des commandes déjà payées. Réutilise SelecteurCategories/
+ * SelecteurImages, partagés avec la création (components/FormulaireCreation.tsx).
  */
 export default function FormulaireEdition({
   action,
   titre,
   lieu,
   ville,
+  pays,
   description: descriptionInitiale,
   dateDebut: dateDebutInitiale,
   heure: heureInitiale,
@@ -36,6 +40,8 @@ export default function FormulaireEdition({
   titre: string;
   lieu: string;
   ville: string;
+  /** "🇧🇯 Bénin" ou null si la ligne pays n'a pas pu être chargée — affiché en lecture seule, jamais modifiable ici (voir plus bas). */
+  pays: string | null;
   description: string;
   dateDebut: string;
   heure: string;
@@ -53,7 +59,8 @@ export default function FormulaireEdition({
         <span className="eyebrow">Espace organisateur</span>
         <h1 style={{ marginTop: 12 }}>Modifier « {titre} »</h1>
         <p className="sous">
-          📍 {lieu}, {ville} — le nom, le lieu et la ville ne sont pas modifiables ici.
+          {pays ? `${pays} · ` : ""}📍 {lieu}, {ville} — le nom, le pays, le lieu et la
+          ville ne sont pas modifiables ici.
         </p>
 
         <div className="bloc-form">

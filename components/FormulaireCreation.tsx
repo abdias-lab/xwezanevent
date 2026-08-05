@@ -28,7 +28,11 @@ function BoutonPublier({ actif }: { actif: boolean }) {
   );
 }
 
-export default function FormulaireCreation() {
+export default function FormulaireCreation({
+  paysDisponibles,
+}: {
+  paysDisponibles: { code: string; nom: string; drapeau: string }[];
+}) {
   const [titre, setTitre] = useState("");
   const [description, setDescription] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
@@ -36,6 +40,10 @@ export default function FormulaireCreation() {
   const [heure, setHeure] = useState("");
   const [lieu, setLieu] = useState("");
   const [ville, setVille] = useState(VILLES[0]);
+  // Un seul pays actif aujourd'hui (Bénin) : le sélecteur n'affiche qu'une
+  // option, mais devient utile sans changement de code dès qu'un second
+  // pays passe à actif=true (voir lib/pays.ts).
+  const [pays, setPays] = useState(paysDisponibles[0]?.code ?? "bj");
   const [apercuPrincipal, setApercuPrincipal] = useState<string | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([
     { nom: "Standard", prix: "", quantite: "", venteJusqua: "" },
@@ -59,7 +67,7 @@ export default function FormulaireCreation() {
     titre: titre.trim().length > 1,
     description: description.trim().length > 0,
     date: !!dateDebut,
-    lieu: lieu.trim().length > 0 && !!ville,
+    lieu: lieu.trim().length > 0 && !!ville && !!pays,
     affiche: !!apercuPrincipal,
     billetterie: ticketsValides.length > 0,
   };
@@ -146,6 +154,21 @@ export default function FormulaireCreation() {
                 onChange={(e) => setHeure(e.target.value)}
               />
             </div>
+          </div>
+          <div className="champ-bloc">
+            <label htmlFor="pays_code">Pays *</label>
+            <select
+              id="pays_code"
+              name="pays_code"
+              value={pays}
+              onChange={(e) => setPays(e.target.value)}
+            >
+              {paysDisponibles.map((p) => (
+                <option key={p.code} value={p.code}>
+                  {p.drapeau} {p.nom}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="champ-bloc">
             <label htmlFor="lieu">Lieu / Adresse *</label>
@@ -299,7 +322,7 @@ export default function FormulaireCreation() {
               ["Nom de l'événement", check.titre],
               ["Description", check.description],
               ["Date", check.date],
-              ["Lieu & ville", check.lieu],
+              ["Pays, lieu & ville", check.lieu],
               ["Catégories", categories.length > 0],
               ["Images", check.affiche],
               ["Billetterie", check.billetterie],

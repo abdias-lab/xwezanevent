@@ -20,6 +20,7 @@ interface EventRow {
   lieu: string;
   organisateur_id: string;
   est_demo: boolean;
+  pays: { nom: string; drapeau: string } | null;
   event_categories: { categorie: string; ordre: number }[];
   event_images: { url: string; principale: boolean; ordre: number }[];
 }
@@ -38,7 +39,7 @@ export default async function ModifierEvenementPage({
   const { data } = await supabase
     .from("events")
     .select(
-      "id, titre, description, date_debut, heure, ville, lieu, organisateur_id, est_demo, event_categories(categorie, ordre), event_images(url, principale, ordre)"
+      "id, titre, description, date_debut, heure, ville, lieu, organisateur_id, est_demo, pays:pays_code(nom, drapeau), event_categories(categorie, ordre), event_images(url, principale, ordre)"
     )
     .eq("id", params.id)
     .order("ordre", { foreignTable: "event_categories", ascending: true })
@@ -62,6 +63,7 @@ export default async function ModifierEvenementPage({
         titre={event.titre}
         lieu={event.lieu}
         ville={event.ville}
+        pays={event.pays ? `${event.pays.drapeau} ${event.pays.nom}` : null}
         description={event.description ?? ""}
         dateDebut={event.date_debut}
         heure={event.heure ?? ""}
