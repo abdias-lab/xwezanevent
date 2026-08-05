@@ -34,6 +34,16 @@ function origine(): string {
 // achat légitime (même panier) passer.
 const FENETRE_REUTILISATION_MS = 30 * 60 * 1000;
 
+// Fenêtre de course pour le repli "déjà payé" (étape 5a) : couvre le cas
+// E4 (webhook qui finalise la commande PENDANT qu'une requête concurrente
+// resoumet le même panier — quelques secondes), PAS un blocage de rachat
+// légitime. Volontairement bien plus courte que FENETRE_REUTILISATION_MS
+// ci-dessus, qui répond à un problème différent (délai raisonnable avant
+// d'abandonner une commande en_attente) : un acheteur doit pouvoir
+// reprendre le même type/quantité de billet plus tard dans la journée, ou
+// le lendemain, sans se faire renvoyer vers une commande déjà payée.
+const FENETRE_DEJA_PAYEE_MS = 5 * 60 * 1000;
+
 // L'INSERT ci-dessous peut entrer en conflit avec l'index unique partiel
 // créé par supabase/migrations/20260720120000_dedoublonnage_commandes_en_attente.sql —
 // un conflit dessus signifie « même utilisateur + même événement + même
@@ -162,18 +172,22 @@ export async function POST(req: NextRequest) {
   const total = sousTotal;
   const signature = signaturePanier(panier);
 
-  // 5a. Repli déjà payé pour ce panier exact : l'index unique partiel ne
-  // couvre QUE statut='en_attente' (volontairement, pour ne jamais bloquer
-  // un futur achat légitime — voir la migration) — une commande payée
-  // n'entre donc plus en conflit avec un nouvel INSERT identique, ce qui
-  // laisserait passer un doublon derrière un paiement déjà effectué. Pas
-  // racy pour la sécurité financière : si le paiement se produit PENDANT
-  // cette requête (juste après ce SELECT), l'INSERT plus bas entrera en
-  // conflit avec la ligne encore en_attente à ce moment-là et sera
-  // rattrapé par la résolution de conflit (23505) juste après.
+  // 5a. Repli déjà payé pour ce panier exact, borné à FENETRE_DEJA_PAYEE_MS :
+  // l'index unique partiel ne couvre QUE statut='en_attente' (volontairement,
+  // pour ne jamais bloquer un futur achat légitime — voir la migration) —
+  // une commande payée n'entre donc plus en conflit avec un nouvel INSERT
+  // identique, ce qui laisserait passer un doublon derrière un paiement
+  // déjà effectué SI la resoumission arrive dans les toutes prochaines
+  // secondes (webhook qui finalise pendant cette requête). Au-delà de la
+  // fenêtre, ce n'est plus une race mais un rachat légitime (même type/
+  // quantité de billet, pour quelqu'un d'autre ou un autre jour) : on laisse
+  // passer, pas racy pour la sécurité financière — si le paiement se
+  // produit PENDANT cette requête (juste après ce SELECT), l'INSERT plus
+  // bas entrera en conflit avec la ligne encore en_attente à ce moment-là
+  // et sera rattrapé par la résolution de conflit (23505) juste après.
   let requeteDejaPayee = supabaseAdmin
     .from("orders")
-    .select("id")
+    .select("id, created_at")
     .eq("event_id", ev.id)
     .eq("panier_signature", signature)
     .eq("statut", "paye")
@@ -183,7 +197,10 @@ export async function POST(req: NextRequest) {
     ? requeteDejaPayee.eq("user_id", user.id)
     : requeteDejaPayee.eq("acheteur_email", acheteurEmail);
   const { data: dejaPayee } = await requeteDejaPayee.maybeSingle();
-  if (dejaPayee) {
+  if (
+    dejaPayee &&
+    Date.now() - new Date(dejaPayee.created_at).getTime() < FENETRE_DEJA_PAYEE_MS
+  ) {
     return NextResponse.json(
       {
         error: "Tu as déjà une commande payée pour cette sélection.",

@@ -203,6 +203,40 @@ Résultats :
 Aucun bug trouvé. Nettoyage complet en fin de session — vérification
 automatisée : plus aucune trace en base.
 
+## Test du 2026-08-05 (fenêtre de 5 min sur le repli "déjà payé")
+
+Bug remonté (comportement observé sur un achat réel, pas une commande de
+test) : le repli "déjà payé" de `POST /api/orders` (ajouté suite à
+l'audit E4, 2026-07-20) n'avait aucune fenêtre de temps — un acheteur
+retentant le même type/quantité de billet, même des jours plus tard, était
+systématiquement renvoyé vers sa commande déjà payée au lieu de pouvoir en
+créer une nouvelle. Correctif : `FENETRE_DEJA_PAYEE_MS` (5 min) —
+volontairement plus courte que `FENETRE_REUTILISATION_MS` (30 min, qui
+répond à un problème différent), la race que ce repli couvre (webhook qui
+finalise pendant une resoumission quasi simultanée) se joue en quelques
+secondes.
+
+Créés puis supprimés (cascade via suppression du compte Auth organisateur,
+vérifié en fin de session : plus aucune trace) :
+- `test-dedup-paye-orga@xwezanevent-test.com` (organisateur)
+- Événement `test-dedup-commande-payee` (« [TEST] Dédup commande payée —
+  fenêtre 5 min »), 1 ticket_type Standard (100 FCFA × 50)
+- 2 commandes invité (`gbedoloabdias@gmail.com`), même panier (1×
+  Standard) : 1 payée, 1 nouvelle créée après la fenêtre
+
+Résultats :
+1. Achat payé (sandbox approuvé), puis resoumission immédiate du même
+   panier/email → toujours `409 { dejaPayee: true }`, toujours redirigé
+   vers la commande existante (comportement inchangé dans la fenêtre).
+2. `created_at` de la commande payée reculé à 6 min (simulé en base, même
+   procédure que le test E4 du 2026-07-20) → resoumission du même
+   panier/email → `200`, **nouvelle** commande créée (`16662b44-...`,
+   `en_attente`, même `panier_signature`), commande payée d'origine
+   (`bba9c497-...`) intacte.
+
+Aucun bug trouvé après correctif. Nettoyage complet en fin de session —
+vérification automatisée : plus aucune trace en base.
+
 ## Comptes/événements de test actuellement en base
 
 _Aucun à ce jour (voir nettoyages ci-dessus)._ Ajouter ici toute nouvelle
