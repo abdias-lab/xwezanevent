@@ -9,6 +9,7 @@ import {
   getCompteursCategories,
   getCompteursVilles,
 } from "@/lib/events";
+import { getPaysActuel } from "@/lib/pays";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -85,23 +86,34 @@ const CATEGORIES: { nom: ReactNode; valeur: string; glyphe: ReactNode }[] = [
   },
 ];
 
-const VILLES = [
-  { rang: "01", nom: "Cotonou" },
-  { rang: "02", nom: "Porto-Novo" },
-  { rang: "03", nom: "Ouidah" },
-  { rang: "04", nom: "Abomey" },
-  { rang: "05", nom: "Parakou" },
-  { rang: "06", nom: "Grand-Popo" },
-];
+// Sélection éditoriale de villes mises en avant (section "Que faire ce soir
+// à…"), PAR PAYS — une simple requête de villes distinctes ne conviendrait
+// pas ici : ce sont des villes choisies pour leur attrait, pas juste les
+// premières trouvées. Seul 'bj' est peuplé pour l'instant ; un pays sans
+// entrée ici voit simplement la section masquée (voir plus bas) plutôt que
+// d'afficher les villes béninoises hors contexte — pas de nom de ville
+// togolaise inventé tant que ce n'est pas une vraie décision produit.
+const VILLES_PAR_PAYS: Record<string, { rang: string; nom: string }[]> = {
+  bj: [
+    { rang: "01", nom: "Cotonou" },
+    { rang: "02", nom: "Porto-Novo" },
+    { rang: "03", nom: "Ouidah" },
+    { rang: "04", nom: "Abomey" },
+    { rang: "05", nom: "Parakou" },
+    { rang: "06", nom: "Grand-Popo" },
+  ],
+};
 
 export default async function Accueil() {
+  const pays = getPaysActuel();
   const [evenements, villes, ticker, compteursCategories, compteursVilles] = await Promise.all([
-    getEvenementsPublies(),
-    getVillesPubliees(),
-    getEvenementsTicker(),
-    getCompteursCategories(),
-    getCompteursVilles(),
+    getEvenementsPublies({ pays }),
+    getVillesPubliees(pays),
+    getEvenementsTicker(pays),
+    getCompteursCategories(pays),
+    getCompteursVilles(pays),
   ]);
+  const villesVedettes = VILLES_PAR_PAYS[pays] ?? [];
 
   return (
     <>
@@ -280,38 +292,40 @@ export default async function Accueil() {
       </section>
 
       {/* ======================= VILLES ======================= */}
-      <section className="section" id="villes">
-        <div className="contenu">
-          <div className="entete-section">
-            <h2 className="titre-section">Que faire ce soir à…</h2>
-          </div>
-          <div className="liste-villes">
-            {VILLES.map((v) => {
-              const nb = compteursVilles[v.nom.toLowerCase()] ?? 0;
-              return (
-                <Link
-                  className="ville"
-                  href={`/evenements?ville=${encodeURIComponent(v.nom)}`}
-                  key={v.rang}
-                >
-                  <span className="rang">{v.rang}</span>
-                  <span className="nom-ville">{v.nom}</span>
-                  <span className="infos-droite">
-                    {nb > 0 && (
-                      <span className="detail">
-                        {nb} événement{nb > 1 ? "s" : ""} à venir
+      {villesVedettes.length > 0 && (
+        <section className="section" id="villes">
+          <div className="contenu">
+            <div className="entete-section">
+              <h2 className="titre-section">Que faire ce soir à…</h2>
+            </div>
+            <div className="liste-villes">
+              {villesVedettes.map((v) => {
+                const nb = compteursVilles[v.nom.toLowerCase()] ?? 0;
+                return (
+                  <Link
+                    className="ville"
+                    href={`/evenements?ville=${encodeURIComponent(v.nom)}`}
+                    key={v.rang}
+                  >
+                    <span className="rang">{v.rang}</span>
+                    <span className="nom-ville">{v.nom}</span>
+                    <span className="infos-droite">
+                      {nb > 0 && (
+                        <span className="detail">
+                          {nb} événement{nb > 1 ? "s" : ""} à venir
+                        </span>
+                      )}
+                      <span className="fleche" aria-hidden="true">
+                        →
                       </span>
-                    )}
-                    <span className="fleche" aria-hidden="true">
-                      →
                     </span>
-                  </span>
-                </Link>
-              );
-            })}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ======================= ORGANISATEURS ======================= */}
       <section className="section organisateur" id="organisateur">

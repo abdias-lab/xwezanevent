@@ -267,6 +267,48 @@ Aucun bug trouvé. Nettoyage complet en fin de session (uniquement les 2
 événements de test créés ici) — vérification automatisée : plus aucune
 trace de `test-recap-orga@...`, commande `948c41fa-...` intacte.
 
+## Test du 2026-08-05/06 (catalogue public — contexte pays, étape 3 du chantier multi-pays)
+
+Ajout du sélecteur pays (drapeau, header + menu mobile), filtrage du
+catalogue public (accueil, /evenements, /evenements?ville=…) par
+`pays_code`, et remplacement de la liste de villes codée en dur de
+`FiltreVille.tsx` par `getVillesPubliees(pays)`. Point de vigilance du
+diagnostic initial : la page détail d'un événement, le checkout et la
+confirmation ne doivent jamais être filtrés par pays (lien partagé,
+ex. WhatsApp, doit toujours s'ouvrir).
+
+Togo (`pays.actif`) temporairement activé pour la durée du test — config
+globale, pas un événement de test isolé — puis redésactivé en fin de
+session (vérifié : `bj` actif / `tg` inactif, état identique à avant le
+test).
+
+Créés puis supprimés (cascade via suppression du compte Auth organisateur) :
+- `test-catalogue-orga@xwezanevent-test.com` (organisateur)
+- Événement `test-evenement-togo` (« [TEST] Événement Togo »,
+  `pays_code='tg'`), 1 ticket_type Standard (100 FCFA × 10)
+
+Résultats :
+1. Sélecteur invisible tant qu'un seul pays est actif (comportement par
+   défaut, confirmé avant et après le test — apparence du site identique).
+2. Togo actif → sélecteur `BJ ▾`/`TG ▾` visible, dropdown fonctionnel.
+3. Contexte Bénin (par défaut) : `/evenements` liste les 2 événements
+   béninois réels, exclut l'événement togolais de test ; filtre Ville
+   n'affiche que « Ouidah » (les événements béninois réels), preuve que
+   la liste n'est plus codée en dur (elle affichait 6 villes fixes avant
+   ce chantier, qu'il y ait ou non des événements dans chacune).
+4. Contexte Togo (sélecteur) : `/evenements` liste **uniquement**
+   l'événement togolais de test, catégorie « Concert » uniquement, ville
+   « Cotonou » uniquement (donnée de l'événement de test) — exclut
+   totalement les 2 événements béninois.
+5. **Point de vigilance validé** : contexte remis sur Bénin, puis accès
+   direct à `/evenement/test-evenement-togo` (lien type WhatsApp) →
+   page événement togolaise s'affiche normalement, aucun filtre par pays
+   sur la page détail.
+
+Aucun bug trouvé. Nettoyage complet en fin de session (compte + événement
+de test, désactivation du Togo) — vérification automatisée : plus aucune
+trace, table `pays` revenue à son état initial.
+
 ## Comptes/événements de test actuellement en base
 
 _Aucun à ce jour (voir nettoyages ci-dessus)._ Ajouter ici toute nouvelle

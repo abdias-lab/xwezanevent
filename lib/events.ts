@@ -80,7 +80,7 @@ function echapperPourOr(valeur: string): string {
  * apparaître dans aucun listing public.
  */
 export async function getEvenementsPublies(
-  opts: { categorie?: string; quand?: string; q?: string; ville?: string } = {}
+  opts: { categorie?: string; quand?: string; q?: string; ville?: string; pays: string }
 ): Promise<CarteData[]> {
   const periode = plagePeriode(opts.quand);
 
@@ -99,6 +99,7 @@ export async function getEvenementsPublies(
     )
     .eq("statut", "publie")
     .eq("est_demo", false)
+    .eq("pays_code", opts.pays)
     .gte("date_debut", periode ? periode.debut : aujourdhuiPortoNovo());
 
   if (periode) {
@@ -189,6 +190,14 @@ interface EventDetailRow {
  * estTermine se base sur la DATE, pas seulement sur `statut`, pour rester
  * correct même si cloturer_evenements_passes()/pg_cron n'est pas encore
  * passé sur cet événement précis.
+ *
+ * VOLONTAIREMENT non filtré par pays (contrairement à getEvenementsPublies
+ * et consorts, voir lib/pays.ts::getPaysActuel) : un lien direct vers un
+ * événement doit toujours s'ouvrir, quel que soit le drapeau actuellement
+ * sélectionné par la personne qui clique dessus — sinon un lien partagé
+ * (ex. sur WhatsApp) casserait selon le contexte pays du destinataire. Le
+ * pays ne sert qu'à filtrer les LISTINGS (accueil, /evenements), jamais
+ * l'accès direct à un événement, au checkout ou à la confirmation.
  */
 export async function getEvenementParSlug(
   slug: string
@@ -237,13 +246,14 @@ export async function getEvenementParSlug(
   };
 }
 
-/** Liste distincte des catégories présentes parmi les événements publiés (hors vitrine/démo). */
-export async function getCategoriesPubliees(): Promise<string[]> {
+/** Liste distincte des catégories présentes parmi les événements publiés d'UN pays (hors vitrine/démo). */
+export async function getCategoriesPubliees(pays: string): Promise<string[]> {
   const { data, error } = await supabase
     .from("event_categories")
-    .select("categorie, events!inner(statut, est_demo, date_debut)")
+    .select("categorie, events!inner(statut, est_demo, date_debut, pays_code)")
     .eq("events.statut", "publie")
     .eq("events.est_demo", false)
+    .eq("events.pays_code", pays)
     .gte("events.date_debut", aujourdhuiPortoNovo());
 
   if (error || !data) return [];
@@ -290,7 +300,7 @@ function mapTicker(ev: TickerRow): TickerItem {
  * apparaître. Limité à LIMITE_TICKER dans les deux branches pour rester
  * lisible.
  */
-export async function getEvenementsTicker(): Promise<TickerItem[]> {
+export async function getEvenementsTicker(pays: string): Promise<TickerItem[]> {
   const aujourdhui = aujourdhuiPortoNovo();
 
   const { data: choisis, error: erreurChoisis } = await supabase
@@ -299,6 +309,7 @@ export async function getEvenementsTicker(): Promise<TickerItem[]> {
     .eq("statut", "publie")
     .eq("mis_en_avant", true)
     .eq("est_demo", false)
+    .eq("pays_code", pays)
     .gte("date_debut", aujourdhui)
     .order("ordre_affiche", { ascending: true, nullsFirst: false })
     .order("date_debut", { ascending: true })
@@ -315,6 +326,7 @@ export async function getEvenementsTicker(): Promise<TickerItem[]> {
     .select("id, titre, ville, date_debut")
     .eq("statut", "publie")
     .eq("est_demo", false)
+    .eq("pays_code", pays)
     .gte("date_debut", aujourdhui)
     .order("date_debut", { ascending: true })
     .limit(LIMITE_TICKER);
@@ -333,12 +345,13 @@ export async function getEvenementsTicker(): Promise<TickerItem[]> {
  * est compté une fois dans chacune. Une catégorie absente du résultat n'a
  * aucun événement réel à venir (compteur à masquer côté affichage).
  */
-export async function getCompteursCategories(): Promise<Record<string, number>> {
+export async function getCompteursCategories(pays: string): Promise<Record<string, number>> {
   const { data, error } = await supabase
     .from("event_categories")
-    .select("categorie, events!inner(statut, est_demo, date_debut)")
+    .select("categorie, events!inner(statut, est_demo, date_debut, pays_code)")
     .eq("events.statut", "publie")
     .eq("events.est_demo", false)
+    .eq("events.pays_code", pays)
     .gte("events.date_debut", aujourdhuiPortoNovo());
 
   if (error || !data) {
@@ -353,13 +366,14 @@ export async function getCompteursCategories(): Promise<Record<string, number>> 
   return compteurs;
 }
 
-/** Liste distincte des villes présentes parmi les événements publiés (hors vitrine/démo, pour suggestion, saisie libre par ailleurs). */
-export async function getVillesPubliees(): Promise<string[]> {
+/** Liste distincte des villes présentes parmi les événements publiés d'UN pays (hors vitrine/démo, pour suggestion, saisie libre par ailleurs). */
+export async function getVillesPubliees(pays: string): Promise<string[]> {
   const { data, error } = await supabase
     .from("events")
     .select("ville")
     .eq("statut", "publie")
     .eq("est_demo", false)
+    .eq("pays_code", pays)
     .gte("date_debut", aujourdhuiPortoNovo());
 
   if (error || !data) return [];
@@ -379,12 +393,13 @@ export async function getVillesPubliees(): Promise<string[]> {
  * absente du résultat n'a aucun événement réel à venir (compteur à masquer
  * côté affichage).
  */
-export async function getCompteursVilles(): Promise<Record<string, number>> {
+export async function getCompteursVilles(pays: string): Promise<Record<string, number>> {
   const { data, error } = await supabase
     .from("events")
     .select("ville")
     .eq("statut", "publie")
     .eq("est_demo", false)
+    .eq("pays_code", pays)
     .gte("date_debut", aujourdhuiPortoNovo());
 
   if (error || !data) {

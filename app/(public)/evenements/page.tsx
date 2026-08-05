@@ -3,7 +3,8 @@ import CarteEvenement from "@/components/CarteEvenement";
 import BoutonOr from "@/components/BoutonOr";
 import FiltreQuand from "@/components/FiltreQuand";
 import FiltreVille from "@/components/FiltreVille";
-import { getEvenementsPublies, getCategoriesPubliees } from "@/lib/events";
+import { getEvenementsPublies, getCategoriesPubliees, getVillesPubliees } from "@/lib/events";
+import { getPaysActuel } from "@/lib/pays";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -67,9 +68,11 @@ export default async function Evenements({
   const q = searchParams.q?.trim() || undefined;
   const ville = searchParams.ville?.trim() || undefined;
   const actifs: ParamsRecherche = { categorie: categorieActive, quand: quandActif, q, ville };
-  const [evenements, categories] = await Promise.all([
-    getEvenementsPublies({ categorie: categorieActive, quand: quandActif, q, ville }),
-    getCategoriesPubliees(),
+  const pays = getPaysActuel();
+  const [evenements, categories, villesDisponibles] = await Promise.all([
+    getEvenementsPublies({ categorie: categorieActive, quand: quandActif, q, ville, pays }),
+    getCategoriesPubliees(pays),
+    getVillesPubliees(pays),
   ]);
 
   const nb = evenements.length;
@@ -112,7 +115,7 @@ export default async function Evenements({
 
           <FiltreQuand quandActif={quandActif} />
 
-          <FiltreVille villeActive={ville} />
+          <FiltreVille villeActive={ville} villesDisponibles={villesDisponibles} />
 
           <div className="bloc-filtre">
             <h3>Prix (FCFA)</h3>

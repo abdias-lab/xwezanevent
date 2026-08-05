@@ -3,6 +3,8 @@ import { creerClientServeur } from "@/lib/supabase-server";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import MenuBurger from "@/components/MenuBurger";
 import Logo from "@/components/Logo";
+import SelecteurPays from "@/components/SelecteurPays";
+import { getPaysActifs, getPaysActuel } from "@/lib/pays";
 
 /**
  * En-tête sticky avec logo XwézanEvent (marque losange doré),
@@ -25,6 +27,9 @@ export default async function Header() {
     role = profile?.role ?? null;
   }
 
+  const paysActifs = await getPaysActifs();
+  const paysActuel = getPaysActuel();
+
   return (
     <header className="header">
       <div className="nav">
@@ -37,6 +42,7 @@ export default async function Header() {
         </nav>
 
         <div className="nav-right">
+          <SelecteurPays paysActifs={paysActifs} paysActuel={paysActuel} />
           {user ? (
             <>
               {role === "admin" && (
@@ -65,7 +71,7 @@ export default async function Header() {
           </Link>
         </div>
 
-        <MenuBurger connecte={!!user} role={role} />
+        <MenuBurger connecte={!!user} role={role} paysActifs={paysActifs} paysActuel={paysActuel} />
       </div>
     </header>
   );

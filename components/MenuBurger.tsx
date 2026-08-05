@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
+import SelecteurPays from "@/components/SelecteurPays";
+import type { PaysOption } from "@/lib/pays";
 
 /**
  * Menu burger mobile (<768px) : reprend exactement les mêmes liens
@@ -11,9 +13,13 @@ import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 export default function MenuBurger({
   connecte,
   role,
+  paysActifs,
+  paysActuel,
 }: {
   connecte: boolean;
   role: string | null;
+  paysActifs: PaysOption[];
+  paysActuel: string;
 }) {
   const [ouvert, setOuvert] = useState(false);
 
@@ -78,6 +84,9 @@ export default function MenuBurger({
         </nav>
 
         <div className="menu-mobile-compte">
+          <span onClick={fermer}>
+            <SelecteurPays paysActifs={paysActifs} paysActuel={paysActuel} />
+          </span>
           {connecte ? (
             <>
               {role === "admin" && (

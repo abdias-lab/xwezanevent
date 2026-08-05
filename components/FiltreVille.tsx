@@ -2,9 +2,20 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-const VILLES = ["Cotonou", "Porto-Novo", "Ouidah", "Abomey", "Parakou", "Grand-Popo"];
-
-export default function FiltreVille({ villeActive }: { villeActive?: string }) {
+/**
+ * Liste des villes fournie par le parent (app/(public)/evenements/page.tsx),
+ * dérivée de lib/events.ts::getVillesPubliees(pays) — plus de liste codée
+ * en dur : ça restait spécifiquement béninois (Cotonou, Porto-Novo…) et
+ * aurait montré ces villes même en contexte Togo (voir le chantier
+ * multi-pays, supabase/migrations/20260805120000_multi_pays_evenements.sql).
+ */
+export default function FiltreVille({
+  villeActive,
+  villesDisponibles,
+}: {
+  villeActive?: string;
+  villesDisponibles: string[];
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -19,9 +30,9 @@ export default function FiltreVille({ villeActive }: { villeActive?: string }) {
   }
 
   // La ville active peut être une saisie libre absente de la liste : on l'affiche quand même.
-  const options = villeActive && !VILLES.includes(villeActive)
-    ? [...VILLES, villeActive]
-    : VILLES;
+  const options = villeActive && !villesDisponibles.includes(villeActive)
+    ? [...villesDisponibles, villeActive]
+    : villesDisponibles;
 
   return (
     <div className="bloc-filtre">
