@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import CarteEvenement from "@/components/CarteEvenement";
 import BoutonOr from "@/components/BoutonOr";
 import FiltreQuand from "@/components/FiltreQuand";
@@ -200,12 +201,7 @@ export default async function Evenements({
         </div>
       </main>
 
-      <footer className="footer-mini">
-        <div className="in">
-          <span>© 2026 XwézanEvent — Cotonou, Bénin</span>
-          <span className="fon">Mì wá djawá !&nbsp;· La fête vous attend.</span>
-        </div>
-      </footer>
+      <Footer />
     </>
   );
 }

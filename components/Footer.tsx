@@ -1,7 +1,12 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import SelecteurPays from "@/components/SelecteurPays";
+import { getPaysActifs, getPaysActuel } from "@/lib/pays";
 
-export default function Footer() {
+export default async function Footer() {
+  const paysActifs = await getPaysActifs();
+  const paysActuel = getPaysActuel();
+
   return (
     <footer className="footer">
       <div className="foot">
@@ -74,6 +79,8 @@ export default function Footer() {
                 +229 53 06 48 72
               </a>
             </span>
+            <span className="sep" aria-hidden="true">·</span>
+            <SelecteurPays paysActifs={paysActifs} paysActuel={paysActuel} />
           </div>
           <div className="foot-bas-ligne">
             <span>© 2026 XwézanEvent — Cotonou, Bénin</span>

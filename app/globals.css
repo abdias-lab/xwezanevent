@@ -3537,6 +3537,13 @@
   .foot-legal .sep {
     opacity: 0.5;
   }
+  .foot-legal .connexion {
+    font: inherit;
+    color: inherit;
+  }
+  .foot-legal .connexion:hover {
+    color: var(--texte);
+  }
   .foot-bas-ligne {
     display: flex;
     justify-content: space-between;

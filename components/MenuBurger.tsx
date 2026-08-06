@@ -3,23 +3,19 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
-import SelecteurPays from "@/components/SelecteurPays";
-import type { PaysOption } from "@/lib/pays";
 
 /**
  * Menu burger mobile (<768px) : reprend exactement les mêmes liens
- * et actions que la nav desktop, masquée à cette largeur.
+ * et actions que la nav desktop, masquée à cette largeur. Le sélecteur
+ * pays (SelecteurPays) n'y figure pas — il vit uniquement dans le footer
+ * (components/Footer.tsx), accessible en scrollant même sur mobile.
  */
 export default function MenuBurger({
   connecte,
   role,
-  paysActifs,
-  paysActuel,
 }: {
   connecte: boolean;
   role: string | null;
-  paysActifs: PaysOption[];
-  paysActuel: string;
 }) {
   const [ouvert, setOuvert] = useState(false);
 
@@ -84,9 +80,6 @@ export default function MenuBurger({
         </nav>
 
         <div className="menu-mobile-compte">
-          <span onClick={fermer}>
-            <SelecteurPays paysActifs={paysActifs} paysActuel={paysActuel} />
-          </span>
           {connecte ? (
             <>
               {role === "admin" && (
