@@ -69,7 +69,7 @@ export default async function Evenements({
   const q = searchParams.q?.trim() || undefined;
   const ville = searchParams.ville?.trim() || undefined;
   const actifs: ParamsRecherche = { categorie: categorieActive, quand: quandActif, q, ville };
-  const pays = getPaysActuel();
+  const pays = await getPaysActuel();
   const [evenements, categories, villesDisponibles] = await Promise.all([
     getEvenementsPublies({ categorie: categorieActive, quand: quandActif, q, ville, pays }),
     getCategoriesPubliees(pays),

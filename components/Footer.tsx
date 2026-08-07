@@ -5,7 +5,7 @@ import { getPaysActifs, getPaysActuel } from "@/lib/pays";
 
 export default async function Footer() {
   const paysActifs = await getPaysActifs();
-  const paysActuel = getPaysActuel();
+  const paysActuel = await getPaysActuel();
 
   return (
     <footer className="footer">

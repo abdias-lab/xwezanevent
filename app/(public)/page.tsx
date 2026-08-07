@@ -105,7 +105,7 @@ const VILLES_PAR_PAYS: Record<string, { rang: string; nom: string }[]> = {
 };
 
 export default async function Accueil() {
-  const pays = getPaysActuel();
+  const pays = await getPaysActuel();
   const [evenements, villes, ticker, compteursCategories, compteursVilles] = await Promise.all([
     getEvenementsPublies({ pays }),
     getVillesPubliees(pays),
