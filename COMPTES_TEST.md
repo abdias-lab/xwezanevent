@@ -309,6 +309,38 @@ Aucun bug trouvé. Nettoyage complet en fin de session (compte + événement
 de test, désactivation du Togo) — vérification automatisée : plus aucune
 trace, table `pays` revenue à son état initial.
 
+## Test du 2026-08-09 (commission par défaut variable par pays)
+
+Test en conditions réelles de `supabase/migrations/20260809120000_taux_commission_defaut_par_pays.sql`
+(colonne `pays.taux_commission_defaut`) et de son branchement dans
+`app/(orga)/creer/actions.ts` : le taux de commission d'un événement à sa
+création est désormais lu depuis le pays choisi, plus depuis le `DEFAULT`
+fixe de la colonne `events.taux_commission`.
+
+Togo temporairement activé pour la durée du test, avec un
+`taux_commission_defaut` volontairement différent du Bénin (0,055 au lieu
+de 0,08) — le seul moyen de prouver que l'événement togolais reçoit bien la
+valeur de la table `pays` et non une coïncidence avec le `DEFAULT` de
+colonne (les deux étant à 0,08 en usage normal). Restauré à 0,08 en fin de
+session (valeur définitive laissée au choix d'Abdias, voir la migration).
+
+Créés puis supprimés (cascade via suppression du compte Auth organisateur) :
+- `test-commission-orga@xwezanevent-test.com` (organisateur)
+- Événement `test-commission-benin` (« [TEST] Commission Bénin »,
+  `pays_code='bj'`), 1 ticket_type Standard (1 000 FCFA × 50)
+- Événement `test-commission-togo` (« [TEST] Commission Togo »,
+  `pays_code='tg'`), 1 ticket_type Standard (1 000 FCFA × 50)
+
+Résultat : événement béninois créé avec `taux_commission = 0.08` (attendu),
+événement togolais créé avec `taux_commission = 0.055` (attendu, valeur de
+test distincte du DEFAULT) — confirmé par requête directe en base après
+soumission du vrai formulaire `/creer` dans le navigateur (pas de bypass).
+
+Aucun bug applicatif trouvé. Nettoyage complet en fin de session (comptes +
+événements de test, Togo redésactivé, `taux_commission_defaut` du Togo
+remis à 0,08) — vérification automatisée : plus aucune trace en base, table
+`pays` revenue à son état initial.
+
 ## Comptes/événements de test actuellement en base
 
 _Aucun à ce jour (voir nettoyages ci-dessus)._ Ajouter ici toute nouvelle

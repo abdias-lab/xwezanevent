@@ -105,7 +105,7 @@ export async function publierEvenement(formData: FormData) {
   // que d'accepter n'importe quelle valeur postée.
   const { data: paysValide } = await supabaseAdmin
     .from("pays")
-    .select("code")
+    .select("code, taux_commission_defaut")
     .eq("code", pays_code)
     .eq("actif", true)
     .maybeSingle();
@@ -149,6 +149,10 @@ export async function publierEvenement(formData: FormData) {
       slug,
       description: description || null,
       pays_code,
+      // Taux du pays au moment de la création, pas le DEFAULT de la colonne
+      // (qui ne reflète que le Bénin) — voir
+      // supabase/migrations/20260809120000_taux_commission_defaut_par_pays.sql.
+      taux_commission: paysValide!.taux_commission_defaut,
       ville,
       lieu,
       date_debut,
