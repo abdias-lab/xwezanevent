@@ -393,9 +393,110 @@ Résultats (demandes soumises via le vrai formulaire `/orga`, navigateur) :
    exactement la même fonction `formaterNumero` que `/orga/reversements`,
    déjà vérifiée en conditions réelles.
 
-Aucun bug trouvé. Nettoyage complet en fin de session (ordre explicite,
-pas de cascade) — vérification automatisée : plus aucune trace en base,
-table `pays` confirmée inchangée (lue avant ET après le test).
+Aucun bug applicatif trouvé. Nettoyage complet en fin de session (ordre
+explicite, pas de cascade) — vérification automatisée : plus aucune trace
+en base, table `pays` confirmée inchangée (lue avant ET après le test).
+
+**Suivi du 2026-08-10 — nettoyage en réalité incomplet, corrigé** : une
+vérification finale demandée séparément a trouvé le compte
+`test-payout-multipays-orga@xwezanevent-test.com` toujours présent, alors
+que la session ci-dessus l'annonçait supprimé. Cause : le script de
+nettoyage n'inspectait pas l'erreur retournée par
+`supabaseAdmin.auth.admin.deleteUser()`, qui échouait silencieusement
+(500). Cause racine trouvée : `journal_actions.acteur_id` référence
+`profiles(id)` **sans** `ON DELETE CASCADE` (contrairement à `payouts` et
+`events`) — les deux entrées de journal « demande de virement » créées par
+ce test bloquaient la suppression en cascade du profil. Corrigé en
+supprimant d'abord ces deux lignes de journal (vérifiées comme bien
+issues de ce test avant suppression), puis le compte — confirmé
+définitivement absent (Auth + `profiles`). Deux processus `next dev`
+orphelins (ports 3000/3001, lancés lors de tests précédents) trouvés
+encore actifs malgré un `TaskStop` déjà exécuté — arrêtés. Événement
+`test-paiement-live` et ses 2 entrées de journal (2026-07-12/18)
+identifiés comme appartenant au compte vitrine « Bénin Live Events »
+(`est_demo=true`), donc volontairement non touchés.
+
+⚠️ **Point de vigilance pour les prochains nettoyages** : `deleteUser()`
+peut échouer silencieusement si le compte a des lignes dans
+`journal_actions` (pas de cascade sur cette table). Toujours vérifier
+`error` sur cet appel, ou supprimer `journal_actions` pour l'acteur avant
+le compte — ne pas se fier au seul message affiché par le script sans
+relecture derrière.
+
+**Correctif appliqué le même jour** : migration
+`20260810120000_journal_actions_acteur_id_set_null.sql` — `acteur_id`
+passe en `ON DELETE SET NULL` (au lieu de RESTRICT implicite), pour
+préserver l'historique du journal même après suppression d'un compte,
+cohérent avec `payouts`/`events` (déjà en CASCADE).
+
+## Audit de non-régression du 2026-08-10 (chantier multi-pays + reversements)
+
+Demandé en fin de session, focalisé sur UNE question : les changements du
+jour (`taux_commission_defaut` par pays, sélecteur pays à la création,
+généralisation des reversements au Togo, correctif `journal_actions`)
+cassent-ils quoi que ce soit pour le Bénin ? Vérifié point par point, en
+conditions réelles quand possible, jamais sur les comptes réels de Jospin
+ou Hollydays Colors.
+
+Créés puis supprimés (événement + compte organisateur + compte acheteur,
+ordre explicite : billets → commandes → ticket_types → événement →
+comptes) :
+- `test-regression-bj-orga@xwezanevent-test.com` /
+  `test-regression-bj-acheteur@xwezanevent-test.com`
+- Événement `test-regression-benin` (« [TEST] Régression Bénin »), créé
+  via le vrai formulaire `/creer` sans toucher au sélecteur pays, 1
+  ticket_type Standard (2 000 FCFA), 1 commande **avec compte** (pas
+  invité), 1 billet
+
+Résultats :
+1. **Achat avec compte** : `POST /api/orders` réel (authentifié, pas de
+   bypass) → commande créée avec `user_id` renseigné et `acheteur_nom`/
+   `acheteur_email`/`acheteur_telephone` tous `NULL` — chemin compte pur,
+   jamais mélangé avec les champs invité. Resoumission immédiate du même
+   panier → même `orderId` (dédup intacte). `finaliserCommande` (identique
+   à l'appel webhook réel) → `"ok"`, 1 billet généré, stock décrémenté,
+   email « Paiement confirmé » réellement envoyé via Resend. Resoumission
+   après paiement → `409 dejaPayee:true`, comportement inchangé. Aucune
+   régression : `app/api/orders/route.ts` et `lib/commandes.ts` n'ont
+   d'ailleurs reçu aucune modification aujourd'hui (vérifié par
+   `git diff --stat` sur les commits du jour).
+2. **Commissions existantes** : lecture directe en base (jamais modifiée) —
+   Jospin (`concours-voice-talent-africa`) et Hollydays Colors
+   (`hollydays-colors-2`) tous deux à `taux_commission=0`, `pays_code='bj'`.
+   Écart avec l'hypothèse de départ (8% pour Hollydays Colors) confirmé par
+   Abdias comme volontaire : 0% offert aux deux comme stratégie de
+   lancement pour ses premiers organisateurs — pas une régression. Confirmé
+   sans lien avec le code de toute façon : cet événement a été créé le
+   2026-07-28 à 06h34, avant même la migration qui a fait passer le défaut
+   à 8% (14h00 le même jour), et aucun code du jour ne touche
+   `events.taux_commission` sur une ligne existante (seul l'`INSERT` à la
+   création lit `taux_commission_defaut`).
+3. **Création d'événement bj normale** : sélecteur pays pré-rempli sur
+   `bj` sans interaction, soumission via le vrai formulaire → événement
+   créé avec `pays_code='bj'` et `taux_commission=0.08`. Rien de cassé par
+   l'ajout du sélecteur/de la détection IP.
+4. **Virement béninois** : preuve par diff — `normaliserBenin` dans
+   `lib/telephone.ts` est identique caractère pour caractère à l'ancien
+   `normaliserNumeroBenin` de `lib/payouts.ts` ; `MOYENS_PAIEMENT` bj
+   inchangé (mtn/moov/celtiis). Complète le test réel déjà effectué la
+   veille (Celtiis, 8→10 chiffres, voir plus haut).
+5. **Catalogue public** : session navigateur fraîche, aucun cookie pays
+   posé → accueil affiche « La billetterie du Bénin » / « Tout le Bénin »,
+   `/evenements` liste exactement les 2 événements béninois réels (aucun
+   événement togolais), comportement identique à la session de référence
+   du 2026-08-05/06.
+6. **Liens directs Jospin/Hollydays Colors** : les deux pages événement
+   chargent normalement (titre, organisateur, billetterie, moyens de
+   paiement MTN/Moov/Celtiis) — vérifié en lecture seule, aucun achat
+   déclenché sur ces comptes réels. `getEvenementParSlug` confirmé non
+   filtré par `pays_code` (relecture de code). `/api/scan` et
+   `lib/billets.ts` confirmés sans aucune référence à `pays`.
+
+**Deux processus `next dev` orphelins retrouvés à nouveau après `TaskStop`**
+(même symptôme que la veille) — tués via PID après vérification du port.
+
+Aucune régression trouvée. Point soulevé sur la commission de Hollydays
+Colors (voir point 2) confirmé volontaire par Abdias le jour même.
 
 ## Comptes/événements de test actuellement en base
 
