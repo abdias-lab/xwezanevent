@@ -2,48 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { MoyenPaiement } from "@/lib/payouts";
+import { normaliserNumero, operateursPays, aidePays, exemplePays, formaterNumero } from "@/lib/telephone";
 
 function fmt(n: number): string {
   return n.toLocaleString("fr-FR");
 }
-
-const LIBELLE_MOYEN: Record<MoyenPaiement, string> = {
-  mtn: "MTN Mobile Money",
-  moov: "Moov Money",
-  celtiis: "Celtiis Money",
-};
-
-/**
- * Miroir client de lib/payouts.ts::normaliserNumeroBenin — dupliqué ici
- * car ce fichier est "server-only" et ne peut pas être importé pour sa
- * valeur d'exécution dans un composant client (seul un `import type` le
- * pourrait). Toute évolution du format doit être répercutée aux deux
- * endroits. Utilisé uniquement pour activer/désactiver le bouton et
- * afficher le récapitulatif — la validation qui compte, et la
- * normalisation réellement stockée, restent côté serveur.
- */
-function normaliserNumeroBeninClient(saisie: string): string | null {
-  const nettoye = saisie.replace(/[\s().-]/g, "").replace(/^\+?229/, "");
-  if (/^01\d{8}$/.test(nettoye)) return nettoye;
-  if (/^\d{8}$/.test(nettoye)) return "01" + nettoye;
-  return null;
-}
-
-/** Formate un numéro normalisé à 10 chiffres pour l'affichage : "0190123456" → "01 90 12 34 56". */
-function formaterNumero(n: string): string {
-  return n.replace(/(\d{2})(?=\d)/g, "$1 ").trim();
-}
-
-const AIDE_NUMERO =
-  "Le numéro doit comporter 10 chiffres et commencer par 01 — exemple : 01 97 12 34 56. " +
-  "Un numéro à 8 chiffres (ancien format) est aussi accepté, le 01 sera ajouté automatiquement.";
 
 export default function DemandeVirement({
   eventId,
   titre,
   disponible,
   tauxCommission,
+  paysCode,
   peutDemander,
   disponibleLe,
 }: {
@@ -52,16 +22,20 @@ export default function DemandeVirement({
   disponible: number;
   /** Taux de commission de CET événement (events.taux_commission, 8% par défaut, peut être 0 sur accord commercial). */
   tauxCommission: number;
+  /** Pays de CET événement (events.pays_code) — détermine les opérateurs proposés et le format de numéro attendu, voir lib/telephone.ts. */
+  paysCode: string;
   /** Calculé côté serveur (lib/payouts.ts, server-only) — jamais recalculé ici. */
   peutDemander: boolean;
   /** Date formatée (ex. "15 juil 2026"), déjà calculée côté serveur. */
   disponibleLe: string;
 }) {
   const router = useRouter();
+  const operateurs = operateursPays(paysCode);
+  const aideNumero = aidePays(paysCode);
   const [ouverte, setOuverte] = useState(false);
   const [etape, setEtape] = useState<"saisie" | "confirmation">("saisie");
   const [montant, setMontant] = useState(String(disponible));
-  const [moyen, setMoyen] = useState<MoyenPaiement>("mtn");
+  const [moyen, setMoyen] = useState(operateurs[0]?.code ?? "");
   const [numero, setNumero] = useState("");
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -73,12 +47,13 @@ export default function DemandeVirement({
     setErreur(null);
   }
 
-  const numeroNormalise = normaliserNumeroBeninClient(numero);
+  const libelleMoyen = operateurs.find((o) => o.code === moyen)?.nom ?? moyen;
+  const numeroNormalise = normaliserNumero(paysCode, numero);
 
   function passerALaConfirmation() {
     setErreur(null);
     if (!numeroNormalise) {
-      setErreur(AIDE_NUMERO);
+      setErreur(aideNumero);
       return;
     }
     setEtape("confirmation");
@@ -163,25 +138,27 @@ export default function DemandeVirement({
                 </div>
                 <div className="champ-bloc">
                   <label htmlFor="moyen">Moyen de paiement</label>
-                  <select id="moyen" value={moyen} onChange={(e) => setMoyen(e.target.value as MoyenPaiement)}>
-                    <option value="mtn">MTN Mobile Money</option>
-                    <option value="moov">Moov Money</option>
-                    <option value="celtiis">Celtiis Money</option>
+                  <select id="moyen" value={moyen} onChange={(e) => setMoyen(e.target.value)}>
+                    {operateurs.map((o) => (
+                      <option key={o.code} value={o.code}>
+                        {o.nom}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="champ-bloc">
                   <label htmlFor="numero">
-                    Numéro {LIBELLE_MOYEN[moyen]} <small>(où recevoir l&apos;argent)</small>
+                    Numéro {libelleMoyen} <small>(où recevoir l&apos;argent)</small>
                   </label>
                   <input
                     id="numero"
                     type="tel"
-                    placeholder="01 97 12 34 56"
+                    placeholder={exemplePays(paysCode)}
                     value={numero}
                     onChange={(e) => setNumero(e.target.value)}
                     required
                   />
-                  <small className="note-virement">{AIDE_NUMERO}</small>
+                  <small className="note-virement">{aideNumero}</small>
                 </div>
                 {erreur && <p style={{ color: "#c4502e" }}>{erreur}</p>}
                 <div className="modale-actions">
@@ -208,14 +185,16 @@ export default function DemandeVirement({
                 <h3>Confirmer le virement</h3>
                 <p>
                   Vous allez recevoir <strong>{fmt(Number(montant))} FCFA</strong> sur le{" "}
-                  <strong>{LIBELLE_MOYEN[moyen]}</strong> numéro{" "}
+                  <strong>{libelleMoyen}</strong> numéro{" "}
                   <strong>{numeroNormalise ? formaterNumero(numeroNormalise) : numero}</strong>.
                 </p>
-                {numeroNormalise && !numero.replace(/[\s().-]/g, "").replace(/^\+?229/, "").startsWith("01") && (
-                  <p style={{ color: "var(--texte2)", fontSize: "0.85rem" }}>
-                    (préfixe 01 ajouté automatiquement à ton numéro à 8 chiffres)
-                  </p>
-                )}
+                {paysCode === "bj" &&
+                  numeroNormalise &&
+                  !numero.replace(/[\s().-]/g, "").replace(/^\+?229/, "").startsWith("01") && (
+                    <p style={{ color: "var(--texte2)", fontSize: "0.85rem" }}>
+                      (préfixe 01 ajouté automatiquement à ton numéro à 8 chiffres)
+                    </p>
+                  )}
                 <p style={{ color: "var(--texte2)", fontSize: "0.85rem" }}>
                   Vérifiez bien ce numéro avant de confirmer — c&apos;est là que l&apos;argent sera envoyé.
                 </p>

@@ -32,6 +32,7 @@ interface EventOrga {
   date_debut: string;
   statut: string;
   taux_commission: number;
+  pays_code: string;
   ticket_types: { prix: number; quantite_totale: number; quantite_vendue: number }[];
 }
 
@@ -57,7 +58,7 @@ export default async function Orga() {
     supabase
       .from("events")
       .select(
-        "id, titre, slug, date_debut, statut, taux_commission, ticket_types(prix, quantite_totale, quantite_vendue)"
+        "id, titre, slug, date_debut, statut, taux_commission, pays_code, ticket_types(prix, quantite_totale, quantite_vendue)"
       )
       .eq("organisateur_id", user.id)
       .order("date_debut", { ascending: false }),
@@ -224,6 +225,7 @@ export default async function Orga() {
                               titre={ev.titre}
                               disponible={disponible}
                               tauxCommission={ev.taux_commission}
+                              paysCode={ev.pays_code}
                               peutDemander={peutDemander}
                               disponibleLe={disponibleLe}
                             />

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import Logo from "@/components/Logo";
+import { formaterNumero } from "@/lib/telephone";
 
 export const metadata: Metadata = {
   title: "Mes reversements — XwézanEvent",
@@ -11,10 +12,6 @@ export const metadata: Metadata = {
 
 function fmt(n: number): string {
   return n.toLocaleString("fr-FR");
-}
-
-function formaterNumero(n: string): string {
-  return /^\d{10}$/.test(n) ? n.replace(/(\d{2})(?=\d)/g, "$1 ").trim() : n;
 }
 
 function formatDateHeure(iso: string): string {

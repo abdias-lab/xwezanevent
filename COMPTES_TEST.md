@@ -341,6 +341,62 @@ Aucun bug applicatif trouvé. Nettoyage complet en fin de session (comptes +
 remis à 0,08) — vérification automatisée : plus aucune trace en base, table
 `pays` revenue à son état initial.
 
+**Incident de nettoyage découvert après coup** : le nettoyage ci-dessus a
+remis `tg.actif` à `false` sans avoir lu son état réel avant modification —
+supposé à tort à partir de l'historique de ce fichier plutôt que vérifié en
+base. Abdias avait en fait activé `tg` manuellement avant cette session ;
+le nettoyage l'a donc écrasé par erreur (corrigé manuellement par Abdias
+après coup). Correctif de méthode appliqué dès le test suivant : toujours
+lire l'état réel d'une config partagée avant de la modifier, restaurer
+exactement cette valeur capturée plutôt qu'une valeur supposée.
+
+## Test du 2026-08-09 (reversements — Togo, Flooz/Mixx by Yas)
+
+Test en conditions réelles de l'étape 4 du chantier multi-pays
+(`lib/telephone.ts`, `supabase/migrations/20260809130000_payouts_multi_pays.sql`) :
+généralisation de la demande de virement organisateur au Togo (opérateurs
+Flooz/Mixx by Yas, numéros à 8 chiffres) en plus du Bénin (MTN/Moov/Celtiis,
+10 chiffres). Table `pays` non modifiée pour ce test (bj et tg déjà tous
+deux `actif=true` — état lu et vérifié identique avant et après, voir
+correctif de méthode ci-dessus).
+
+Créés puis supprimés (tickets → commandes → payouts → ticket_types →
+événements → compte, dans cet ordre explicite plutôt que via cascade) :
+- `test-payout-multipays-orga@xwezanevent-test.com` (organisateur)
+- Événement `test-payout-benin` (« [TEST] Payout BJ », `pays_code='bj'`,
+  daté J-7 pour satisfaire le délai J+3), 1 ticket_type Standard, 1 commande
+  invité payée (3 billets, `gbedoloabdias@gmail.com`)
+- Événement `test-payout-togo` (« [TEST] Payout TG », `pays_code='tg'`,
+  même montage), 1 ticket_type Standard, 1 commande invité payée
+
+Résultats (demandes soumises via le vrai formulaire `/orga`, navigateur) :
+1. Événement béninois : sélecteur « Moyen de paiement » propose MTN/Moov/
+   Celtiis. Demande soumise en Celtiis avec un numéro à 8 chiffres (`97 12
+   34 56`) → complété automatiquement en `0197123456` (10 chiffres),
+   confirmé à l'écran avant envoi. Stocké en base : `moyen=celtiis`,
+   `numero_destination=0197123456`.
+2. Événement togolais : sélecteur ne propose QUE Flooz/Mixx by Yas (aucun
+   MTN/Moov/Celtiis). Demande soumise en Mixx by Yas avec `92345678` (8
+   chiffres, aucun complément — comportement attendu, le Togo n'a pas
+   l'équivalent de la tolérance "ancien format" du Bénin). Stocké en base :
+   `moyen=yas`, `numero_destination=92345678`.
+3. Les deux formats ont été acceptés par le CHECK desserré
+   (`^[0-9]{8,10}$`) sans erreur — confirme que la migration
+   20260809130000 fonctionne pour les deux pays.
+4. `/orga/reversements` affiche les deux numéros correctement groupés par 2
+   chiffres (`01 97 12 34 56` et `92 34 56 78`) — confirme que le retrait du
+   garde `\d{10}` dans `formaterNumero` (déplacé vers `lib/telephone.ts`)
+   fonctionne pour les deux longueurs.
+5. `/admin/reversements` non testé en conditions réelles (pas d'accès au
+   mot de passe du compte admin réel `gbedoloabdias@gmail.com` — refus
+   délibéré de le réinitialiser pour un test) : cette page importe
+   exactement la même fonction `formaterNumero` que `/orga/reversements`,
+   déjà vérifiée en conditions réelles.
+
+Aucun bug trouvé. Nettoyage complet en fin de session (ordre explicite,
+pas de cascade) — vérification automatisée : plus aucune trace en base,
+table `pays` confirmée inchangée (lue avant ET après le test).
+
 ## Comptes/événements de test actuellement en base
 
 _Aucun à ce jour (voir nettoyages ci-dessus)._ Ajouter ici toute nouvelle

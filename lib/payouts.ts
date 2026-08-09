@@ -2,35 +2,6 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { aujourdhuiPortoNovo, ajouterJours } from "@/lib/date";
 
-export const MOYENS_PAIEMENT = ["mtn", "moov", "celtiis"] as const;
-export type MoyenPaiement = (typeof MOYENS_PAIEMENT)[number];
-
-/**
- * Normalise un numéro Mobile Money béninois saisi par un organisateur
- * (donnée client, jamais de confiance) : tolère espaces/points/tirets et
- * l'indicatif +229, rejette tout ce qui ne correspond pas à un numéro
- * béninois valide. Format stocké : 10 chiffres, préfixe "01" (migration
- * ARCEP du 30 novembre 2024). Tolère aussi la saisie d'un ancien numéro à
- * 8 chiffres (habitude fréquente vu la récence de la migration) en lui
- * ajoutant automatiquement le préfixe "01" — la forme normalisée (donc
- * potentiellement complétée) est ensuite montrée à l'organisateur à
- * l'écran de récapitulatif, jamais stockée sans qu'il l'ait vue. Ne
- * vérifie pas la cohérence entre le préfixe et l'opérateur choisi
- * (moyen) — volontairement, pour ne pas rejeter à tort un numéro valide
- * sur la base d'une liste de préfixes non garantie à jour.
- */
-export function normaliserNumeroBenin(saisie: string): string | null {
-  const nettoye = saisie.replace(/[\s().-]/g, "").replace(/^\+?229/, "");
-  if (/^01\d{8}$/.test(nettoye)) return nettoye;
-  if (/^\d{8}$/.test(nettoye)) return "01" + nettoye;
-  return null;
-}
-
-/** Message d'erreur/aide unique pour le format de numéro, réutilisé
- * côté serveur (route) et client (formulaire) pour rester cohérent. */
-export const AIDE_NUMERO_BENIN =
-  "Le numéro doit comporter 10 chiffres et commencer par 01 — exemple : 01 97 12 34 56 (un numéro à 8 chiffres sans le 01 est aussi accepté, il sera complété automatiquement).";
-
 /** Délai (jours) après la tenue de l'événement avant qu'un virement soit demandable. */
 export const DELAI_PAYOUT_JOURS = 3;
 

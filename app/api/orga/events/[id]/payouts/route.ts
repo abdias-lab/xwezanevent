@@ -3,13 +3,10 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifierProprietaireEvenement } from "@/lib/orga-auth";
 import {
   montantDisponible,
-  MOYENS_PAIEMENT,
-  type MoyenPaiement,
   dateDisponibilitePayout,
   payoutDisponible,
-  normaliserNumeroBenin,
-  AIDE_NUMERO_BENIN,
 } from "@/lib/payouts";
+import { normaliserNumero, operateursPays, aidePays } from "@/lib/telephone";
 import { journaliserAction } from "@/lib/journal";
 
 /**
@@ -26,7 +23,7 @@ export async function POST(
 
   const { data: event, error: eventError } = await supabaseAdmin
     .from("events")
-    .select("statut, date_debut")
+    .select("statut, date_debut, pays_code")
     .eq("id", params.id)
     .single();
 
@@ -53,17 +50,20 @@ export async function POST(
     );
   }
 
+  // Opérateurs valides pour CE pays (jamais une liste globale fixe) — voir
+  // lib/telephone.ts : le Togo et le Bénin n'ont aucun opérateur en commun.
+  const operateursValides = operateursPays(event.pays_code).map((o) => o.code);
   const body = await req.json().catch(() => ({}));
   const moyen = body?.moyen as unknown;
-  if (typeof moyen !== "string" || !MOYENS_PAIEMENT.includes(moyen as MoyenPaiement)) {
+  if (typeof moyen !== "string" || !operateursValides.includes(moyen)) {
     return NextResponse.json({ error: "Moyen de paiement invalide" }, { status: 400 });
   }
 
   const numeroSaisi = body?.numero as unknown;
   const numeroDestination =
-    typeof numeroSaisi === "string" ? normaliserNumeroBenin(numeroSaisi) : null;
+    typeof numeroSaisi === "string" ? normaliserNumero(event.pays_code, numeroSaisi) : null;
   if (!numeroDestination) {
-    return NextResponse.json({ error: AIDE_NUMERO_BENIN }, { status: 400 });
+    return NextResponse.json({ error: aidePays(event.pays_code) }, { status: 400 });
   }
 
   const disponible = await montantDisponible(params.id);

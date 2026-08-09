@@ -6,6 +6,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import FiltreStatutPayouts from "@/components/admin/FiltreStatutPayouts";
 import Logo from "@/components/Logo";
+import { formaterNumero } from "@/lib/telephone";
 
 export const metadata: Metadata = {
   title: "Reversements — Administration — XwézanEvent",
@@ -13,10 +14,6 @@ export const metadata: Metadata = {
 
 function fmt(n: number): string {
   return n.toLocaleString("fr-FR");
-}
-
-function formaterNumero(n: string): string {
-  return /^\d{10}$/.test(n) ? n.replace(/(\d{2})(?=\d)/g, "$1 ").trim() : n;
 }
 
 function formatDateHeure(iso: string): string {
