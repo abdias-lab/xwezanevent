@@ -24,6 +24,8 @@ export interface ConfirmationCommandeData {
   /** Prix exact des billets — aucun frais de service XwézanEvent ajouté (voir /tarifs). */
   total: number;
   lienBillets: string;
+  /** Pays de CET événement (events.pays_code) — pour le pied de l'email, voir lib/emails/layout.ts. */
+  paysCode: string;
 }
 
 export function emailConfirmationCommande(d: ConfirmationCommandeData): {
@@ -71,6 +73,6 @@ ${boutonEmail("Voir mes billets", d.lienBillets)}
 
   return {
     subject: `Paiement confirmé — ${d.titreEvenement}`,
-    html: enveloppeEmail(contenu, `Tes billets pour ${d.titreEvenement} sont prêts`),
+    html: enveloppeEmail(contenu, `Tes billets pour ${d.titreEvenement} sont prêts`, d.paysCode),
   };
 }

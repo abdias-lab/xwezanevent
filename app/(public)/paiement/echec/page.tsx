@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import RelancerPaiement from "@/components/RelancerPaiement";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { listeOperateursCourt } from "@/lib/telephone";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -39,10 +40,10 @@ interface OrderRow {
   id: string;
   statut: string;
   user_id: string | null;
-  events: { titre: string; slug: string } | null;
+  events: { titre: string; slug: string; pays_code: string } | null;
 }
 
-const SELECTION_COMMANDE = "id, statut, user_id, events(titre, slug)";
+const SELECTION_COMMANDE = "id, statut, user_id, events(titre, slug, pays_code)";
 
 export default async function PaiementEchec({
   searchParams,
@@ -107,7 +108,7 @@ export default async function PaiementEchec({
 
         <p className="note-c">
           🔒 Ton paiement se fait toujours via FedaPay, de façon sécurisée
-          (Mobile Money MTN, Moov, Celtiis).
+          (Mobile Money {listeOperateursCourt(order.events?.pays_code ?? "bj")}).
         </p>
 
         {order.events && (

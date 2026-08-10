@@ -189,7 +189,7 @@ export default async function EvenementDetail({
             </Link>
           </aside>
         ) : (
-          <Billetterie slug={ev.slug} titre={ev.titre} ticketTypes={ev.ticketTypes} />
+          <Billetterie slug={ev.slug} titre={ev.titre} ticketTypes={ev.ticketTypes} paysCode={ev.paysCode} />
         )}
       </div>
 

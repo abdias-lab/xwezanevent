@@ -81,3 +81,36 @@ export async function getPaysActifs(): Promise<PaysOption[]> {
   }
   return data ?? [];
 }
+
+/**
+ * Adjectif démonymique (accord féminin) utilisé dans les textes marketing
+ * du contexte de navigation (« la scène béninoise/togolaise »). Volontairement
+ * en dur en TS plutôt qu'en colonne `pays` : même raisonnement que les
+ * opérateurs Mobile Money (lib/telephone.ts) — un fait linguistique
+ * structurel, qui ne change qu'au rythme de l'ajout d'un nouveau pays (donc
+ * déjà un changement de code de toute façon), pas un levier business à
+ * ajuster en base.
+ */
+export const ADJECTIF_PAR_PAYS: Record<string, string> = {
+  bj: "béninoise",
+  tg: "togolaise",
+};
+
+/**
+ * Détail (code, nom, drapeau) du pays actuellement parcouru — pratique
+ * partout où un texte doit afficher le NOM du pays (pas seulement filtrer
+ * dessus), pour éviter de refaire `getPaysActifs().find(...)` à chaque
+ * appelant. Repli sur PAYS_DEFAUT/'Bénin' si jamais le pays courant n'est
+ * plus dans la liste des actifs (cookie périmé après désactivation d'un
+ * pays, par exemple) — jamais de nom vide affiché.
+ */
+export async function getPaysActuelDetail(): Promise<PaysOption> {
+  const [code, actifs] = await Promise.all([getPaysActuel(), getPaysActifs()]);
+  return (
+    actifs.find((p) => p.code === code) ?? {
+      code: PAYS_DEFAUT,
+      nom: "Bénin",
+      drapeau: "🇧🇯",
+    }
+  );
+}

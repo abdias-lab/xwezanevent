@@ -459,6 +459,8 @@
   .dot-mtn,
   .dot-moov,
   .dot-celtiis,
+  .dot-flooz,
+  .dot-yas,
   .dot-qr {
     width: 10px;
     height: 10px;
@@ -475,6 +477,16 @@
     /* Couleur approximative, non vérifiée contre une charte officielle
        Celtiis — à ajuster si besoin. */
     background: #f7941d;
+  }
+  .dot-flooz {
+    /* Couleur approximative (Flooz, Moov Africa Togo), non vérifiée contre
+       une charte officielle — à ajuster si besoin. */
+    background: #e94e1b;
+  }
+  .dot-yas {
+    /* Couleur approximative (Mixx by Yas, Yas Togo), non vérifiée contre
+       une charte officielle — à ajuster si besoin. */
+    background: #7c3aed;
   }
   .dot-qr {
     background: #5e8c4a;

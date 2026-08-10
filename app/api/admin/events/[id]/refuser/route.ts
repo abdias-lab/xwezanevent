@@ -25,7 +25,7 @@ export async function POST(
     .update({ statut: "refuse", motif_refus: motif })
     .eq("id", params.id)
     .eq("statut", "en_validation")
-    .select("id, titre, organisateur_id")
+    .select("id, titre, organisateur_id, pays_code")
     .maybeSingle();
 
   if (error) {
@@ -54,6 +54,7 @@ export async function POST(
         titre: data.titre,
         motif,
         lienOrga: `${origine}/orga`,
+        paysCode: data.pays_code,
       });
       await envoyerEmail({ to: destinataire, subject, html });
     }

@@ -13,7 +13,18 @@ export function echapperHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-export function enveloppeEmail(contenu: string, preheader?: string): string {
+// Nom d'affichage du pays dans le pied des emails — en dur ici plutôt
+// qu'importé de lib/pays.ts (backé par Supabase) : ce fichier reste une
+// couche de présentation pure, sans dépendance base de données. Les
+// appelants qui connaissent le pays_code d'UN événement/UNE commande
+// précis le passent en 3ᵉ argument (jamais le contexte de navigation du
+// visiteur, qui n'a pas de sens pour un email déjà lié à un achat) ; les
+// appelants sans contexte événement (ex. contact.ts) laissent le repli
+// Bénin, comportement inchangé.
+const NOM_PAYS_EMAIL: Record<string, string> = { bj: "Bénin", tg: "Togo" };
+
+export function enveloppeEmail(contenu: string, preheader?: string, paysCode?: string): string {
+  const nomPays = NOM_PAYS_EMAIL[paysCode ?? ""] ?? "Bénin";
   return `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -32,7 +43,7 @@ ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;"
 ${contenu}
 </td></tr>
 <tr><td style="padding:20px 32px;border-top:1px solid rgba(228,169,63,0.16);color:#b7a88f;font-size:12px;line-height:1.6;">
-XwézanEvent — La billetterie du Bénin<br />Mì wá djawá ! · La fête vous attend.
+XwézanEvent — La billetterie du ${nomPays}<br />Mì wá djawá ! · La fête vous attend.
 </td></tr>
 </table>
 </td></tr>

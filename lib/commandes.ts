@@ -95,7 +95,7 @@ async function envoyerConfirmationCommande(
       userId ? emailUtilisateur(userId) : Promise.resolve(acheteurEmail),
       supabaseAdmin
         .from("events")
-        .select("titre, date_debut, heure, lieu, ville")
+        .select("titre, date_debut, heure, lieu, ville, pays_code")
         .eq("id", eventId)
         .maybeSingle(),
       supabaseAdmin.from("ticket_types").select("id, nom").in("id", idsTypes),
@@ -138,6 +138,7 @@ async function envoyerConfirmationCommande(
       billets,
       total,
       lienBillets: `${origine}/confirmation?order=${orderId}`,
+      paysCode: ev.pays_code,
     });
 
     return await envoyerEmail({ to: destinataire, subject, html, attachments: piecesJointes });
@@ -178,6 +179,7 @@ export async function envoyerRecapitulatifBillets(
 
     const commandes: CommandeRecap[] = [];
     const piecesJointes: { filename: string; content: Buffer; contentId: string }[] = [];
+    const paysCodes = new Set<string>();
 
     for (const order of orders) {
       const { data: tickets } = await supabaseAdmin
@@ -191,12 +193,13 @@ export async function envoyerRecapitulatifBillets(
       const [{ data: ev }, { data: types }] = await Promise.all([
         supabaseAdmin
           .from("events")
-          .select("titre, date_debut, heure, lieu, ville")
+          .select("titre, date_debut, heure, lieu, ville, pays_code")
           .eq("id", order.event_id)
           .maybeSingle(),
         supabaseAdmin.from("ticket_types").select("id, nom").in("id", idsTypes),
       ]);
       if (!ev) continue;
+      paysCodes.add(ev.pays_code);
 
       const nomParId = new Map((types ?? []).map((t) => [t.id, t.nom]));
 
@@ -245,6 +248,10 @@ export async function envoyerRecapitulatifBillets(
     const { subject, html } = emailRecapitulatifBillets({
       commandes,
       lienBillets: `${origine}/billet`,
+      // undefined si les commandes regroupées couvrent plusieurs pays (voir
+      // le commentaire de RecapitulatifBilletsData.paysCode) — repli sur
+      // Bénin dans enveloppeEmail plutôt que d'inventer un pays.
+      paysCode: paysCodes.size === 1 ? Array.from(paysCodes)[0] : undefined,
     });
 
     return await envoyerEmail({ to: destinataireEmail, subject, html, attachments: piecesJointes });

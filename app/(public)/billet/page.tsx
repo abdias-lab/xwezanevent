@@ -1,5 +1,6 @@
 import Link from "next/link";
 import RetrouverBilletForm from "@/components/RetrouverBilletForm";
+import PanneauMarketing from "@/components/PanneauMarketing";
 import { creerClientServeur } from "@/lib/supabase-server";
 import Logo from "@/components/Logo";
 import type { Metadata } from "next";
@@ -17,19 +18,14 @@ export default async function RetrouverBillet() {
 
   return (
     <div className="split">
-      <div className="marque">
-        <div className="applique" aria-hidden="true" />
-        <div style={{ position: "relative" }}>
-          <span className="eyebrow">La billetterie du Bénin</span>
-          <h1>
+      <PanneauMarketing
+        titre={
+          <>
             Ton billet <span className="fete">t&apos;attend.</span>
-          </h1>
-          <p>
-            Pas de panique — deux façons rapides de le retrouver avant
-            d&apos;entrer.
-          </p>
-        </div>
-      </div>
+          </>
+        }
+        description="Pas de panique — deux façons rapides de le retrouver avant d'entrer."
+      />
 
       <div className="cote-form">
         <div className="boite">

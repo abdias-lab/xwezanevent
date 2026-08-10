@@ -146,6 +146,8 @@ export interface EvenementDetail {
   date_debut: string;
   heure: string | null;
   affiche_url: string | null;
+  /** Pays de CET événement — jamais le contexte de navigation du visiteur (voir getEvenementParSlug). Détermine les opérateurs Mobile Money affichés au checkout. */
+  paysCode: string;
   /** Toutes les images (principale incluse), triées par ordre d'affichage — pour le carrousel de la page événement. */
   images: { url: string; principale: boolean }[];
   /** true si l'événement est passé (date_debut < aujourd'hui, ou statut déjà 'termine') */
@@ -166,6 +168,7 @@ interface EventDetailRow {
   date_debut: string;
   heure: string | null;
   affiche_url: string | null;
+  pays_code: string;
   statut: string;
   est_demo: boolean;
   organisateur: { nom: string } | null;
@@ -205,7 +208,7 @@ export async function getEvenementParSlug(
   const { data, error } = await supabase
     .from("events")
     .select(
-      "slug, titre, description, ville, lieu, date_debut, heure, affiche_url, statut, est_demo, organisateur:profiles(nom), ticket_types(id, nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale, ordre)"
+      "slug, titre, description, ville, lieu, date_debut, heure, affiche_url, pays_code, statut, est_demo, organisateur:profiles(nom), ticket_types(id, nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale, ordre)"
     )
     .eq("slug", slug)
     .in("statut", ["publie", "termine"])
@@ -231,6 +234,7 @@ export async function getEvenementParSlug(
     date_debut: row.date_debut,
     heure: row.heure,
     affiche_url: row.affiche_url,
+    paysCode: row.pays_code,
     images: row.event_images.map((i) => ({ url: i.url, principale: i.principale })),
     estTermine,
     organisateurNom: row.organisateur?.nom ?? null,

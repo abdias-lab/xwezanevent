@@ -1,6 +1,6 @@
 import { enveloppeEmail, boutonEmail, echapperHtml } from "@/lib/emails/layout";
 
-export function emailEvenementValide(d: { titre: string; lienEvenement: string }): {
+export function emailEvenementValide(d: { titre: string; lienEvenement: string; paysCode: string }): {
   subject: string;
   html: string;
 } {
@@ -13,7 +13,7 @@ ${boutonEmail("Voir mon événement", d.lienEvenement)}`;
 
   return {
     subject: `« ${d.titre} » est en ligne`,
-    html: enveloppeEmail(contenu, `${d.titre} est validé et publié`),
+    html: enveloppeEmail(contenu, `${d.titre} est validé et publié`, d.paysCode),
   };
 }
 
@@ -21,6 +21,7 @@ export function emailEvenementRefuse(d: {
   titre: string;
   motif: string | null;
   lienOrga: string;
+  paysCode: string;
 }): { subject: string; html: string } {
   const contenu = `
 <h1 style="margin:0 0 12px;font-size:20px;color:#f3eada;">Événement non validé</h1>
@@ -36,6 +37,6 @@ ${boutonEmail("Voir mon espace organisateur", d.lienOrga, "contour")}`;
 
   return {
     subject: `« ${d.titre} » n'a pas été validé`,
-    html: enveloppeEmail(contenu, `${d.titre} n'a pas été validé`),
+    html: enveloppeEmail(contenu, `${d.titre} n'a pas été validé`, d.paysCode),
   };
 }

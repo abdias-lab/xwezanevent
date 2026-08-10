@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { getPaysActuel } from "@/lib/pays";
+import { listeOperateursCourt } from "@/lib/telephone";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
@@ -15,7 +17,13 @@ interface Question {
   r: ReactNode;
 }
 
-const QUESTIONS_ACHETEURS: Question[] = [
+/**
+ * Fonction plutôt que tableau statique : la réponse "moyens de paiement"
+ * dépend du contexte pays (opérateurs différents Bénin/Togo, voir
+ * lib/telephone.ts), donc doit être reconstruite avec la bonne valeur à
+ * chaque rendu plutôt que figée une fois au chargement du module.
+ */
+const questionsAcheteurs = (operateurs: string): Question[] => [
   {
     q: "Comment acheter un billet ?",
     r: (
@@ -30,7 +38,7 @@ const QUESTIONS_ACHETEURS: Question[] = [
   },
   {
     q: "Quels moyens de paiement acceptez-vous ?",
-    r: "Pour l'instant, le paiement se fait en Mobile Money — MTN, Moov et Celtiis. Nous travaillons à ajouter d'autres moyens de paiement très prochainement.",
+    r: `Pour l'instant, le paiement se fait en Mobile Money — ${operateurs}. Nous travaillons à ajouter d'autres moyens de paiement très prochainement.`,
   },
   {
     q: "Je n'ai pas reçu mon billet, que faire ?",
@@ -168,7 +176,9 @@ function ListeQuestions({ questions }: { questions: Question[] }) {
   );
 }
 
-export default function Faq() {
+export default async function Faq() {
+  const pays = await getPaysActuel();
+  const operateurs = listeOperateursCourt(pays);
   return (
     <>
       <Header />
@@ -184,7 +194,7 @@ export default function Faq() {
 
         <div className="bloc">
           <h2>Acheteurs</h2>
-          <ListeQuestions questions={QUESTIONS_ACHETEURS} />
+          <ListeQuestions questions={questionsAcheteurs(operateurs)} />
         </div>
 
         <div className="bloc">

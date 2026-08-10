@@ -21,7 +21,7 @@ export async function POST(
     .update({ statut: "publie" })
     .eq("id", params.id)
     .eq("statut", "en_validation")
-    .select("id, titre, slug, organisateur_id")
+    .select("id, titre, slug, organisateur_id, pays_code")
     .maybeSingle();
 
   if (error) {
@@ -48,6 +48,7 @@ export async function POST(
       const { subject, html } = emailEvenementValide({
         titre: data.titre,
         lienEvenement: `${origine}/evenement/${data.slug}`,
+        paysCode: data.pays_code,
       });
       await envoyerEmail({ to: destinataire, subject, html });
     }

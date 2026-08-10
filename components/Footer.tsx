@@ -2,10 +2,14 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import SelecteurPays from "@/components/SelecteurPays";
 import { getPaysActifs, getPaysActuel } from "@/lib/pays";
+import { operateursPays } from "@/lib/telephone";
 
 export default async function Footer() {
   const paysActifs = await getPaysActifs();
   const paysActuel = await getPaysActuel();
+  const paysActuelDetail = paysActifs.find((p) => p.code === paysActuel);
+  const nomPays = paysActuelDetail?.nom ?? "Bénin";
+  const operateurs = operateursPays(paysActuel);
 
   return (
     <footer className="footer">
@@ -14,22 +18,16 @@ export default async function Footer() {
           <div>
             <Logo />
             <p className="pitch">
-              La billetterie en ligne du Bénin. Découvrez, réservez, vibrez —
+              La billetterie en ligne du {nomPays}. Découvrez, réservez, vibrez —
               payez comme vous vivez, en Mobile Money.
             </p>
             <div className="paiements">
-              <span className="moyen">
-                <span className="dot-mtn" aria-hidden="true" />
-                MTN MoMo
-              </span>
-              <span className="moyen">
-                <span className="dot-moov" aria-hidden="true" />
-                Moov Money
-              </span>
-              <span className="moyen">
-                <span className="dot-celtiis" aria-hidden="true" />
-                Celtiis Money
-              </span>
+              {operateurs.map((o) => (
+                <span className="moyen" key={o.code}>
+                  <span className={`dot-${o.code}`} aria-hidden="true" />
+                  {o.nom}
+                </span>
+              ))}
             </div>
           </div>
 

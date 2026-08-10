@@ -17,6 +17,8 @@
 export interface OperateurMobileMoney {
   code: string;
   nom: string;
+  /** Libellé court pour une phrase marketing en ligne (« MTN, Moov ou Celtiis ») — distinct de `nom` (utilisé pour les pastilles/select, où la place ne manque pas). */
+  nomCourt: string;
 }
 
 export interface ConfigTelephonePays {
@@ -54,9 +56,9 @@ export const TELEPHONE_PAR_PAYS: Record<string, ConfigTelephonePays> = {
   bj: {
     indicatif: "+229",
     operateurs: [
-      { code: "mtn", nom: "MTN Mobile Money" },
-      { code: "moov", nom: "Moov Money" },
-      { code: "celtiis", nom: "Celtiis Money" },
+      { code: "mtn", nom: "MTN Mobile Money", nomCourt: "MTN" },
+      { code: "moov", nom: "Moov Money", nomCourt: "Moov" },
+      { code: "celtiis", nom: "Celtiis Money", nomCourt: "Celtiis" },
     ],
     normaliser: normaliserBenin,
     aide:
@@ -72,8 +74,8 @@ export const TELEPHONE_PAR_PAYS: Record<string, ConfigTelephonePays> = {
     // manuellement, sans avoir à croiser avec le pays à chaque ligne).
     indicatif: "+228",
     operateurs: [
-      { code: "flooz", nom: "Flooz" },
-      { code: "yas", nom: "Mixx by Yas" },
+      { code: "flooz", nom: "Flooz", nomCourt: "Flooz" },
+      { code: "yas", nom: "Mixx by Yas", nomCourt: "Mixx by Yas" },
     ],
     normaliser: normaliserTogo,
     aide: "Le numéro doit comporter 8 chiffres — exemple : 90 12 34 56.",
@@ -87,6 +89,14 @@ export function normaliserNumero(paysCode: string, saisie: string): string | nul
 
 export function operateursPays(paysCode: string): OperateurMobileMoney[] {
   return TELEPHONE_PAR_PAYS[paysCode]?.operateurs ?? [];
+}
+
+/** Phrase courte listant les opérateurs d'un pays pour un texte marketing : "MTN, Moov ou Celtiis" / "Flooz ou Mixx by Yas". */
+export function listeOperateursCourt(paysCode: string): string {
+  const noms = operateursPays(paysCode).map((o) => o.nomCourt);
+  if (noms.length === 0) return "";
+  if (noms.length === 1) return noms[0];
+  return `${noms.slice(0, -1).join(", ")} ou ${noms[noms.length - 1]}`;
 }
 
 export function aidePays(paysCode: string): string {

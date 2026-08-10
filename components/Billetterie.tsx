@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { TicketTypeDetail } from "@/lib/events";
+import { listeOperateursCourt } from "@/lib/telephone";
 
 function fmt(n: number): string {
   // toLocaleString('fr-FR') insère des espaces fines insécables : \s les
@@ -17,11 +18,14 @@ export default function Billetterie({
   titre,
   ticketTypes,
   limiteVente,
+  paysCode,
 }: {
   slug: string;
   titre: string;
   ticketTypes: TicketTypeDetail[];
   limiteVente?: string;
+  /** Pays de CET événement (events.pays_code) — jamais le contexte de navigation du visiteur. Détermine les opérateurs affichés dans la ligne de confiance. */
+  paysCode: string;
 }) {
   const [quantites, setQuantites] = useState<Record<string, number>>({});
 
@@ -307,8 +311,8 @@ export default function Billetterie({
         </button>
       )}
       <p className="securise">
-        🔒 Paiement 100&nbsp;% sécurisé via FedaPay — Mobile Money MTN, Moov,
-        Celtiis
+        🔒 Paiement 100&nbsp;% sécurisé via FedaPay — Mobile Money{" "}
+        {listeOperateursCourt(paysCode)}
       </p>
 
       <div className="actions-ev">

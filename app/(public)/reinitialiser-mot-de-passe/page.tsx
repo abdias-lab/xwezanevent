@@ -1,4 +1,5 @@
 import ReinitialiserMotDePasseForm from "@/components/ReinitialiserMotDePasseForm";
+import PanneauMarketing from "@/components/PanneauMarketing";
 import { creerClientServeur } from "@/lib/supabase-server";
 import type { Metadata } from "next";
 
@@ -25,19 +26,7 @@ export default async function ReinitialiserMotDePasse({
 
   return (
     <div className="split">
-      <div className="marque">
-        <div className="applique" aria-hidden="true" />
-        <div style={{ position: "relative" }}>
-          <span className="eyebrow">La billetterie du Bénin</span>
-          <h1>
-            Rejoins la scène <span className="fete">béninoise.</span>
-          </h1>
-          <p>
-            Concerts, festivals, soirées — tout le Bénin dans ta poche, un
-            billet à la fois.
-          </p>
-        </div>
-      </div>
+      <PanneauMarketing />
 
       <div className="cote-form">
         <ReinitialiserMotDePasseForm lienValide={lienValide} />

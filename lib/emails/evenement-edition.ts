@@ -9,6 +9,7 @@ export function emailEvenementDateModifiee(d: {
   titre: string;
   dateAffichee: string;
   lienEvenement: string;
+  paysCode: string;
 }): { subject: string; html: string } {
   const contenu = `
 <h1 style="margin:0 0 12px;font-size:20px;color:#f3eada;">La date de l'événement a changé</h1>
@@ -20,6 +21,6 @@ ${boutonEmail("Voir l'événement", d.lienEvenement)}`;
 
   return {
     subject: `Changement de date — « ${d.titre} »`,
-    html: enveloppeEmail(contenu, `La date de ${d.titre} a changé`),
+    html: enveloppeEmail(contenu, `La date de ${d.titre} a changé`, d.paysCode),
   };
 }

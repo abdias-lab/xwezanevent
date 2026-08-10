@@ -1,6 +1,8 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import BoutonOr from "@/components/BoutonOr";
+import { getPaysActuel } from "@/lib/pays";
+import { listeOperateursCourt } from "@/lib/telephone";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -9,7 +11,9 @@ export const metadata: Metadata = {
     "Une seule commission de 8%, prélevée uniquement sur les billets vendus. Pas d'abonnement, pas de frais cachés.",
 };
 
-export default function Tarifs() {
+export default async function Tarifs() {
+  const pays = await getPaysActuel();
+  const operateurs = listeOperateursCourt(pays);
   return (
     <>
       <Header />
@@ -40,7 +44,7 @@ export default function Tarifs() {
           <p>
             De ton côté, à chaque demande de reversement, XwézanEvent retient
             8% du montant des ventes de l&apos;événement concerné. Le reste
-            part directement sur ton compte MTN, Moov ou Celtiis Money.
+            part directement sur ton compte {operateurs}.
           </p>
 
           <div className="encadre">
@@ -69,7 +73,7 @@ export default function Tarifs() {
           <div className="inclus-grille">
             <div className="inclus-item">
               <span className="ic">📱</span>
-              Paiement Mobile Money (MTN, Moov &amp; Celtiis) intégré, prêt à
+              Paiement Mobile Money ({operateurs}) intégré, prêt à
               l&apos;emploi
             </div>
             <div className="inclus-item">

@@ -1,4 +1,5 @@
 import AuthForm from "@/components/AuthForm";
+import PanneauMarketing from "@/components/PanneauMarketing";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -28,29 +29,12 @@ export default async function Connexion({
 
   return (
     <div className="split">
-      <div className="marque">
-        <div className="applique" aria-hidden="true" />
-        <div style={{ position: "relative" }}>
-          <span className="eyebrow">La billetterie du Bénin</span>
-          <h1>
-            Rejoins la scène <span className="fete">béninoise.</span>
-          </h1>
-          <p>
-            Concerts, festivals, soirées — tout le Bénin dans ta poche, un
-            billet à la fois.
-          </p>
-          <div className="stats">
-            <div className="stat">
-              <div className="n">248</div>
-              <div className="l">Événements / mois</div>
-            </div>
-            <div className="stat">
-              <div className="n">72k</div>
-              <div className="l">Festivaliers</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PanneauMarketing
+        stats={[
+          { n: "248", l: "Événements / mois" },
+          { n: "72k", l: "Festivaliers" },
+        ]}
+      />
 
       <div className="cote-form">
         <AuthForm redirect={dest} />

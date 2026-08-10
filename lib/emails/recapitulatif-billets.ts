@@ -18,6 +18,14 @@ export interface CommandeRecap {
 export interface RecapitulatifBilletsData {
   commandes: CommandeRecap[];
   lienBillets: string;
+  /**
+   * Pays à afficher dans le pied de l'email — undefined si les commandes
+   * regroupées couvrent plusieurs pays différents (repli Bénin dans
+   * lib/emails/layout.ts) : ce récapitulatif peut mélanger des événements
+   * de pays différents pour une même adresse, contrairement à
+   * confirmation-commande.ts qui ne concerne toujours qu'UN événement.
+   */
+  paysCode?: string;
 }
 
 /**
@@ -78,6 +86,6 @@ ${boutonEmail("Voir mes billets", d.lienBillets)}
 
   return {
     subject: `Tes billets XwézanEvent (${nbBillets} billet${nbBillets > 1 ? "s" : ""})`,
-    html: enveloppeEmail(contenu, `Récapitulatif de tes ${nbBillets} billet${nbBillets > 1 ? "s" : ""} XwézanEvent`),
+    html: enveloppeEmail(contenu, `Récapitulatif de tes ${nbBillets} billet${nbBillets > 1 ? "s" : ""} XwézanEvent`, d.paysCode),
   };
 }

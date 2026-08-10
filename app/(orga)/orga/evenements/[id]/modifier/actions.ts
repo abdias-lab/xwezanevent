@@ -65,7 +65,7 @@ export async function modifierEvenement(eventId: string, formData: FormData) {
 
   const { data: event } = await supabaseAdmin
     .from("events")
-    .select("id, organisateur_id, titre, slug, date_debut, est_demo")
+    .select("id, organisateur_id, titre, slug, date_debut, est_demo, pays_code")
     .eq("id", eventId)
     .maybeSingle();
 
@@ -183,6 +183,7 @@ export async function modifierEvenement(eventId: string, formData: FormData) {
             titre: event.titre,
             dateAffichee: formatDateLongue(date_debut),
             lienEvenement,
+            paysCode: event.pays_code,
           });
           await envoyerEmail({ to: destinataire, subject, html });
         } catch (e) {
