@@ -32,6 +32,29 @@ export async function validerBilletParCodeQr(
   return data as ScanResult;
 }
 
+/**
+ * Miroir de validerBilletParCodeQr pour le scan par lien délégué (voir
+ * supabase/migrations/20260811120000_lien_scan_evenement.sql) : appelle
+ * `valider_billet_lien`, dont l'autorisation ne repose pas sur un compte
+ * mais uniquement sur `eventId` — déjà résolu depuis le jeton par
+ * l'appelant (lib/scan-liens.ts), jamais fourni par le client sans
+ * vérification.
+ */
+export async function validerBilletParCodeQrEtEvenement(
+  codeQr: string,
+  eventId: string
+): Promise<ScanResult> {
+  const { data, error } = await supabaseAdmin.rpc("valider_billet_lien", {
+    p_code_qr: codeQr,
+    p_event_id: eventId,
+  });
+  if (error) {
+    console.error("[billets] RPC valider_billet_lien :", error.message);
+    throw error;
+  }
+  return data as ScanResult;
+}
+
 export interface BilletTrouve {
   ticket_id: string;
   code_qr: string;
@@ -59,7 +82,7 @@ function normaliserFragmentReference(texte: string): string {
 }
 
 /** Événements possédés par cet organisateur (pour scoper la recherche). */
-async function idsEvenementsOrganisateur(organisateurId: string): Promise<string[]> {
+export async function idsEvenementsOrganisateur(organisateurId: string): Promise<string[]> {
   const { data } = await supabaseAdmin
     .from("events")
     .select("id")
@@ -70,21 +93,22 @@ async function idsEvenementsOrganisateur(organisateurId: string): Promise<string
 /**
  * Recherche des billets par nom d'acheteur, email, ou référence de
  * commande (les 8 premiers caractères de l'id, affichés à l'acheteur sous
- * la forme "#XWZ-XXXXXXXX"). Scopée aux événements de `organisateurId`
- * (null = admin, pas de scope) — même filtre que celui appliqué en base
- * par `valider_billet` : si ce filtre applicatif avait un bug, la
- * validation elle-même refuserait quand même (défense en profondeur).
+ * la forme "#XWZ-XXXXXXXX"). Scopée à `eventIdsAutorises` (null = pas de
+ * scope, réservé à l'admin) — même filtre que celui appliqué en base par
+ * `valider_billet`/`valider_billet_lien` : si ce filtre applicatif avait un
+ * bug, la validation elle-même refuserait quand même (défense en
+ * profondeur). Le calcul de la liste (tous les événements d'un
+ * organisateur, ou un seul événement pour un lien de scan délégué) est la
+ * responsabilité de l'appelant — voir app/api/scan/recherche/route.ts et
+ * app/api/scan/lien/recherche/route.ts.
  */
 export async function rechercherBillets(
   texte: string,
-  organisateurId: string | null
+  eventIdsAutorises: string[] | null
 ): Promise<BilletTrouve[]> {
   const requete = texte.trim();
   if (!requete) return [];
 
-  const eventIdsAutorises = organisateurId
-    ? await idsEvenementsOrganisateur(organisateurId)
-    : null;
   if (eventIdsAutorises && eventIdsAutorises.length === 0) return [];
 
   const ordreIds = new Set<string>();

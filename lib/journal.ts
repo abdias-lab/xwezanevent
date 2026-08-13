@@ -8,8 +8,8 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
  * d'erreur seulement), car la conséquence métier a déjà eu lieu.
  */
 export async function journaliserAction(
-  acteurId: string,
-  acteurRole: "admin" | "organisateur",
+  acteurId: string | null,
+  acteurRole: "admin" | "organisateur" | "lien_scan",
   action: string,
   detail?: Record<string, unknown>
 ) {

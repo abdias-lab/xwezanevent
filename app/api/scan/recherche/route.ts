@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { rechercherBillets } from "@/lib/billets";
+import { rechercherBillets, idsEvenementsOrganisateur } from "@/lib/billets";
 import { verifierPersonnelScan } from "@/lib/scan-auth";
 
 /**
@@ -20,7 +20,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const billets = await rechercherBillets(q, role === "admin" ? null : userId);
+    const eventIds = role === "admin" ? null : await idsEvenementsOrganisateur(userId);
+    const billets = await rechercherBillets(q, eventIds);
     return NextResponse.json({ billets });
   } catch (e) {
     console.error("[api/scan/recherche] :", e);

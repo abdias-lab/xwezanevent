@@ -15,7 +15,13 @@ interface BilletTrouve {
 }
 
 type ValidationResult =
-  | { ok: true; nom_titulaire: string; type_billet: string; event_titre: string }
+  | {
+      ok: true;
+      nom_titulaire: string;
+      type_billet: string;
+      event_titre: string;
+      compteur?: { scannes: number; total: number };
+    }
   | { ok: false; raison: string; utilise_le?: string };
 
 const LABEL_STATUT: Record<string, string> = {
@@ -47,7 +53,19 @@ function labelEchec(r: ValidationResult & { ok: false }): string {
   return msgs[r.raison] ?? "Refusé";
 }
 
-export default function RechercheManuelle() {
+export default function RechercheManuelle({
+  apiRecherche = "/api/scan/recherche",
+  apiManuel = "/api/scan/manuel",
+  extraBody,
+  onValidation,
+}: {
+  apiRecherche?: string;
+  apiManuel?: string;
+  /** Fusionné dans le corps de chaque requête (ex. { token } pour un lien de scan délégué) — jamais l'event_id, toujours re-résolu côté serveur depuis le token. */
+  extraBody?: Record<string, string>;
+  /** Appelé après une validation réussie, avec le compteur à jour si fourni par l'API (lien de scan uniquement). */
+  onValidation?: (compteur?: { scannes: number; total: number }) => void;
+} = {}) {
   const [q, setQ] = useState("");
   const [enCours, setEnCours] = useState(false);
   const [resultats, setResultats] = useState<BilletTrouve[] | null>(null);
@@ -61,10 +79,10 @@ export default function RechercheManuelle() {
     setErreur(null);
     setMessages({});
     try {
-      const res = await fetch("/api/scan/recherche", {
+      const res = await fetch(apiRecherche, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ q }),
+        body: JSON.stringify({ q, ...extraBody }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -84,10 +102,10 @@ export default function RechercheManuelle() {
   async function valider(billet: BilletTrouve) {
     setEnValidation(billet.ticket_id);
     try {
-      const res = await fetch("/api/scan/manuel", {
+      const res = await fetch(apiManuel, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code_qr: billet.code_qr }),
+        body: JSON.stringify({ code_qr: billet.code_qr, ...extraBody }),
       });
       const data: ValidationResult = await res.json();
       if (data.ok) {
@@ -97,6 +115,7 @@ export default function RechercheManuelle() {
             b.ticket_id === billet.ticket_id ? { ...b, statut: "utilise" } : b
           )
         );
+        onValidation?.(data.compteur);
       } else {
         setMessages((m) => ({ ...m, [billet.ticket_id]: `✗ ${labelEchec(data)}` }));
       }

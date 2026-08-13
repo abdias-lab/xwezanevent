@@ -2,6 +2,7 @@ import Link from "next/link";
 import BoutonDeconnexion from "@/components/BoutonDeconnexion";
 import ActionsEvenementOrga from "@/components/orga/ActionsEvenementOrga";
 import DemandeVirement from "@/components/orga/DemandeVirement";
+import LienScan from "@/components/orga/LienScan";
 import Logo from "@/components/Logo";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { dateDisponibilitePayout, payoutDisponible } from "@/lib/payouts";
@@ -33,6 +34,7 @@ interface EventOrga {
   statut: string;
   taux_commission: number;
   pays_code: string;
+  lien_scan_token: string | null;
   ticket_types: { prix: number; quantite_totale: number; quantite_vendue: number }[];
 }
 
@@ -58,7 +60,7 @@ export default async function Orga() {
     supabase
       .from("events")
       .select(
-        "id, titre, slug, date_debut, statut, taux_commission, pays_code, ticket_types(prix, quantite_totale, quantite_vendue)"
+        "id, titre, slug, date_debut, statut, taux_commission, pays_code, lien_scan_token, ticket_types(prix, quantite_totale, quantite_vendue)"
       )
       .eq("organisateur_id", user.id)
       .order("date_debut", { ascending: false }),
@@ -229,6 +231,9 @@ export default async function Orga() {
                               peutDemander={peutDemander}
                               disponibleLe={disponibleLe}
                             />
+                          )}
+                          {ev.statut === "publie" && (
+                            <LienScan eventId={ev.id} lienInitial={ev.lien_scan_token} />
                           )}
                           <a
                             className="btn btn-ghost"

@@ -4,7 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import RechercheManuelle from "./RechercheManuelle";
 
 type ScanResult =
-  | { ok: true; nom_titulaire: string; type_billet: string; event_titre: string }
+  | {
+      ok: true;
+      nom_titulaire: string;
+      type_billet: string;
+      event_titre: string;
+      compteur?: { scannes: number; total: number };
+    }
   | { ok: false; raison: string; utilise_le?: string };
 
 const READER_ID = "xwz-scan-reader";
@@ -34,13 +40,39 @@ function labelRaison(r: ScanResult & { ok: false }): string {
   return msgs[r.raison] ?? "Refusé";
 }
 
-export default function ScannerClient() {
+export default function ScannerClient({
+  titre = "Scan des billets",
+  lienRetour = "/orga",
+  apiScan = "/api/scan",
+  apiRecherche = "/api/scan/recherche",
+  apiManuel = "/api/scan/manuel",
+  extraBody,
+  compteurInitial,
+}: {
+  titre?: string;
+  /** null masque le lien de retour — pas de dashboard à proposer pour un lien de scan délégué (aucun accès dessus de toute façon). */
+  lienRetour?: string | null;
+  apiScan?: string;
+  apiRecherche?: string;
+  apiManuel?: string;
+  /** Fusionné dans le corps de chaque requête de scan (ex. { token } pour un lien de scan délégué) — jamais l'event_id, toujours re-résolu côté serveur depuis le token. */
+  extraBody?: Record<string, string>;
+  /** Repère non financier (billets scannés / vendus) — affiché uniquement s'il est fourni (lien de scan délégué). */
+  compteurInitial?: { scannes: number; total: number };
+} = {}) {
   const [mode, setMode] = useState<"scan" | "recherche">("scan");
   const [result, setResult] = useState<ScanResult | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [compteur, setCompteur] = useState(compteurInitial);
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const lockedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref plutôt que dépendances d'effet : évite de redémarrer la caméra
+  // (scanner.start() est coûteux et perturbant en plein scan) si ces props
+  // changeaient de référence entre deux rendus — toujours lues à jour dans
+  // la closure ci-dessous sans faire partie du tableau de dépendances.
+  const configRef = useRef({ apiScan, extraBody });
+  configRef.current = { apiScan, extraBody };
 
   const resetScan = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -77,15 +109,20 @@ export default function ScannerClient() {
             } catch {}
 
             try {
-              const res = await fetch("/api/scan", {
+              const { apiScan: url, extraBody: corps } = configRef.current;
+              const res = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code_qr: text }),
+                body: JSON.stringify({ code_qr: text, ...corps }),
               });
               if (!alive) return;
               const data: ScanResult = await res.json();
               setResult(data);
-              if (!data.ok) navigator.vibrate?.([100, 80, 300]);
+              if (data.ok) {
+                if (data.compteur) setCompteur(data.compteur);
+              } else {
+                navigator.vibrate?.([100, 80, 300]);
+              }
             } catch {
               if (alive) setResult({ ok: false, raison: "inconnu" });
             }
@@ -135,18 +172,20 @@ export default function ScannerClient() {
           flexShrink: 0,
         }}
       >
-        <a
-          href="/orga"
-          style={{
-            color: "#e4a93f",
-            fontSize: "1.5rem",
-            lineHeight: 1,
-            textDecoration: "none",
-          }}
-          aria-label="Retour"
-        >
-          ←
-        </a>
+        {lienRetour && (
+          <a
+            href={lienRetour}
+            style={{
+              color: "#e4a93f",
+              fontSize: "1.5rem",
+              lineHeight: 1,
+              textDecoration: "none",
+            }}
+            aria-label="Retour"
+          >
+            ←
+          </a>
+        )}
         <span
           style={{
             fontWeight: 700,
@@ -154,8 +193,21 @@ export default function ScannerClient() {
             letterSpacing: "-0.01em",
           }}
         >
-          Scan des billets
+          {titre}
         </span>
+        {compteur && (
+          <span
+            style={{
+              fontSize: "0.8rem",
+              color: "#b7a88f",
+              background: "#1f1710",
+              borderRadius: 999,
+              padding: "4px 10px",
+            }}
+          >
+            {compteur.scannes} / {compteur.total} scannés
+          </span>
+        )}
 
         <div style={{ marginLeft: "auto", display: "flex", gap: 4, background: "#1f1710", borderRadius: 10, padding: 3 }}>
           <button
@@ -243,7 +295,12 @@ export default function ScannerClient() {
           overflow: "hidden",
         }}
       >
-        <RechercheManuelle />
+        <RechercheManuelle
+          apiRecherche={apiRecherche}
+          apiManuel={apiManuel}
+          extraBody={extraBody}
+          onValidation={(c) => c && setCompteur(c)}
+        />
       </div>
 
       {/* Overlay résultat */}
