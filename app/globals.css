@@ -3556,6 +3556,16 @@
   .foot-legal .connexion:hover {
     color: var(--texte);
   }
+  .instagram-lien {
+    display: inline-flex;
+    align-items: center;
+    color: var(--texte2);
+    transition: color 0.2s;
+    vertical-align: -3px;
+  }
+  .instagram-lien:hover {
+    color: var(--accent);
+  }
   .foot-bas-ligne {
     display: flex;
     justify-content: space-between;
