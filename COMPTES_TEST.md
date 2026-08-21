@@ -498,15 +498,73 @@ Résultats :
 Aucune régression trouvée. Point soulevé sur la commission de Hollydays
 Colors (voir point 2) confirmé volontaire par Abdias le jour même.
 
+## Audit du 2026-08-21 (vérification en base réelle)
+
+Demande : confirmer si des comptes de test « n'ont plus lieu d'être »
+traînent encore en base, au-delà de ce que ce fichier documente déjà.
+Vérification en lecture seule (`auth.users`, `profiles`, `events`, `orders`,
+`tickets` interrogés directement via `supabaseAdmin`) — **aucune
+suppression effectuée**, décision laissée à Abdias.
+
+Confirmé : aucun compte au format `test-*@xwezanevent-test.com` ne traîne
+(la convention de nommage des sessions ci-dessus a bien été respectée à
+chaque nettoyage). En revanche, deux comptes personnels d'Abdias utilisés
+pour tester en conditions réelles n'étaient trackés nulle part dans ce
+fichier — voir tableau ci-dessous.
+
+Repéré au passage : l'événement `test-paiement-live` (« Test Paiement
+Live ») porte 3 commandes ratées/abandonnées côté Bénin Live Events
+(`echoue`/`en_attente`) en plus de la commande payée que sa migration
+(`20260726120000_test_paiement_live_demo.sql`) documente déjà comme
+volontairement conservée — ces 3-là n'étaient pas mentionnées.
+
+**Suivi du même jour — vérification que les commandes `en_attente` sur les
+événements de Jospin et Hollydays Colors ne sont pas de vraies tentatives
+de clients**, demandée avant toute décision de nettoyage. Vérifié via
+`acheteur_nom`/`acheteur_email`/`acheteur_telephone` (pas seulement les
+dates) :
+- `36cca6d9…` (Hollydays Colors, 5 000 F) : nom « Marie », mais email
+  `gbedoloabdias@gmail.com` et téléphone `0197965989` — ceux d'Abdias.
+- `9b4828c0…` (Hollydays Colors, 5 000 F) : nom « Aïcha **Test** Invitée »,
+  email `invite.test@xwezan-test.com` — explicitement un test.
+- `102ae0d4…` (Concours Voice Talent Africa, 1 000 F) : nom « abdias »,
+  email `gbedoloabdias@gmail.com`.
+- `f13788d5…` (Concours Voice Talent Africa, 1 000 F) : nom « julie »,
+  email `julien@gmail.com` (incohérent avec le nom), mais téléphone
+  `0197965989` — encore celui d'Abdias, sous une 3e identité différente.
+
+**Conclusion : confirmé résidus de test, pas des clients réels** — le même
+téléphone (`0197965989`) revient sous trois identités fictives différentes
+(« Marie », « abdias », « julie »). Seule vraie vente sur ces deux
+événements : `46445f53…` sur Hollydays Colors (« ALIDOU »,
+`almolevrai@gmail.com`, `0190388966` — aucun lien avec Abdias), billet
+valide, **à garder**.
+
+Cas distinct, non résolu : `4e5c24b8…` (Concours Voice Talent Africa,
+1 000 F, `en_attente`) a été passée par le compte de **Jospin lui-même**
+(pas un invité fictif) — ni un test d'Abdias, ni un client. Probablement
+Jospin testant son propre événement après création. Décision à prendre
+séparément.
+
+Aucun impact stock à prévoir pour un nettoyage éventuel : `reserver_stock_billet()`
+(qui décrémente `ticket_types.quantite_vendue`) n'est appelé que dans
+`finaliserCommande()` au moment du paiement, jamais à la création d'une
+commande `en_attente` — vérifié en base, `quantite_vendue` des ticket_types
+concernés ne reflète que les ventes réellement payées.
+
 ## Comptes/événements de test actuellement en base
 
-_Aucun à ce jour (voir nettoyages ci-dessus)._ Ajouter ici toute nouvelle
-donnée de test créée d'ici le lancement (ex. via `npm run seed` ou
-`npm run seed:payout-test`), pour ne pas la perdre de vue.
+Table mise à jour suite à l'audit ci-dessus. Rien n'a été supprimé sauf
+mention contraire — décisions restantes à trancher par Abdias.
 
-| Email / Événement | Rôle / Origine | Créé le |
-|---|---|---|
-| _(vide)_ | | |
+| Compte / Commande | Rôle / Origine | Créé le | À faire |
+|---|---|---|---|
+| `abdiasmentorverfi@gmail.com` (« Marc », visiteur) | Compte personnel d'Abdias, utilisé comme acheteur pour valider le paiement live sur `test-paiement-live` (billet payé + utilisé, **à garder**, voir migration `20260726120000`) | 2026-07-21 | Garder le compte (porte la commande payée) ; les 3 autres commandes de ce compte (voir ligne suivante) sont du bruit |
+| → 3 commandes abandonnées de « Marc » : `7ac36e9f…` (5 000 F, Racines & Tambours), `2d36c733…` (10 000 F, Nuit de l'Afrobeat), `f949a4c5…` (5 000 F, **Hollydays Colors** — événement d'un organisateur réel) | `en_attente`, jamais finalisées | 2026-07-22 / 2026-08-05 | Script de nettoyage préparé le 2026-08-21, en attente de relecture/exécution par Abdias |
+| `gbedoloabdias+testy@gmail.com` (« Abdias », visiteur) | Compte personnel d'Abdias (plus-adressing sur son propre email), aucune commande liée | 2026-08-04 | À supprimer si plus utile aux tests |
+| 2 commandes `echoue`/`en_attente` de Bénin Live Events sur `test-paiement-live` (`317db7b7…`, `00b82bcb…`, `5736e42b…`) | Tentatives ratées avant la commande payée conservée | 2026-07-22 / 2026-07-24 | À supprimer (bruit autour de la commande à garder) |
+| Commande `en_attente` de Jospin sur son propre événement (`4e5c24b8…`, 1 000 F) | Compte réel, commande de test sur son propre événement — probablement Jospin lui-même, pas Abdias | 2026-07-26 | Décision à prendre séparément (pas traitée comme du bruit de test Abdias) |
+| Commandes invité `en_attente` sur **Hollydays Colors** (`9b4828c0…`, `36cca6d9…`) et **Concours Voice Talent Africa** (`102ae0d4…`, `f13788d5…`) | Confirmées résidus de test d'Abdias (email/téléphone d'Abdias sous identités fictives, voir audit ci-dessus) | 2026-08-04 / 2026-08-05 / 2026-08-10 | À supprimer (confirmé, pas des clients) — nettoyage pas encore autorisé |
 
 Note (pas une donnée de test à nettoyer par nous) : une commande payée
 réelle existe sur l'événement vitrine CONCOURS VOICE TALENT AFRICA
