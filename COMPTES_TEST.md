@@ -555,17 +555,22 @@ concernés ne reflète que les ventes réellement payées.
 
 ## Comptes/événements de test actuellement en base
 
-Table mise à jour suite à l'audit ci-dessus. Rien n'a été supprimé sauf
-mention contraire — décisions restantes à trancher par Abdias.
+_Aucun à ce jour._ Nettoyage complet du 2026-08-21 (voir audit ci-dessus)
+exécuté et vérifié par Abdias — `scripts/nettoyage_2026-08-21_final.sql`,
+0 ligne restante confirmée sur les 3 vérifications (commandes + compte
+Auth + profil). Détail de ce qui a été traité :
 
-| Compte / Commande | Rôle / Origine | Créé le | À faire |
+| Compte / Commande | Rôle / Origine | Créé le | Résultat |
 |---|---|---|---|
-| `abdiasmentorverfi@gmail.com` (« Marc », visiteur) | Compte personnel d'Abdias, utilisé comme acheteur pour valider le paiement live sur `test-paiement-live` (billet payé + utilisé, **à garder**, voir migration `20260726120000`) | 2026-07-21 | Compte gardé (porte la commande payée) |
-| → 3 commandes abandonnées de « Marc » : `7ac36e9f…` (5 000 F, Racines & Tambours), `2d36c733…` (10 000 F, Nuit de l'Afrobeat), `f949a4c5…` (5 000 F, **Hollydays Colors** — événement d'un organisateur réel) | `en_attente`, jamais finalisées | 2026-07-22 / 2026-08-05 | **Supprimées le 2026-08-21** (script relu et exécuté par Abdias, 0 ligne restante vérifié) |
-| `gbedoloabdias+testy@gmail.com` (« Abdias », visiteur) | Compte personnel d'Abdias (plus-adressing sur son propre email) | 2026-08-04 | Revérifié le 2026-08-21 : 0 ligne dans `orders`/`events`/`payouts`/`journal_actions` — aucune donnée liée. Script de suppression (compte + profil) préparé, en attente de relecture/exécution par Abdias |
-| 3 commandes `echoue`/`en_attente` de Bénin Live Events sur `test-paiement-live` (`317db7b7…`, `00b82bcb…`, `5736e42b…`) | Tentatives ratées avant la commande payée conservée | 2026-07-22 / 2026-07-24 | Script de nettoyage préparé le 2026-08-21, en attente de relecture/exécution par Abdias |
-| Commande `en_attente` de Jospin sur son propre événement (`4e5c24b8…`, 1 000 F) | Compte réel, Jospin testant probablement son propre événement — comportement normal d'organisateur | 2026-07-26 | **Conservée** (décision d'Abdias, 2026-08-21) — pas du bruit de test à nettoyer |
-| Commandes invité `en_attente` sur **Hollydays Colors** (`9b4828c0…`, `36cca6d9…`) et **Concours Voice Talent Africa** (`102ae0d4…`, `f13788d5…`) | Confirmées résidus de test d'Abdias (email/téléphone d'Abdias sous identités fictives, voir audit ci-dessus) | 2026-08-04 / 2026-08-05 / 2026-08-10 | Suppression confirmée par Abdias le 2026-08-21 — script préparé, en attente d'exécution |
+| `abdiasmentorverfi@gmail.com` (« Marc », visiteur) | Compte personnel d'Abdias, utilisé comme acheteur pour valider le paiement live sur `test-paiement-live` (billet payé + utilisé) | 2026-07-21 | **Gardé** — porte la commande payée `e1c9dce5…`, voir migration `20260726120000` |
+| → 3 commandes abandonnées de « Marc » : `7ac36e9f…` (5 000 F, Racines & Tambours), `2d36c733…` (10 000 F, Nuit de l'Afrobeat), `f949a4c5…` (5 000 F, Hollydays Colors) | `en_attente`, jamais finalisées | 2026-07-22 / 2026-08-05 | **Supprimées le 2026-08-21** |
+| `gbedoloabdias+testy@gmail.com` (« Abdias », visiteur) | Compte personnel d'Abdias, aucune donnée liée (revérifié juste avant suppression) | 2026-08-04 | **Compte + profil supprimés le 2026-08-21** (cascade `auth.users` → `profiles`) |
+| 3 commandes `echoue`/`en_attente` de Bénin Live Events sur `test-paiement-live` (`317db7b7…`, `00b82bcb…`, `5736e42b…`) | Tentatives ratées avant la commande payée conservée | 2026-07-22 / 2026-07-24 | **Supprimées le 2026-08-21** |
+| Commande `en_attente` de Jospin sur son propre événement (`4e5c24b8…`, 1 000 F) | Compte réel, Jospin testant probablement son propre événement — comportement normal d'organisateur | 2026-07-26 | **Conservée** (décision d'Abdias, 2026-08-21) — pas du bruit de test |
+| Commandes invité `en_attente` sur Hollydays Colors (`9b4828c0…`, `36cca6d9…`) et Concours Voice Talent Africa (`102ae0d4…`, `f13788d5…`) | Résidus de test d'Abdias (email/téléphone d'Abdias sous identités fictives) | 2026-08-04 / 2026-08-05 / 2026-08-10 | **Supprimées le 2026-08-21** |
+
+Ajouter ici toute nouvelle donnée de test créée d'ici le lancement (ex. via
+`npm run seed` ou `npm run seed:payout-test`), pour ne pas la perdre de vue.
 
 Note (pas une donnée de test à nettoyer par nous) : une commande payée
 réelle existe sur l'événement vitrine CONCOURS VOICE TALENT AFRICA
