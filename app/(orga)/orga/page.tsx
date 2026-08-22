@@ -56,7 +56,7 @@ export default async function Orga() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/connexion?redirect=/orga");
 
-  const [{ data }, { data: payoutsData }] = await Promise.all([
+  const [{ data }, { data: payoutsData }, { data: profil }] = await Promise.all([
     supabase
       .from("events")
       .select(
@@ -69,6 +69,7 @@ export default async function Orga() {
       .select("event_id, montant, statut")
       .eq("organisateur_id", user.id)
       .in("statut", ["demande", "traite"]),
+    supabase.from("profiles").select("nom_public").eq("id", user.id).maybeSingle(),
   ]);
 
   const events = (data as unknown as EventOrga[]) ?? [];
@@ -142,6 +143,17 @@ export default async function Orga() {
             Voir le site →
           </Link>
         </div>
+
+        {!profil?.nom_public && (
+          <p className="alerte-info">
+            Le nom affiché publiquement sur tes événements est actuellement ton
+            nom personnel —{" "}
+            <Link href="/orga/parametres" style={{ color: "var(--texte)", textDecoration: "underline", fontWeight: 600 }}>
+              personnalise-le dans les Paramètres
+            </Link>
+            .
+          </p>
+        )}
 
         <div className="kpis">
           <div className="kpi">
