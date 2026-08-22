@@ -77,6 +77,7 @@ export default async function OrgaReversements() {
         </Link>
         <Link className="item" href="/scan" style={{ marginTop: 8 }}>📷 Scanner les billets</Link>
         <Link className="item actif" href="/orga/reversements" style={{ marginTop: 8 }}>🏦 Mes reversements</Link>
+        <Link className="item" href="/orga/parametres" style={{ marginTop: 8 }}>⚙️ Paramètres</Link>
 
         <div className="bas">
           <BoutonDeconnexion />

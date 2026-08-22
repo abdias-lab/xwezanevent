@@ -152,7 +152,7 @@ export interface EvenementDetail {
   images: { url: string; principale: boolean }[];
   /** true si l'événement est passé (date_debut < aujourd'hui, ou statut déjà 'termine') */
   estTermine: boolean;
-  /** Nom public de l'organisateur (profiles.nom, seule colonne accordée à anon/public sur profiles). */
+  /** Nom affiché publiquement (profiles.nom_public si renseigné, sinon repli sur profiles.nom — voir 20260822120000_nom_public_organisateurs.sql). */
   organisateurNom: string | null;
   /** Événement vitrine (démo) : billetterie désactivée côté serveur, voir /api/orders. */
   estDemo: boolean;
@@ -171,7 +171,7 @@ interface EventDetailRow {
   pays_code: string;
   statut: string;
   est_demo: boolean;
-  organisateur: { nom: string } | null;
+  organisateur: { nom: string; nom_public: string | null } | null;
   ticket_types: {
     id: string;
     nom: string;
@@ -208,7 +208,7 @@ export async function getEvenementParSlug(
   const { data, error } = await supabase
     .from("events")
     .select(
-      "slug, titre, description, ville, lieu, date_debut, heure, affiche_url, pays_code, statut, est_demo, organisateur:profiles(nom), ticket_types(id, nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale, ordre)"
+      "slug, titre, description, ville, lieu, date_debut, heure, affiche_url, pays_code, statut, est_demo, organisateur:profiles(nom, nom_public), ticket_types(id, nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale, ordre)"
     )
     .eq("slug", slug)
     .in("statut", ["publie", "termine"])
@@ -237,7 +237,7 @@ export async function getEvenementParSlug(
     paysCode: row.pays_code,
     images: row.event_images.map((i) => ({ url: i.url, principale: i.principale })),
     estTermine,
-    organisateurNom: row.organisateur?.nom ?? null,
+    organisateurNom: row.organisateur?.nom_public || row.organisateur?.nom || null,
     estDemo: row.est_demo,
     ticketTypes: row.ticket_types
       .map((t) => ({
