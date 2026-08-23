@@ -37,6 +37,8 @@ export default function FormulaireCreation({
   const [description, setDescription] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [dateDebut, setDateDebut] = useState("");
+  const [multiJours, setMultiJours] = useState(false);
+  const [dateFin, setDateFin] = useState("");
   const [heure, setHeure] = useState("");
   const [lieu, setLieu] = useState("");
   const [ville, setVille] = useState(VILLES[0]);
@@ -66,7 +68,7 @@ export default function FormulaireCreation({
   const check = {
     titre: titre.trim().length > 1,
     description: description.trim().length > 0,
-    date: !!dateDebut,
+    date: !!dateDebut && (!multiJours || (!!dateFin && dateFin >= dateDebut)),
     lieu: lieu.trim().length > 0 && !!ville && !!pays,
     affiche: !!apercuPrincipal,
     billetterie: ticketsValides.length > 0,
@@ -155,6 +157,32 @@ export default function FormulaireCreation({
               />
             </div>
           </div>
+          <div className="champ-bloc">
+            <label className="case">
+              <input
+                type="checkbox"
+                checked={multiJours}
+                onChange={(e) => {
+                  setMultiJours(e.target.checked);
+                  if (!e.target.checked) setDateFin("");
+                }}
+              />
+              Cet événement dure plusieurs jours
+            </label>
+          </div>
+          {multiJours && (
+            <div className="champ-bloc">
+              <label htmlFor="date_fin">Date de fin *</label>
+              <input
+                id="date_fin"
+                name="date_fin"
+                type="date"
+                min={dateDebut || undefined}
+                value={dateFin}
+                onChange={(e) => setDateFin(e.target.value)}
+              />
+            </div>
+          )}
           <div className="champ-bloc">
             <label htmlFor="pays_code">Pays *</label>
             <select

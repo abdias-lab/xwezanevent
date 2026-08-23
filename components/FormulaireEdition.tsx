@@ -32,6 +32,7 @@ export default function FormulaireEdition({
   pays,
   description: descriptionInitiale,
   dateDebut: dateDebutInitiale,
+  dateFin: dateFinInitiale,
   heure: heureInitiale,
   categoriesInitiales,
   imagesInitiales,
@@ -44,12 +45,15 @@ export default function FormulaireEdition({
   pays: string | null;
   description: string;
   dateDebut: string;
+  dateFin: string | null;
   heure: string;
   categoriesInitiales: string[];
   imagesInitiales: { url: string }[];
 }) {
   const [description, setDescription] = useState(descriptionInitiale);
   const [dateDebut, setDateDebut] = useState(dateDebutInitiale);
+  const [multiJours, setMultiJours] = useState(!!dateFinInitiale);
+  const [dateFin, setDateFin] = useState(dateFinInitiale ?? "");
   const [heure, setHeure] = useState(heureInitiale);
   const [categories, setCategories] = useState<string[]>(categoriesInitiales);
 
@@ -109,10 +113,37 @@ export default function FormulaireEdition({
               />
             </div>
           </div>
+          <div className="champ-bloc">
+            <label className="case">
+              <input
+                type="checkbox"
+                checked={multiJours}
+                onChange={(e) => {
+                  setMultiJours(e.target.checked);
+                  if (!e.target.checked) setDateFin("");
+                }}
+              />
+              Cet événement dure plusieurs jours
+            </label>
+          </div>
+          {multiJours && (
+            <div className="champ-bloc">
+              <label htmlFor="date_fin">Date de fin *</label>
+              <input
+                id="date_fin"
+                name="date_fin"
+                type="date"
+                min={dateDebut || undefined}
+                value={dateFin}
+                onChange={(e) => setDateFin(e.target.value)}
+              />
+            </div>
+          )}
           <p className="aide-affiche">
-            ⚠ Si tu changes la date, tous les acheteurs ayant déjà un billet
-            payé pour cet événement seront notifiés automatiquement par
-            email. Un changement d&apos;heure seule ne les notifie pas.
+            ⚠ Si tu changes la date de début ou de fin, tous les acheteurs
+            ayant déjà un billet payé pour cet événement seront notifiés
+            automatiquement par email. Un changement d&apos;heure seule ne
+            les notifie pas.
           </p>
         </div>
 

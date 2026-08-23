@@ -17,6 +17,51 @@ export function ajouterJours(dateISO: string, jours: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+const MOIS_LONGS = [
+  "janvier", "février", "mars", "avril", "mai", "juin",
+  "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+];
+
+/** "10 janvier 2027" — jour sans zéro initial, mois en toutes lettres. */
+export function formatDateLongue(dateISO: string): string {
+  const [annee, mois, jour] = dateISO.split("-");
+  return `${parseInt(jour, 10)} ${MOIS_LONGS[parseInt(mois, 10) - 1]} ${annee}`;
+}
+
+/**
+ * "22 – 24 août 2026" (même mois), "29 août – 2 septembre 2026" (mois
+ * différents), "30 décembre 2026 – 2 janvier 2027" (années différentes).
+ * Sans date_fin (ou date_fin === date_debut, événement d'un seul jour) :
+ * une seule date, formatDateLongue(dateDebut). `avecAnnee: false` (cartes,
+ * affichage compact) : mêmes règles mais l'année n'est jamais affichée.
+ */
+export function formatPlageDates(
+  dateDebut: string,
+  dateFin: string | null,
+  opts: { avecAnnee?: boolean } = {}
+): string {
+  const avecAnnee = opts.avecAnnee ?? true;
+  if (!dateFin || dateFin === dateDebut) {
+    return avecAnnee
+      ? formatDateLongue(dateDebut)
+      : formatDateLongue(dateDebut).replace(/ \d{4}$/, "");
+  }
+
+  const [anD, moisD, jourD] = dateDebut.split("-").map((v) => parseInt(v, 10));
+  const [anF, moisF, jourF] = dateFin.split("-").map((v) => parseInt(v, 10));
+  const suffixeAnnee = (a: number) => (avecAnnee ? ` ${a}` : "");
+
+  if (anD === anF && moisD === moisF) {
+    return `${jourD} – ${jourF} ${MOIS_LONGS[moisD - 1]}${suffixeAnnee(anD)}`;
+  }
+  if (anD === anF) {
+    return `${jourD} ${MOIS_LONGS[moisD - 1]} – ${jourF} ${MOIS_LONGS[moisF - 1]}${suffixeAnnee(anD)}`;
+  }
+  const debut = avecAnnee ? formatDateLongue(dateDebut) : `${jourD} ${MOIS_LONGS[moisD - 1]}`;
+  const fin = avecAnnee ? formatDateLongue(dateFin) : `${jourF} ${MOIS_LONGS[moisF - 1]}`;
+  return `${debut} – ${fin}`;
+}
+
 export type PeriodeQuand = "aujourdhui" | "week-end" | "semaine" | "mois";
 
 /**

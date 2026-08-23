@@ -3,7 +3,11 @@ import { enveloppeEmail, boutonEmail, echapperHtml } from "@/lib/emails/layout";
 /**
  * Notifie un acheteur (billet déjà payé) que la DATE de l'événement a
  * changé — le seul changement d'édition organisateur qui déclenche un
- * email automatique (un changement d'heure seule ne notifie pas).
+ * email automatique (un changement d'heure seule ne notifie pas). Couvre
+ * aussi bien un changement de date_debut que de date_fin (événement
+ * multi-jours) : `dateAffichee` est déjà la plage formatée par l'appelant
+ * (voir formatPlageDates dans lib/date.ts), cette fonction ne connaît pas
+ * la distinction date_debut/date_fin.
  */
 export function emailEvenementDateModifiee(d: {
   titre: string;

@@ -55,6 +55,7 @@ export async function publierEvenement(formData: FormData) {
   const description = String(formData.get("description") || "").trim();
   const categories = parserCategories(formData);
   const date_debut = String(formData.get("date_debut") || "");
+  const date_fin = String(formData.get("date_fin") || "") || null;
   const heure = String(formData.get("heure") || "") || null;
   const lieu = String(formData.get("lieu") || "").trim();
   const ville = String(formData.get("ville") || "").trim();
@@ -97,6 +98,11 @@ export async function publierEvenement(formData: FormData) {
 
   if (!titre || !date_debut || !lieu || !ville || !pays_code) {
     redirect("/creer?erreur=champs");
+  }
+  // Jamais confiance au client seul (checkbox + min sur l'input côté
+  // navigateur) : revalidé ici, comme la contrainte CHECK en base.
+  if (date_fin && date_fin < date_debut) {
+    redirect("/creer?erreur=dates");
   }
 
   // Le sélecteur ne propose que les pays actifs, mais le formulaire n'est
@@ -156,6 +162,7 @@ export async function publierEvenement(formData: FormData) {
       ville,
       lieu,
       date_debut,
+      date_fin,
       heure,
       affiche_url,
       // Statut TOUJOURS forcé côté serveur, jamais lu depuis le formulaire :

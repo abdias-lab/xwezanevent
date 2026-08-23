@@ -16,6 +16,8 @@ export interface CarteEvenementProps {
   href?: string;
   /** Événement vitrine (démo) : affiche un badge d'avertissement, billetterie désactivée côté serveur. */
   estDemo?: boolean;
+  /** "22 – 24 août" — événement multi-jours uniquement, sinon null (le stub doré suffit). */
+  plageAffichee?: string | null;
 }
 
 /**
@@ -34,6 +36,7 @@ export default function CarteEvenement({
   image,
   href,
   estDemo = false,
+  plageAffichee = null,
 }: CarteEvenementProps) {
   const lien = href ?? `/evenement/${id}`;
 
@@ -61,6 +64,7 @@ export default function CarteEvenement({
 
         <div className="infos">
           <h3>{titre}</h3>
+          {plageAffichee && <p className="plage-dates">📅 {plageAffichee}</p>}
           <p className="lieu">
             <svg
               width="14"

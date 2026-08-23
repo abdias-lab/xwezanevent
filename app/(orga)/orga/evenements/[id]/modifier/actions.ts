@@ -9,15 +9,7 @@ import { MAX_IMAGES } from "@/lib/affiche";
 import { MAX_CATEGORIES } from "@/lib/categories";
 import { envoyerEmail, emailUtilisateur } from "@/lib/email";
 import { emailEvenementDateModifiee } from "@/lib/emails/evenement-edition";
-
-const MOIS_LONGS = [
-  "janvier", "février", "mars", "avril", "mai", "juin",
-  "juillet", "août", "septembre", "octobre", "novembre", "décembre",
-];
-function formatDateLongue(dateISO: string): string {
-  const [annee, mois, jour] = dateISO.split("-");
-  return `${parseInt(jour, 10)} ${MOIS_LONGS[parseInt(mois, 10) - 1]} ${annee}`;
-}
+import { formatPlageDates } from "@/lib/date";
 
 function parserCategories(formData: FormData): string[] {
   try {
@@ -52,9 +44,9 @@ function parserImagesConservees(formData: FormData): string[] {
  * (20260717180000_verrouille_maj_evenements.sql), même pattern que le reste
  * des routes organisateur/admin agissant sur events.
  *
- * Si la DATE change, notifie par email tous les acheteurs ayant un billet
- * payé pour cet événement (impact majeur pour eux) — un changement d'heure
- * seule ne notifie pas.
+ * Si la date de début OU la date de fin change, notifie par email tous les
+ * acheteurs ayant un billet payé pour cet événement (impact majeur pour
+ * eux) — un changement d'heure seule ne notifie pas.
  */
 export async function modifierEvenement(eventId: string, formData: FormData) {
   const supabase = creerClientServeur();
@@ -65,7 +57,7 @@ export async function modifierEvenement(eventId: string, formData: FormData) {
 
   const { data: event } = await supabaseAdmin
     .from("events")
-    .select("id, organisateur_id, titre, slug, date_debut, est_demo, pays_code")
+    .select("id, organisateur_id, titre, slug, date_debut, date_fin, est_demo, pays_code")
     .eq("id", eventId)
     .maybeSingle();
 
@@ -76,10 +68,16 @@ export async function modifierEvenement(eventId: string, formData: FormData) {
 
   const description = String(formData.get("description") || "").trim();
   const date_debut = String(formData.get("date_debut") || "");
+  const date_fin = String(formData.get("date_fin") || "") || null;
   const heure = String(formData.get("heure") || "") || null;
 
   if (!date_debut) {
     redirect(`/orga/evenements/${eventId}/modifier?erreur=champs`);
+  }
+  // Jamais confiance au client seul (checkbox + min sur l'input côté
+  // navigateur) : revalidé ici, comme la contrainte CHECK en base.
+  if (date_fin && date_fin < date_debut) {
+    redirect(`/orga/evenements/${eventId}/modifier?erreur=dates`);
   }
 
   const categories = parserCategories(formData);
@@ -130,11 +128,11 @@ export async function modifierEvenement(eventId: string, formData: FormData) {
   }
   const affiche_url = imagesFinales[indexPrincipale] ?? null;
 
-  const dateChangee = date_debut !== event.date_debut;
+  const dateChangee = date_debut !== event.date_debut || date_fin !== event.date_fin;
 
   const { error } = await supabaseAdmin
     .from("events")
-    .update({ description: description || null, date_debut, heure, affiche_url })
+    .update({ description: description || null, date_debut, date_fin, heure, affiche_url })
     .eq("id", eventId);
   if (error) throw new Error(`Modification impossible : ${error.message}`);
 
@@ -168,20 +166,39 @@ export async function modifierEvenement(eventId: string, formData: FormData) {
     try {
       const { data: commandes } = await supabaseAdmin
         .from("orders")
-        .select("user_id")
+        .select("user_id, acheteur_email")
         .eq("event_id", eventId)
         .eq("statut", "paye");
-      const destinataires = Array.from(new Set((commandes ?? []).map((c) => c.user_id)));
+
+      // Dédoublonnage par compte OU par email invité (COALESCE(user_id,
+      // acheteur_email) — même logique que l'index unique des commandes,
+      // voir 20260804120000_achat_invite.sql) : un même acheteur (compte ou
+      // invité) ne reçoit qu'un seul email même avec plusieurs commandes
+      // payées sur cet événement. Dédupliquer uniquement sur user_id (comme
+      // avant ce correctif) collapsait TOUTES les commandes invité (toujours
+      // user_id NULL) en une seule entrée — au mieux un seul email invité
+      // envoyé sur l'événement entier, au pire un crash sur emailUtilisateur(null).
+      const destinataires = new Map<string, { userId: string | null; acheteurEmail: string | null }>();
+      for (const c of commandes ?? []) {
+        const cle = c.user_id ?? c.acheteur_email;
+        if (cle && !destinataires.has(cle)) {
+          destinataires.set(cle, { userId: c.user_id, acheteurEmail: c.acheteur_email });
+        }
+      }
+
       const origine = process.env.NEXT_PUBLIC_SITE_URL ?? "https://xwezanevent.vercel.app";
       const lienEvenement = `${origine}/evenement/${event.slug}`;
 
-      for (const userId of destinataires) {
+      for (const { userId, acheteurEmail } of Array.from(destinataires.values())) {
         try {
-          const destinataire = await emailUtilisateur(userId);
+          // Compte (userId) : email résolu via auth.users. Invité
+          // (userId null) : acheteur_email directement — même principe que
+          // envoyerConfirmationCommande dans lib/commandes.ts.
+          const destinataire = userId ? await emailUtilisateur(userId) : acheteurEmail;
           if (!destinataire) continue;
           const { subject, html } = emailEvenementDateModifiee({
             titre: event.titre,
-            dateAffichee: formatDateLongue(date_debut),
+            dateAffichee: formatPlageDates(date_debut, date_fin, { avecAnnee: true }),
             lienEvenement,
             paysCode: event.pays_code,
           });

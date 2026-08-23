@@ -2,21 +2,12 @@ import Header from "@/components/Header";
 import Billetterie from "@/components/Billetterie";
 import CarrouselEvenement from "@/components/CarrouselEvenement";
 import { getEvenementParSlug } from "@/lib/events";
+import { formatPlageDates } from "@/lib/date";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 
 export const revalidate = 60;
-
-const MOIS_LONGS = [
-  "janvier", "février", "mars", "avril", "mai", "juin",
-  "juillet", "août", "septembre", "octobre", "novembre", "décembre",
-];
-
-function formatDate(dateISO: string): string {
-  const [annee, mois, jour] = dateISO.split("-");
-  return `${parseInt(jour, 10)} ${MOIS_LONGS[parseInt(mois, 10) - 1]} ${annee}`;
-}
 
 function formatHeure(heure: string | null): string | null {
   if (!heure) return null;
@@ -55,6 +46,7 @@ export default async function EvenementDetail({
   if (!ev) notFound();
 
   const heure = formatHeure(ev.heure);
+  const dateAffichee = formatPlageDates(ev.date_debut, ev.date_fin, { avecAnnee: true });
   const placesTotales = ev.ticketTypes.reduce((s, t) => s + t.disponibles, 0);
   const lieuComplet = [ev.lieu, ev.ville].filter(Boolean).join(", ");
   const urlItineraire = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lieuComplet)}`;
@@ -81,7 +73,7 @@ export default async function EvenementDetail({
           </div>
           <h1>{ev.titre}</h1>
           <div className="meta-ev">
-            <span>📅 {formatDate(ev.date_debut)}{heure ? ` · ${heure}` : ""}</span>
+            <span>📅 {dateAffichee}{heure ? ` · ${heure}` : ""}</span>
             <span>📍 {ev.lieu}, {ev.ville}</span>
           </div>
         </div>
@@ -115,7 +107,7 @@ export default async function EvenementDetail({
           <div className="pratique">
             <div className="info-p">
               <div className="l">📅 Date</div>
-              <div className="v">{formatDate(ev.date_debut)}</div>
+              <div className="v">{dateAffichee}</div>
             </div>
             {heure && (
               <div className="info-p">

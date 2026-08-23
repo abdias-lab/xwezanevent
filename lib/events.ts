@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { aujourdhuiPortoNovo, plagePeriode } from "@/lib/date";
+import { aujourdhuiPortoNovo, plagePeriode, formatPlageDates } from "@/lib/date";
 
 const MOIS_COURTS = [
   "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
@@ -12,6 +12,7 @@ interface EventRow {
   ville: string;
   lieu: string;
   date_debut: string; // YYYY-MM-DD
+  date_fin: string | null;
   affiche_url: string | null;
   est_demo: boolean;
   ticket_types: { prix: number }[];
@@ -32,6 +33,8 @@ export interface CarteData {
   href: string;
   /** Événement vitrine (démo) : billetterie désactivée côté serveur, voir /api/orders. */
   estDemo: boolean;
+  /** "22 – 24 août" (sans année, compact) pour un événement multi-jours — null pour un événement d'un seul jour, le stub doré reste alors le seul repère de date. */
+  plageAffichee: string | null;
 }
 
 function categoriePrincipale(categories: { categorie: string; ordre: number }[]): string {
@@ -55,6 +58,10 @@ function mapRow(ev: EventRow): CarteData {
     image: ev.affiche_url,
     href: `/evenement/${ev.slug}`,
     estDemo: ev.est_demo,
+    plageAffichee:
+      ev.date_fin && ev.date_fin !== ev.date_debut
+        ? formatPlageDates(ev.date_debut, ev.date_fin, { avecAnnee: false })
+        : null,
   };
 }
 
@@ -116,7 +123,7 @@ export async function getEvenementsPublies(
   let query = supabase
     .from("events")
     .select(
-      `slug, titre, ville, lieu, date_debut, affiche_url, est_demo, ticket_types(prix), ${relationCategories}`
+      `slug, titre, ville, lieu, date_debut, date_fin, affiche_url, est_demo, ticket_types(prix), ${relationCategories}`
     )
     .eq("statut", "publie")
     .eq("est_demo", false)

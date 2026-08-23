@@ -628,3 +628,76 @@ réelle existe sur l'événement vitrine CONCOURS VOICE TALENT AFRICA
 test manuel personnel de l'achat invité. À garder en tête pour le nettoyage
 final avant lancement (même logique que les autres comptes de test de ce
 fichier), mais ne pas la supprimer sans confirmation.
+
+## Test du 2026-08-23 (formulaires date_fin + affichage plage de dates)
+
+Suite directe du test précédent (même journée) : ferme l'écart UI constaté
+ci-dessus. Ajout du champ "Cet événement dure plusieurs jours" + date de fin
+dans `FormulaireCreation.tsx`/`FormulaireEdition.tsx`, validation serveur
+`date_fin >= date_debut` dans `creer/actions.ts` et `modifier/actions.ts`,
+plage de dates affichée sur les cartes (accueil/`/evenements`) et la page
+détail, formatage centralisé dans `lib/date.ts`
+(`formatDateLongue`/`formatPlageDates`, remplace 2 copies locales dupliquées).
+
+Test en conditions réelles (`npm run dev`, compte organisateur de test dédié
+`test-datefin-ui@xwezanevent-test.com`) : événement multi-jours créé via le
+vrai formulaire `/creer` (checkbox cochée, date de fin 10→12 sept.),
+vérifié en base (`date_fin` bien stockée), affichage carte ("📅 10 – 12
+septembre" au-dessus de la ligne lieu, stub doré resté sur le 10) et page
+détail ("📅 10 – 12 septembre 2026") conformes à la maquette validée.
+Édition testée via `/orga/evenements/[id]/modifier` sur cet événement,
+publié entretemps : changement de `date_fin` seule (12→14 puis 14→16 sept.,
+`date_debut` inchangé) déclenche bien la notification email acheteur
+(`dateChangee` étendu correctement) ; décocher la case remet `date_fin` à
+`NULL` et déclenche aussi la notification (changement de date au sens large).
+
+**Bug préexistant trouvé, PAS corrigé (hors périmètre)** : le bloc de
+notification de `modifier/actions.ts` plante silencieusement
+(`[modifier] échec notification acheteur : Expected parameter to be UUID
+but is not`) pour tout acheteur invité (`orders.user_id = NULL`, achat sans
+compte — voir `20260804120000_achat_invite.sql`) — `emailUtilisateur(null)`
+est appelé sans filtrer les `user_id` null en amont. Repéré car un des deux
+billets de test achetés sur l'événement était un achat invité ; l'acheteur
+avec compte (`test-datefin-acheteur-compte@xwezanevent-test.com`) a lui
+bien reçu l'email à chaque test. Best-effort (try/catch par destinataire)
+donc ça ne bloque jamais l'édition, mais un acheteur invité ne sera jamais
+notifié d'un changement de date — préexistant à ce chantier (même code,
+même bug avec un changement de `date_debut` seul), pas introduit par
+`date_fin`. À corriger séparément (filtrer `user_id !== null` avant
+`emailUtilisateur`, notifier `acheteur_email` directement pour les invités).
+
+Toutes les données créées (1 événement, 2 commandes/billets, 2 comptes de
+test) supprimées en fin de session — vérification finale automatisée :
+plus aucune trace en base.
+
+## Correctif du 2026-08-23 (notification invité — bug du test précédent)
+
+Le bug repéré juste au-dessus (`emailUtilisateur(null)`) a été corrigé le
+jour même, sur demande explicite : risque jugé trop important pour attendre
+(un acheteur invité averti d'aucun changement de date en production).
+`app/(orga)/orga/evenements/[id]/modifier/actions.ts` sélectionne
+désormais `acheteur_email` en plus de `user_id`, déduplique par
+`user_id ?? acheteur_email` (au lieu de `user_id` seul, qui collapsait
+TOUTES les commandes invité — potentiellement plusieurs acheteurs
+distincts — en une seule entrée `null`), et résout le destinataire via
+`userId ? emailUtilisateur(userId) : acheteurEmail`, même principe que
+`envoyerConfirmationCommande` dans `lib/commandes.ts`.
+
+Audité au passage tous les appels à `emailUtilisateur(` dans le repo : les
+deux autres (`api/admin/events/[id]/valider`, `.../refuser`) notifient
+l'organisateur, qui a toujours un compte — pas le même angle mort.
+`envoyerRecapitulatifBillets` (lib/commandes.ts) reçoit l'email en
+paramètre direct de l'appelant (formulaire "Retrouver mon billet"), jamais
+dérivé d'un `user_id` — pas concerné non plus. Aucun autre email
+"post-achat" (ex. annulation d'événement) n'existe encore dans le code.
+
+Test en conditions réelles (`npm run dev`, script temporaire, supprimé) :
+1 événement, 2 commandes invité avec des emails **distincts**
+(`test-guestnotif-invite1@…`, `test-guestnotif-invite2@…`) + le compte
+organisateur de test. Édition réelle via `/orga/evenements/[id]/modifier`
+changeant `date_debut` → les deux invités ont chacun reçu
+« Changement de date — « [TEST] Notif invité » » (2 lignes `[email]
+envoyé` distinctes dans les logs, aucune ligne `[modifier] échec
+notification acheteur`) — confirme à la fois la disparition du crash et la
+fin du dédoublonnage abusif. Toutes les données de test supprimées en fin
+de session, vérification finale automatisée : plus aucune trace en base.
