@@ -62,6 +62,19 @@ export function formatPlageDates(
   return `${debut} – ${fin}`;
 }
 
+const JOURS_COURTS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+
+/**
+ * "Dim 23 août" — jour de semaine abrégé + jour + mois, sans année. Repère
+ * de groupe sur /evenements (un seul jour) ; la casse (majuscules) est
+ * gérée par CSS `text-transform`, pas dans la chaîne elle-même.
+ */
+export function formatEnTeteJour(dateISO: string): string {
+  const jourSemaine = new Date(`${dateISO}T00:00:00Z`).getUTCDay();
+  const [, mois, jour] = dateISO.split("-");
+  return `${JOURS_COURTS[jourSemaine]} ${parseInt(jour, 10)} ${MOIS_LONGS[parseInt(mois, 10) - 1]}`;
+}
+
 export type PeriodeQuand = "aujourdhui" | "week-end" | "semaine" | "mois";
 
 /**

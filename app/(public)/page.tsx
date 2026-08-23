@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CarteEvenement from "@/components/CarteEvenement";
+import AfficheEvenement from "@/components/AfficheEvenement";
 import BoutonOr from "@/components/BoutonOr";
 import {
   getEvenementsPublies,
@@ -8,6 +9,7 @@ import {
   getEvenementsTicker,
   getCompteursCategories,
   getCompteursVilles,
+  getEvenementVedette,
 } from "@/lib/events";
 import { getPaysActuelDetail } from "@/lib/pays";
 import { listeOperateursCourt, operateursPays } from "@/lib/telephone";
@@ -109,18 +111,32 @@ export default async function Accueil() {
   const paysDetail = await getPaysActuelDetail();
   const pays = paysDetail.code;
   const operateurs = listeOperateursCourt(pays);
-  const [evenements, villes, ticker, compteursCategories, compteursVilles] = await Promise.all([
+  const [evenements, villes, ticker, compteursCategories, compteursVilles, vedette] = await Promise.all([
     getEvenementsPublies({ pays }),
     getVillesPubliees(pays),
     getEvenementsTicker(pays),
     getCompteursCategories(pays),
     getCompteursVilles(pays),
+    getEvenementVedette(pays),
   ]);
   const villesVedettes = VILLES_PAR_PAYS[pays] ?? [];
 
   return (
     <>
       <Header />
+
+      {/* ======================= BANDEAU INFO ======================= */}
+      <div className="bandeau-info">
+        <span className="lieu">
+          {paysDetail.drapeau} {paysDetail.nom}
+        </span>
+        <span className="puce-sep" aria-hidden="true">
+          •
+        </span>
+        <span className="compteur">
+          <b>{evenements.length}</b> événement{evenements.length > 1 ? "s" : ""} à venir
+        </span>
+      </div>
 
       {/* ======================= HERO ======================= */}
       <div className="hero">
@@ -192,6 +208,51 @@ export default async function Accueil() {
           </div>
         </div>
       </div>
+
+      {/* ======================= VEDETTE ======================= */}
+      {vedette && (
+        <section className="section sec-vedette" aria-labelledby="titre-vedette">
+          <div className="contenu">
+            <article className="vedette">
+              <AfficheEvenement
+                className="photo"
+                src={vedette.image}
+                alt={vedette.titre}
+                fill
+                sizes="(max-width: 900px) 100vw, 1240px"
+              />
+              <span className="voile" aria-hidden="true" />
+              <span className="vedette-badge">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" />
+                </svg>
+                À la une
+              </span>
+              <div className="vedette-corps">
+                <p className="vedette-date">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <rect x="3" y="5" width="18" height="16" rx="2" />
+                    <path d="M16 3v4M8 3v4M3 11h18" />
+                  </svg>
+                  {vedette.plage}
+                </p>
+                <h2 id="titre-vedette">{vedette.titre}</h2>
+                {vedette.extrait && <p className="vedette-extrait">{vedette.extrait}</p>}
+                <div className="vedette-actions">
+                  <BoutonOr href={vedette.href}>Voir l&apos;événement →</BoutonOr>
+                  <span className="vedette-lieu">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    {vedette.lieu}, {vedette.ville}
+                  </span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+      )}
 
       {/* ======================= TICKER ======================= */}
       {ticker.length > 0 && (

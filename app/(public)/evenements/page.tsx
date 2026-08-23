@@ -4,7 +4,7 @@ import CarteEvenement from "@/components/CarteEvenement";
 import BoutonOr from "@/components/BoutonOr";
 import FiltreQuand from "@/components/FiltreQuand";
 import FiltreVille from "@/components/FiltreVille";
-import { getEvenementsPublies, getCategoriesPubliees, getVillesPubliees } from "@/lib/events";
+import { getEvenementsPublies, getCategoriesPubliees, getVillesPubliees, type CarteData } from "@/lib/events";
 import { getPaysActuel } from "@/lib/pays";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -50,6 +50,32 @@ function hrefEvenements(actifs: ParamsRecherche, overrides: ParamsRecherche): st
   return qs ? `/evenements?${qs}` : "/evenements";
 }
 
+interface GroupeDate {
+  cle: string;
+  libelle: string;
+  items: CarteData[];
+}
+
+/**
+ * Regroupe les événements consécutifs partageant la même date/plage
+ * (voir CarteData.groupeDate) — l'ordre d'entrée (déjà trié par date par
+ * getEvenementsPublies) est préservé, pas de nouveau tri. Le groupement
+ * visuel (titres de section) n'est appliqué par l'appelant que si le
+ * résultat contient plus d'un groupe.
+ */
+function grouperParDate(evenements: CarteData[]): GroupeDate[] {
+  const groupes: GroupeDate[] = [];
+  for (const ev of evenements) {
+    const dernier = groupes[groupes.length - 1];
+    if (dernier && dernier.cle === ev.groupeDate.cle) {
+      dernier.items.push(ev);
+    } else {
+      groupes.push({ cle: ev.groupeDate.cle, libelle: ev.groupeDate.libelle, items: [ev] });
+    }
+  }
+  return groupes;
+}
+
 function titreContextuel({ categorie, quand, q, ville }: ParamsRecherche): string {
   if (q) return `Résultats pour « ${q} »`;
   if (categorie && ville) return `${categorie} à ${ville}`;
@@ -78,6 +104,8 @@ export default async function Evenements({
 
   const nb = evenements.length;
   const filtresActifs = Boolean(categorieActive || quandActif || q || ville);
+  const groupes = grouperParDate(evenements);
+  const afficherGroupes = groupes.length > 1;
 
   const puces: { label: string; href: string }[] = [];
   if (q) puces.push({ label: `« ${q} »`, href: hrefEvenements(actifs, { q: undefined }) });
@@ -168,11 +196,32 @@ export default async function Evenements({
           </div>
 
           {nb > 0 ? (
-            <div className="grille-listing">
-              {evenements.map((ev) => (
-                <CarteEvenement key={ev.id} {...ev} />
-              ))}
-            </div>
+            afficherGroupes ? (
+              <div className="listing-groupe">
+                {groupes.map((groupe) => (
+                  <div className="groupe" key={groupe.cle}>
+                    <div className="titre-groupe">
+                      <span className="etiquette">{groupe.libelle}</span>
+                      <span className="fil" aria-hidden="true" />
+                      <span className="nb">
+                        {groupe.items.length} événement{groupe.items.length > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className="grille-listing">
+                      {groupe.items.map((ev) => (
+                        <CarteEvenement key={ev.id} {...ev} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grille-listing">
+                {evenements.map((ev) => (
+                  <CarteEvenement key={ev.id} {...ev} />
+                ))}
+              </div>
+            )
           ) : (
             <div className="etat-vide">
               <div className="etat-vide-glyphe" aria-hidden="true">

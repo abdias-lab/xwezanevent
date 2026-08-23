@@ -319,11 +319,43 @@
   }
 
   /* ==========================================================
+     BANDEAU INFO (repère haut de page : pays + compteur)
+     ========================================================== */
+  .bandeau-info {
+    margin-top: 73px; /* dégage le header fixe (72px de nav + 1px de bordure) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--ligne);
+    font-family: var(--space);
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--texte2);
+    text-align: center;
+    flex-wrap: wrap;
+  }
+  .bandeau-info .lieu {
+    color: var(--texte);
+  }
+  .bandeau-info .puce-sep {
+    color: var(--accent);
+    opacity: 0.7;
+  }
+  .bandeau-info .compteur b {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* ==========================================================
      HERO
      ========================================================== */
   .hero {
     position: relative;
-    padding: 176px 28px 96px;
+    padding: 136px 28px 96px;
     background:
       radial-gradient(1000px 520px at 82% -10%, color-mix(in srgb, var(--secondaire) 20%, transparent), transparent 62%),
       radial-gradient(900px 600px at -10% 30%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 60%),
@@ -490,6 +522,111 @@
   }
   .dot-qr {
     background: #5e8c4a;
+  }
+
+  /* ==========================================================
+     ÉVÉNEMENT EN VEDETTE (accueil) — repris de .carte/.banniere
+     ========================================================== */
+  .sec-vedette {
+    padding: 0 28px 64px;
+  }
+  .vedette {
+    position: relative;
+    min-height: 440px;
+    display: flex;
+    align-items: flex-end;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid var(--ligne);
+    box-shadow: 0 24px 60px var(--ombre);
+  }
+  .vedette .photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+  .vedette .sans-affiche {
+    position: absolute;
+    inset: 0;
+  }
+  .vedette .voile {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to top,
+      var(--fond) 4%,
+      color-mix(in srgb, var(--fond) 60%, transparent) 42%,
+      rgba(10, 6, 4, 0.15)
+    );
+  }
+  .vedette-badge {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--space);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent-clair);
+    background: rgba(21, 16, 9, 0.55);
+    border: 1px solid rgba(228, 169, 63, 0.35);
+    padding: 8px 16px;
+    border-radius: 100px;
+    backdrop-filter: blur(2px);
+  }
+  .vedette-corps {
+    position: relative;
+    z-index: 1;
+    padding: 40px 36px;
+    max-width: 680px;
+  }
+  .vedette-date {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--space);
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-clair);
+    margin: 0 0 14px;
+  }
+  .vedette-corps h2 {
+    font-family: var(--bricolage);
+    font-weight: 800;
+    font-size: clamp(1.7rem, 3.4vw, 2.6rem);
+    line-height: 1.06;
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  }
+  .vedette-extrait {
+    color: var(--texte);
+    opacity: 0.88;
+    font-size: 1rem;
+    max-width: 56ch;
+    margin: 0 0 26px;
+  }
+  .vedette-actions {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+  .vedette-lieu {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--texte);
+    opacity: 0.85;
+    font-size: 0.9rem;
   }
 
   /* ==========================================================
@@ -879,6 +1016,40 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 32px;
+  }
+
+  /* ==========================================================
+     GROUPEMENT PAR DATE (/evenements) — n'apparaît que lorsque
+     le listing couvre plus d'une date/plage distincte
+     ========================================================== */
+  .listing-groupe .groupe + .groupe {
+    margin-top: 48px;
+  }
+  .titre-groupe {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .titre-groupe .etiquette {
+    font-family: var(--space);
+    font-weight: 500;
+    font-size: 0.82rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .titre-groupe .fil {
+    flex: 1;
+    height: 1px;
+    background: var(--ligne);
+  }
+  .titre-groupe .nb {
+    font-family: var(--space);
+    font-size: 0.72rem;
+    color: var(--texte2);
+    white-space: nowrap;
   }
 
   /* ==========================================================
@@ -3658,7 +3829,20 @@
 
 @media (max-width: 680px) {
   .hero {
-    padding: 150px 20px 70px;
+    padding: 110px 20px 70px;
+  }
+  .bandeau-info {
+    font-size: 0.7rem;
+    padding: 9px 16px;
+  }
+  .sec-vedette {
+    padding: 0 20px 48px;
+  }
+  .vedette {
+    min-height: 380px;
+  }
+  .vedette-corps {
+    padding: 28px 22px;
   }
   .section {
     padding: 64px 20px;

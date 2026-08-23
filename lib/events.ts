@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { aujourdhuiPortoNovo, plagePeriode, formatPlageDates } from "@/lib/date";
+import { aujourdhuiPortoNovo, plagePeriode, formatPlageDates, formatEnTeteJour } from "@/lib/date";
 
 const MOIS_COURTS = [
   "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
@@ -35,10 +35,30 @@ export interface CarteData {
   estDemo: boolean;
   /** "22 – 24 août" (sans année, compact) pour un événement multi-jours — null pour un événement d'un seul jour, le stub doré reste alors le seul repère de date. */
   plageAffichee: string | null;
+  /** Regroupement par date sur /evenements — voir calculerGroupeDate(). */
+  groupeDate: { cle: string; libelle: string };
 }
 
 function categoriePrincipale(categories: { categorie: string; ordre: number }[]): string {
   return [...categories].sort((a, b) => a.ordre - b.ordre)[0]?.categorie ?? "Événement";
+}
+
+/**
+ * Clé + libellé de regroupement par date pour le listing /evenements.
+ * Un jour unique regroupe par date exacte ("Dim 23 août") ; un festival
+ * multi-jours forme son propre groupe sur sa plage complète ("10 – 12
+ * janvier 2027") — deux festivals partageant exactement les mêmes dates
+ * de début/fin se retrouveraient dans le même groupe, ce qui reste
+ * cohérent (même repère de date pour le visiteur).
+ */
+function calculerGroupeDate(dateDebut: string, dateFin: string | null): { cle: string; libelle: string } {
+  if (dateFin && dateFin !== dateDebut) {
+    return {
+      cle: `${dateDebut}_${dateFin}`,
+      libelle: formatPlageDates(dateDebut, dateFin, { avecAnnee: true }),
+    };
+  }
+  return { cle: dateDebut, libelle: formatEnTeteJour(dateDebut) };
 }
 
 function mapRow(ev: EventRow): CarteData {
@@ -62,6 +82,7 @@ function mapRow(ev: EventRow): CarteData {
       ev.date_fin && ev.date_fin !== ev.date_debut
         ? formatPlageDates(ev.date_debut, ev.date_fin, { avecAnnee: false })
         : null,
+    groupeDate: calculerGroupeDate(ev.date_debut, ev.date_fin),
   };
 }
 
@@ -373,6 +394,87 @@ export async function getEvenementsTicker(pays: string): Promise<TickerItem[]> {
     return [];
   }
   return (repli as TickerRow[]).map(mapTicker);
+}
+
+export interface VedetteData {
+  titre: string;
+  /** Extrait tronqué de la description, null si l'événement n'en a pas. */
+  extrait: string | null;
+  ville: string;
+  lieu: string;
+  image: string | null;
+  href: string;
+  /** "10 – 12 janvier 2027" ou "10 janvier 2027" — voir formatPlageDates(). */
+  plage: string;
+}
+
+interface VedetteRow {
+  slug: string;
+  titre: string;
+  description: string | null;
+  ville: string;
+  lieu: string;
+  date_debut: string;
+  date_fin: string | null;
+  affiche_url: string | null;
+}
+
+/** Longueur cible de l'extrait affiché dans le bloc "à la une" de l'accueil. */
+const LONGUEUR_EXTRAIT_VEDETTE = 160;
+
+/** Tronque au dernier mot entier avant LONGUEUR_EXTRAIT_VEDETTE caractères, ajoute "…" si coupé. */
+function extraitDescription(description: string | null): string | null {
+  if (!description) return null;
+  const texte = description.trim();
+  if (!texte) return null;
+  if (texte.length <= LONGUEUR_EXTRAIT_VEDETTE) return texte;
+
+  const tronque = texte.slice(0, LONGUEUR_EXTRAIT_VEDETTE);
+  const dernierEspace = tronque.lastIndexOf(" ");
+  return `${tronque.slice(0, dernierEspace > 0 ? dernierEspace : LONGUEUR_EXTRAIT_VEDETTE)}…`;
+}
+
+/**
+ * L'unique événement épinglé pour le grand bloc "à la une" de l'accueil —
+ * même colonne de sélection manuelle admin que le ticker (mis_en_avant),
+ * mais SANS repli automatique sur les prochains événements publiés :
+ * si rien n'est coché, le bloc doit rester absent plutôt que de mettre
+ * en avant un événement non choisi éditorialement (voir page.tsx, qui
+ * n'affiche la section que si cette fonction retourne non-null).
+ * Le premier par ordre_affiche (puis date) si plusieurs sont cochés.
+ */
+export async function getEvenementVedette(pays: string): Promise<VedetteData | null> {
+  const aujourdhui = aujourdhuiPortoNovo();
+
+  const { data, error } = await supabase
+    .from("events")
+    .select("slug, titre, description, ville, lieu, date_debut, date_fin, affiche_url")
+    .eq("statut", "publie")
+    .eq("mis_en_avant", true)
+    .eq("est_demo", false)
+    .eq("pays_code", pays)
+    .or(filtreNonTermine(aujourdhui))
+    .order("ordre_affiche", { ascending: true, nullsFirst: false })
+    .order("date_debut", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[events] échec getEvenementVedette :", error.message);
+    return null;
+  }
+  if (!data) return null;
+
+  const row = data as unknown as VedetteRow;
+  return {
+    titre: row.titre,
+    extrait: extraitDescription(row.description),
+    ville: row.ville,
+    lieu: row.lieu,
+    image: row.affiche_url,
+    href: `/evenement/${row.slug}`,
+    plage: formatPlageDates(row.date_debut, row.date_fin, { avecAnnee: true }),
+  };
 }
 
 /**
