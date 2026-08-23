@@ -3521,6 +3521,28 @@
     align-items: center;
     gap: 8px;
   }
+  .reseaux {
+    margin-top: 26px;
+  }
+  .reseaux-icones {
+    display: flex;
+    gap: 10px;
+  }
+  .reseau-lien {
+    width: 38px;
+    height: 38px;
+    border-radius: 100px;
+    border: 1px solid var(--ligne);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--texte2);
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .reseau-lien:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
   .foot-bas {
     margin-top: 54px;
     padding-top: 26px;
@@ -3530,12 +3552,19 @@
   }
   .foot-legal {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
     flex-wrap: wrap;
-    gap: 6px 10px;
+    gap: 10px 16px;
     margin-bottom: 14px;
     font-size: 0.78rem;
     color: var(--texte2);
     opacity: 0.8;
+  }
+  .foot-legal-texte {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
   }
   .foot-legal a {
     color: var(--texte2);
@@ -3554,16 +3583,6 @@
   }
   .foot-legal .connexion:hover {
     color: var(--texte);
-  }
-  .instagram-lien {
-    display: inline-flex;
-    align-items: center;
-    color: var(--texte2);
-    transition: color 0.2s;
-    vertical-align: -3px;
-  }
-  .instagram-lien:hover {
-    color: var(--accent);
   }
   .foot-bas-ligne {
     display: flex;
