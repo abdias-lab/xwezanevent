@@ -64,6 +64,27 @@ function echapperPourOr(valeur: string): string {
 }
 
 /**
+ * Filtre PostgREST équivalent à COALESCE(date_fin, date_debut) >= depuis —
+ * "l'événement n'est pas encore complètement terminé", vrai aussi bien pour
+ * un événement d'un jour que pour un festival multi-jours encore en cours.
+ * COALESCE n'étant pas un nom de colonne filtrable directement, exprimé en
+ * OR : date_fin dépasse le seuil, OU (pas de date_fin ET date_debut dépasse
+ * le seuil).
+ *
+ * JAMAIS de préfixe de table dans la chaîne elle-même : le parseur
+ * "logic tree" de PostgREST rejette une notation `table.colonne` à
+ * l'intérieur d'un `or=(...)` (confirmé en conditions réelles — testé le
+ * 2026-08-23, `.or("events.date_debut...")` échoue avec "failed to parse
+ * logic tree" même sans imbrication). Pour filtrer une table liée via
+ * `events!inner(...)` (ex. `event_categories`), passer l'option
+ * `{ referencedTable: "events" }` au `.or()` de l'appelant plutôt que de
+ * préfixer la chaîne — voir getCategoriesPubliees/getCompteursCategories.
+ */
+export function filtreNonTermine(depuis: string): string {
+  return `date_fin.gte.${depuis},and(date_fin.is.null,date_debut.gte.${depuis})`;
+}
+
+/**
  * Événements publiés + prix du ticket_type le moins cher (« à partir de »),
  * triés par date croissante. Filtres optionnels : catégorie (un événement
  * peut avoir plusieurs catégories — voir event_categories — il apparaît dans
@@ -100,7 +121,7 @@ export async function getEvenementsPublies(
     .eq("statut", "publie")
     .eq("est_demo", false)
     .eq("pays_code", opts.pays)
-    .gte("date_debut", periode ? periode.debut : aujourdhuiPortoNovo());
+    .or(filtreNonTermine(periode ? periode.debut : aujourdhuiPortoNovo()));
 
   if (periode) {
     query = query.lte("date_debut", periode.fin);
@@ -144,13 +165,15 @@ export interface EvenementDetail {
   ville: string;
   lieu: string;
   date_debut: string;
+  /** Date de fin pour un événement multi-jours (ex. festival) — null pour un événement d'un seul jour. */
+  date_fin: string | null;
   heure: string | null;
   affiche_url: string | null;
   /** Pays de CET événement — jamais le contexte de navigation du visiteur (voir getEvenementParSlug). Détermine les opérateurs Mobile Money affichés au checkout. */
   paysCode: string;
   /** Toutes les images (principale incluse), triées par ordre d'affichage — pour le carrousel de la page événement. */
   images: { url: string; principale: boolean }[];
-  /** true si l'événement est passé (date_debut < aujourd'hui, ou statut déjà 'termine') */
+  /** true si l'événement est passé (date_fin si renseignée sinon date_debut < aujourd'hui, ou statut déjà 'termine') */
   estTermine: boolean;
   /** Nom affiché publiquement (profiles.nom_public si renseigné, sinon repli sur profiles.nom — voir 20260822120000_nom_public_organisateurs.sql). */
   organisateurNom: string | null;
@@ -166,6 +189,7 @@ interface EventDetailRow {
   ville: string;
   lieu: string;
   date_debut: string;
+  date_fin: string | null;
   heure: string | null;
   affiche_url: string | null;
   pays_code: string;
@@ -208,7 +232,7 @@ export async function getEvenementParSlug(
   const { data, error } = await supabase
     .from("events")
     .select(
-      "slug, titre, description, ville, lieu, date_debut, heure, affiche_url, pays_code, statut, est_demo, organisateur:profiles(nom, nom_public), ticket_types(id, nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale, ordre)"
+      "slug, titre, description, ville, lieu, date_debut, date_fin, heure, affiche_url, pays_code, statut, est_demo, organisateur:profiles(nom, nom_public), ticket_types(id, nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale, ordre)"
     )
     .eq("slug", slug)
     .in("statut", ["publie", "termine"])
@@ -223,7 +247,8 @@ export async function getEvenementParSlug(
   if (!data) return null;
 
   const row = data as unknown as EventDetailRow;
-  const estTermine = row.statut === "termine" || row.date_debut < aujourdhuiPortoNovo();
+  const estTermine =
+    row.statut === "termine" || (row.date_fin ?? row.date_debut) < aujourdhuiPortoNovo();
   return {
     slug: row.slug,
     titre: row.titre,
@@ -232,6 +257,7 @@ export async function getEvenementParSlug(
     ville: row.ville,
     lieu: row.lieu,
     date_debut: row.date_debut,
+    date_fin: row.date_fin,
     heure: row.heure,
     affiche_url: row.affiche_url,
     paysCode: row.pays_code,
@@ -254,11 +280,11 @@ export async function getEvenementParSlug(
 export async function getCategoriesPubliees(pays: string): Promise<string[]> {
   const { data, error } = await supabase
     .from("event_categories")
-    .select("categorie, events!inner(statut, est_demo, date_debut, pays_code)")
+    .select("categorie, events!inner(statut, est_demo, date_debut, date_fin, pays_code)")
     .eq("events.statut", "publie")
     .eq("events.est_demo", false)
     .eq("events.pays_code", pays)
-    .gte("events.date_debut", aujourdhuiPortoNovo());
+    .or(filtreNonTermine(aujourdhuiPortoNovo()), { referencedTable: "events" });
 
   if (error || !data) return [];
 
@@ -314,7 +340,7 @@ export async function getEvenementsTicker(pays: string): Promise<TickerItem[]> {
     .eq("mis_en_avant", true)
     .eq("est_demo", false)
     .eq("pays_code", pays)
-    .gte("date_debut", aujourdhui)
+    .or(filtreNonTermine(aujourdhui))
     .order("ordre_affiche", { ascending: true, nullsFirst: false })
     .order("date_debut", { ascending: true })
     .limit(LIMITE_TICKER);
@@ -331,7 +357,7 @@ export async function getEvenementsTicker(pays: string): Promise<TickerItem[]> {
     .eq("statut", "publie")
     .eq("est_demo", false)
     .eq("pays_code", pays)
-    .gte("date_debut", aujourdhui)
+    .or(filtreNonTermine(aujourdhui))
     .order("date_debut", { ascending: true })
     .limit(LIMITE_TICKER);
 
@@ -352,11 +378,11 @@ export async function getEvenementsTicker(pays: string): Promise<TickerItem[]> {
 export async function getCompteursCategories(pays: string): Promise<Record<string, number>> {
   const { data, error } = await supabase
     .from("event_categories")
-    .select("categorie, events!inner(statut, est_demo, date_debut, pays_code)")
+    .select("categorie, events!inner(statut, est_demo, date_debut, date_fin, pays_code)")
     .eq("events.statut", "publie")
     .eq("events.est_demo", false)
     .eq("events.pays_code", pays)
-    .gte("events.date_debut", aujourdhuiPortoNovo());
+    .or(filtreNonTermine(aujourdhuiPortoNovo()), { referencedTable: "events" });
 
   if (error || !data) {
     if (error) console.error("[events] échec getCompteursCategories :", error.message);
@@ -378,7 +404,7 @@ export async function getVillesPubliees(pays: string): Promise<string[]> {
     .eq("statut", "publie")
     .eq("est_demo", false)
     .eq("pays_code", pays)
-    .gte("date_debut", aujourdhuiPortoNovo());
+    .or(filtreNonTermine(aujourdhuiPortoNovo()));
 
   if (error || !data) return [];
 
@@ -404,7 +430,7 @@ export async function getCompteursVilles(pays: string): Promise<Record<string, n
     .eq("statut", "publie")
     .eq("est_demo", false)
     .eq("pays_code", pays)
-    .gte("date_debut", aujourdhuiPortoNovo());
+    .or(filtreNonTermine(aujourdhuiPortoNovo()));
 
   if (error || !data) {
     if (error) console.error("[events] échec getCompteursVilles :", error.message);

@@ -11,7 +11,7 @@ import ToggleMiseEnAvant from "@/components/admin/ToggleMiseEnAvant";
 import AfficheEvenement from "@/components/AfficheEvenement";
 import Logo from "@/components/Logo";
 import { aujourdhuiPortoNovo } from "@/lib/date";
-import { LIMITE_TICKER } from "@/lib/events";
+import { LIMITE_TICKER, filtreNonTermine } from "@/lib/events";
 
 export const metadata: Metadata = {
   title: "Événements — Administration — XwézanEvent",
@@ -43,6 +43,7 @@ interface EventLigne {
   titre: string;
   slug: string;
   date_debut: string;
+  date_fin: string | null;
   statut: string;
   affiche_url: string | null;
   mis_en_avant: boolean;
@@ -78,7 +79,7 @@ export default async function AdminEvenements({
   let query = supabase
     .from("events")
     .select(
-      "id, titre, slug, date_debut, statut, affiche_url, mis_en_avant, ordre_affiche, organisateur:profiles(nom), ticket_types(prix, quantite_totale, quantite_vendue)"
+      "id, titre, slug, date_debut, date_fin, statut, affiche_url, mis_en_avant, ordre_affiche, organisateur:profiles(nom), ticket_types(prix, quantite_totale, quantite_vendue)"
     )
     .order("created_at", { ascending: false });
   if (statutFiltre) query = query.eq("statut", statutFiltre);
@@ -90,7 +91,7 @@ export default async function AdminEvenements({
       .select("id", { count: "exact", head: true })
       .eq("statut", "publie")
       .eq("mis_en_avant", true)
-      .gte("date_debut", aujourdhui),
+      .or(filtreNonTermine(aujourdhui)),
   ]);
   const evenements = (data as unknown as EventLigne[]) ?? [];
   const totalEnAvant = enAvantEligibles ?? 0;
@@ -200,7 +201,7 @@ export default async function AdminEvenements({
                           eventId={ev.id}
                           misEnAvant={ev.mis_en_avant}
                           ordreAffiche={ev.ordre_affiche}
-                          eligible={ev.statut === "publie" && ev.date_debut >= aujourdhui}
+                          eligible={ev.statut === "publie" && (ev.date_fin ?? ev.date_debut) >= aujourdhui}
                         />
                       </td>
                       <td>

@@ -71,10 +71,10 @@ export async function POST(
 
   const { data: ev } = await supabaseAdmin
     .from("events")
-    .select("id, titre, statut, date_debut, est_demo, ticket_types(id, quantite_totale, quantite_vendue)")
+    .select("id, titre, statut, date_debut, date_fin, est_demo, ticket_types(id, quantite_totale, quantite_vendue)")
     .eq("id", order.event_id)
     .maybeSingle();
-  if (!ev || ev.statut !== "publie" || ev.date_debut < aujourdhuiPortoNovo()) {
+  if (!ev || ev.statut !== "publie" || (ev.date_fin ?? ev.date_debut) < aujourdhuiPortoNovo()) {
     return NextResponse.json(
       { error: "Cet événement n'est plus disponible à la vente" },
       { status: 409 }

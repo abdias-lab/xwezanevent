@@ -572,6 +572,55 @@ Auth + profil). Détail de ce qui a été traité :
 Ajouter ici toute nouvelle donnée de test créée d'ici le lancement (ex. via
 `npm run seed` ou `npm run seed:payout-test`), pour ne pas la perdre de vue.
 
+## Test du 2026-08-23 (événements multi-jours, migration `date_fin`)
+
+Test en conditions réelles de la migration
+`20260823120000_date_fin_evenements.sql` (colonne `events.date_fin`,
+`cloturer_evenements_passes()` et `valider_billet()` recréées) une fois
+appliquée par Abdias, plus les correctifs applicatifs associés
+(`lib/events.ts`, `lib/payouts.ts` déjà en place, `/api/orders`).
+
+Script temporaire `scripts/test-date-fin.mts` (non committé, supprimé en fin
+de session) : créé sous un compte organisateur de test dédié
+(`test-datefin-orga@xwezanevent-test.com`) 4 événements — festival
+multi-jours en cours (BJ **et** TG, hier→demain), événement mono-jour
+aujourd'hui, événement mono-jour déjà passé — chacun avec commande payée
+réelle (`finaliserCommande`) et 2 billets.
+
+Résultats : catalogue public (`getEvenementsPublies`, les deux pays) et
+détail (`getEvenementParSlug`) corrects ; `cloturer_evenements_passes()` ne
+clôture pas le festival en cours mais clôture bien le mono-jour passé
+(non-régression) ; `valider_billet()` accepte le scan jour 2/3 du festival
+(BJ et TG) et de l'événement mono-jour du jour, refuse
+(`evenement_termine`) l'événement mono-jour clôturé — vérifié à la fois par
+RPC directe et via `/scan` en conditions réelles (connecté en organisateur,
+recherche par nom + validation).
+
+**Bug trouvé et corrigé en direct** : `getCategoriesPubliees()` et
+`getCompteursCategories()` (`lib/events.ts`) utilisaient
+`.or(filtreNonTermine(date, "events"))` avec le préfixe de table dans la
+chaîne — PostgREST rejette cette notation à l'intérieur d'un `or=(...)`
+(« failed to parse logic tree »), ce qui cassait silencieusement (erreur
+loggée, retour `[]`/`{}`) les catégories et leurs compteurs sur la page
+d'accueil et `/evenements`, pour **tous** les événements, pas seulement les
+multi-jours. Corrigé en passant par l'option `{ referencedTable: "events" }`
+du `.or()` de `supabase-js` plutôt qu'un préfixe dans la chaîne ;
+`filtreNonTermine()` a perdu son paramètre `prefixe`. Reproduit et vérifié
+en local (`npm run dev`) avant/après correctif.
+
+**Écart constaté, pas corrigé (hors périmètre de cette migration)** :
+`date_fin` n'est affichée nulle part côté UI — ni sur la page publique d'un
+événement (`/evenement/[slug]` ne montre que la date de début), ni dans les
+formulaires de création/édition organisateur (aucun champ `date_fin`), ni
+dans les tableaux admin/orga/compte. La migration ne corrige que la
+correction des dates (filtrage, clôture, scan) ; aucun moyen de saisir ou
+d'afficher une vraie plage de dates n'existe encore. À faire dans une étape
+séparée si le produit doit réellement vendre des festivals multi-jours.
+
+Toutes les données créées pour ce test (4 événements, commandes, billets,
+compte organisateur) ont été supprimées en fin de session — vérification
+finale automatisée : plus aucune trace en base.
+
 Note (pas une donnée de test à nettoyer par nous) : une commande payée
 réelle existe sur l'événement vitrine CONCOURS VOICE TALENT AFRICA
 (`948c41fa-33fa-4369-9924-7716becea141`, acheteur `Abdias`,

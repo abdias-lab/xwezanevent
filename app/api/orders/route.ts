@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
   // 3. Événement publié + types de billets (source de vérité des prix/stock)
   const { data: ev } = await supabaseAdmin
     .from("events")
-    .select("id, titre, date_debut, est_demo, ticket_types(id, nom, prix, quantite_totale, quantite_vendue)")
+    .select("id, titre, date_debut, date_fin, est_demo, ticket_types(id, nom, prix, quantite_totale, quantite_vendue)")
     .eq("slug", slug)
     .eq("statut", "publie")
     .maybeSingle();
@@ -134,7 +134,9 @@ export async function POST(req: NextRequest) {
   // Vérifié par DATE, pas seulement par statut : reste correct même si
   // cloturer_evenements_passes()/pg_cron n'est pas encore passé sur cet
   // événement (voir supabase/migrations/20260712120000_evenements_termines.sql).
-  if (ev.date_debut < aujourdhuiPortoNovo()) {
+  // date_fin (événement multi-jours) prime sur date_debut quand renseignée —
+  // sinon un festival du 22 au 24 refuserait toute commande dès le 23.
+  if ((ev.date_fin ?? ev.date_debut) < aujourdhuiPortoNovo()) {
     return NextResponse.json(
       { error: "Cet événement est terminé, la billetterie est fermée" },
       { status: 409 }

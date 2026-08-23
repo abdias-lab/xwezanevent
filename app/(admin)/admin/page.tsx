@@ -48,7 +48,7 @@ interface PayoutDemande {
   statut: string;
   created_at: string;
   organisateur: { nom: string; telephone: string | null } | null;
-  events: { titre: string; date_debut: string } | null;
+  events: { titre: string; date_debut: string; date_fin: string | null } | null;
 }
 
 /** "0190123456" → "01 90 12 34 56", pour l'affichage admin. */
@@ -119,7 +119,7 @@ export default async function AdminPage() {
     supabaseAdmin
       .from("payouts")
       .select(
-        "id, montant, moyen, numero_destination, statut, created_at, organisateur:profiles(nom, telephone), events(titre, date_debut)"
+        "id, montant, moyen, numero_destination, statut, created_at, organisateur:profiles(nom, telephone), events(titre, date_debut, date_fin)"
       )
       .in("statut", ["demande", "bloque"])
       .order("created_at", { ascending: true }),

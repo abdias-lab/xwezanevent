@@ -22,7 +22,7 @@ export async function POST(
   // une ligne 'demande' antérieure à ce contrôle traînerait en base.
   const { data: payout, error: payoutError } = await supabaseAdmin
     .from("payouts")
-    .select("id, events(date_debut)")
+    .select("id, events(date_debut, date_fin)")
     .eq("id", params.id)
     .maybeSingle();
 
@@ -34,7 +34,7 @@ export async function POST(
     return NextResponse.json({ error: "Demande introuvable" }, { status: 404 });
   }
 
-  const event = payout.events as unknown as { date_debut: string } | null;
+  const event = payout.events as unknown as { date_debut: string; date_fin: string | null } | null;
   if (event && !payoutDisponible(event)) {
     return NextResponse.json(
       {

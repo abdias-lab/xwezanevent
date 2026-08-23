@@ -35,6 +35,7 @@ interface CommandeRow {
   events: {
     titre: string;
     date_debut: string;
+    date_fin: string | null;
     heure: string | null;
     ville: string;
     affiche_url: string | null;
@@ -107,7 +108,7 @@ export default async function Compte() {
   const { data } = await supabase
     .from("orders")
     .select(
-      "id, total, statut, events(titre, date_debut, heure, ville, affiche_url), tickets(id, ticket_types(nom))"
+      "id, total, statut, events(titre, date_debut, date_fin, heure, ville, affiche_url), tickets(id, ticket_types(nom))"
     )
     .order("created_at", { ascending: false });
 
@@ -116,8 +117,8 @@ export default async function Compte() {
   );
 
   const aujourdhui = aujourdhuiPortoNovo();
-  const aVenir = commandes.filter((c) => c.events!.date_debut >= aujourdhui);
-  const passes = commandes.filter((c) => c.events!.date_debut < aujourdhui);
+  const aVenir = commandes.filter((c) => (c.events!.date_fin ?? c.events!.date_debut) >= aujourdhui);
+  const passes = commandes.filter((c) => (c.events!.date_fin ?? c.events!.date_debut) < aujourdhui);
 
   const nom = (user.user_metadata?.nom as string | undefined) ?? user.email ?? "";
   const initiale = nom.charAt(0).toUpperCase();

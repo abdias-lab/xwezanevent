@@ -23,7 +23,7 @@ export async function POST(
 
   const { data: event, error: eventError } = await supabaseAdmin
     .from("events")
-    .select("statut, date_debut, pays_code")
+    .select("statut, date_debut, date_fin, pays_code")
     .eq("id", params.id)
     .single();
 
