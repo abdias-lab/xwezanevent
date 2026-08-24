@@ -125,19 +125,6 @@ export default async function Accueil() {
     <>
       <Header />
 
-      {/* ======================= BANDEAU INFO ======================= */}
-      <div className="bandeau-info">
-        <span className="lieu">
-          {paysDetail.drapeau} {paysDetail.nom}
-        </span>
-        <span className="puce-sep" aria-hidden="true">
-          •
-        </span>
-        <span className="compteur">
-          <b>{evenements.length}</b> événement{evenements.length > 1 ? "s" : ""} à venir
-        </span>
-      </div>
-
       {/* ======================= HERO ======================= */}
       <div className="hero">
         <div className="applique" aria-hidden="true" />

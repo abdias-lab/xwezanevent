@@ -319,43 +319,11 @@
   }
 
   /* ==========================================================
-     BANDEAU INFO (repère haut de page : pays + compteur)
-     ========================================================== */
-  .bandeau-info {
-    margin-top: 73px; /* dégage le header fixe (72px de nav + 1px de bordure) */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 10px 20px;
-    background: var(--surface2);
-    border-bottom: 1px solid var(--ligne);
-    font-family: var(--space);
-    font-size: 0.78rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--texte2);
-    text-align: center;
-    flex-wrap: wrap;
-  }
-  .bandeau-info .lieu {
-    color: var(--texte);
-  }
-  .bandeau-info .puce-sep {
-    color: var(--accent);
-    opacity: 0.7;
-  }
-  .bandeau-info .compteur b {
-    color: var(--accent);
-    font-weight: 500;
-  }
-
-  /* ==========================================================
      HERO
      ========================================================== */
   .hero {
     position: relative;
-    padding: 136px 28px 96px;
+    padding: 176px 28px 96px;
     background:
       radial-gradient(1000px 520px at 82% -10%, color-mix(in srgb, var(--secondaire) 20%, transparent), transparent 62%),
       radial-gradient(900px 600px at -10% 30%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 60%),
@@ -3829,11 +3797,7 @@
 
 @media (max-width: 680px) {
   .hero {
-    padding: 110px 20px 70px;
-  }
-  .bandeau-info {
-    font-size: 0.7rem;
-    padding: 9px 16px;
+    padding: 150px 20px 70px;
   }
   .sec-vedette {
     padding: 0 20px 48px;
