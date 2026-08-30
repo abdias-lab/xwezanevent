@@ -13,6 +13,10 @@ export default function RelancerPaiement({ orderId }: { orderId: string }) {
     try {
       const res = await fetch(`/api/orders/${orderId}/reessayer`, { method: "POST" });
       const data = await res.json().catch(() => ({}));
+      if (res.ok && data.gratuit) {
+        window.location.href = `/confirmation?order=${orderId}`;
+        return;
+      }
       if (res.ok && data.url) {
         window.location.href = data.url; // → nouveau checkout FedaPay
         return;

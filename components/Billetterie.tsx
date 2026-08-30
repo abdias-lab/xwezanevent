@@ -112,6 +112,14 @@ export default function Billetterie({
         return;
       }
       const data = await res.json().catch(() => ({}));
+      if (res.ok && data.gratuit) {
+        // Panier entièrement gratuit : déjà finalisée côté serveur (aucun
+        // appel FedaPay, voir app/api/orders/route.ts) — direction la
+        // confirmation, pas de checkout.
+        setPhase("redirection");
+        window.location.href = `/confirmation?order=${data.orderId}`;
+        return;
+      }
       if (res.ok && data.url) {
         setPhase("redirection");
         window.location.href = data.url; // → checkout FedaPay

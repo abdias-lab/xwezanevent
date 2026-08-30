@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { signaturePanier, creerTransactionPourCommande } from "@/lib/commandes";
+import { signaturePanier, creerTransactionPourCommande, finaliserCommande } from "@/lib/commandes";
 import { aujourdhuiPortoNovo } from "@/lib/date";
 
 interface ItemSaisi {
@@ -317,7 +317,27 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 6. Transaction FedaPay + lien de paiement (toujours une nouvelle
+  // 6. Panier entièrement gratuit (total = 0) : FedaPay refuse toute
+  // transaction sous 100 XOF (minimum documenté, tous paliers de compte
+  // confondus) — un appel échouerait systématiquement. On finalise la
+  // commande directement (génération des billets + email), sans jamais
+  // passer par FedaPay. Un panier mixte (au moins un billet payant) garde
+  // total > 0 et suit le chemin FedaPay normal ci-dessous.
+  if (total === 0) {
+    const resultat = await finaliserCommande(orderId, 0);
+    if (resultat === "ok" || resultat === "deja") {
+      return NextResponse.json({ orderId, gratuit: true });
+    }
+    // "montant"/"introuvable" ne devraient pas se produire ici (commande
+    // tout juste créée avec total=0, montantPaye=0) — filet de sécurité.
+    console.error(`[api/orders] échec finalisation commande gratuite ${orderId} : ${resultat}`);
+    return NextResponse.json(
+      { error: "Impossible de finaliser la commande, réessaie." },
+      { status: 500 }
+    );
+  }
+
+  // 7. Transaction FedaPay + lien de paiement (toujours une nouvelle
   // transaction, y compris pour une commande réutilisée — un lien
   // FedaPay est à usage unique).
   const [firstname, ...reste] = acheteurNom.trim().split(" ");

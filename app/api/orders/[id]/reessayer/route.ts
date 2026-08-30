@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { creerTransactionPourCommande } from "@/lib/commandes";
+import { creerTransactionPourCommande, finaliserCommande } from "@/lib/commandes";
 import { aujourdhuiPortoNovo } from "@/lib/date";
 
 interface PanierLigne {
@@ -104,6 +104,22 @@ export async function POST(
         { status: 409 }
       );
     }
+  }
+
+  // Commande gratuite restée en_attente (ex. créée avant l'ajout de ce
+  // filet — voir app/api/orders/route.ts) : finalise directement, ne
+  // retente jamais FedaPay, qui refuserait un montant à 0 F de la même
+  // façon que la première fois.
+  if (order.total === 0) {
+    const resultat = await finaliserCommande(order.id, 0);
+    if (resultat === "ok" || resultat === "deja") {
+      return NextResponse.json({ orderId: order.id, gratuit: true });
+    }
+    console.error(`[api/orders/reessayer] échec finalisation commande gratuite ${order.id} : ${resultat}`);
+    return NextResponse.json(
+      { error: "Impossible de finaliser la commande, réessaie." },
+      { status: 500 }
+    );
   }
 
   const [firstname, ...reste] = acheteurNom.trim().split(" ");
