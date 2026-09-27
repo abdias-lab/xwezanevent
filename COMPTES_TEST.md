@@ -701,3 +701,30 @@ envoyé` distinctes dans les logs, aucune ligne `[modifier] échec
 notification acheteur`) — confirme à la fois la disparition du crash et la
 fin du dédoublonnage abusif. Toutes les données de test supprimées en fin
 de session, vérification finale automatisée : plus aucune trace en base.
+
+## Test du 2026-09-27 (bug #2 : date modifiable vers le passé, contournement J+3)
+
+Correctif testé : contrôles serveur ajoutés dans
+`app/(orga)/orga/evenements/[id]/modifier/actions.ts` (voir
+`design/BUGS_REFONTE.md`, bug #2). Test en conditions réelles (`npm run dev`,
+scripts temporaires hors dépôt), soumissions HTTP réelles du formulaire de
+modification avec la session d'un compte de test :
+
+- organisateur `test-bug2@xwezanevent-test.com` (mot de passe aléatoire, jamais noté) ;
+- événement `test-bug2-dates` (« [TEST] Bug 2 dates », publié, 20 déc. 2026) ;
+- 1 commande invité `paye` insérée directement (1 000 F), acheteur
+  `gbedoloabdias@gmail.com`, téléphone factice `0100000000`.
+
+Résultats (8/8 conformes) : avec vente payée, date passée → `date_passee` ;
+date avancée mais future → `date_avancee` ; festival dont la fin précède
+l'ancienne date → `date_avancee` ; date repoussée → acceptée, e-mail
+« Changement de date » reçu par l'acheteur (1 ligne `[email] envoyé`) ;
+retour à la date d'origine → `date_avancee`. Sans vente payée : date passée
+→ `date_passee` ; date avancée future → acceptée. Format invalide → `champs`.
+Messages d'erreur affichés vérifiés sur la page pour les 6 codes.
+
+**Toutes les données supprimées** en fin de test (commande, type de billet,
+événement, compte et profil). Empreinte SHA-256 du contenu complet des tables
+(`events`, `ticket_types`, `tickets`, `orders`, `payouts`, `profiles`,
+`event_categories`, `event_images`, `journal_actions`, `pays`) et des comptes
+`auth.users` identique avant/après : base revenue à son état initial.

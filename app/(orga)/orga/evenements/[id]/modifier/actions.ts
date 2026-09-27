@@ -9,7 +9,9 @@ import { MAX_IMAGES } from "@/lib/affiche";
 import { MAX_CATEGORIES } from "@/lib/categories";
 import { envoyerEmail, emailUtilisateur } from "@/lib/email";
 import { emailEvenementDateModifiee } from "@/lib/emails/evenement-edition";
-import { formatPlageDates } from "@/lib/date";
+import { aujourdhuiPortoNovo, formatPlageDates } from "@/lib/date";
+
+const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 function parserCategories(formData: FormData): string[] {
   try {
@@ -71,13 +73,48 @@ export async function modifierEvenement(eventId: string, formData: FormData) {
   const date_fin = String(formData.get("date_fin") || "") || null;
   const heure = String(formData.get("heure") || "") || null;
 
-  if (!date_debut) {
+  if (!DATE_ISO.test(date_debut) || (date_fin !== null && !DATE_ISO.test(date_fin))) {
     redirect(`/orga/evenements/${eventId}/modifier?erreur=champs`);
   }
   // Jamais confiance au client seul (checkbox + min sur l'input côté
   // navigateur) : revalidé ici, comme la contrainte CHECK en base.
   if (date_fin && date_fin < date_debut) {
     redirect(`/orga/evenements/${eventId}/modifier?erreur=dates`);
+  }
+
+  // La date conditionne le délai J+3 des reversements (lib/payouts.ts, qui
+  // relit date_fin ?? date_debut) : sans ces contrôles, ramener la date d'un
+  // événement déjà vendu dans le passé rendait le virement demandable avant
+  // même sa tenue (design/BUGS_REFONTE.md, bug #2). Contrôles limités aux
+  // dates réellement modifiées : un festival en cours (début passé, inchangé)
+  // doit rester éditable pour sa description ou ses images.
+  const debutChange = date_debut !== event.date_debut;
+  const finChange = date_fin !== event.date_fin;
+  if (debutChange || finChange) {
+    const aujourdhui = aujourdhuiPortoNovo();
+    const nouvelleReference = date_fin ?? date_debut;
+    if ((debutChange && date_debut < aujourdhui) || nouvelleReference < aujourdhui) {
+      redirect(`/orga/evenements/${eventId}/modifier?erreur=date_passee`);
+    }
+
+    // Avancer l'événement (début ou dernier jour plus tôt) est refusé dès
+    // qu'une commande est payée ; le repousser reste libre (acheteurs notifiés
+    // plus bas). Échec de la vérification = refus : jamais d'avance par défaut.
+    const ancienneReference = event.date_fin ?? event.date_debut;
+    if (date_debut < event.date_debut || nouvelleReference < ancienneReference) {
+      const { count, error: erreurVentes } = await supabaseAdmin
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .eq("statut", "paye");
+      if (erreurVentes || count === null) {
+        console.error("[modifier] vérification des ventes impossible :", erreurVentes?.message);
+        redirect(`/orga/evenements/${eventId}/modifier?erreur=verification`);
+      }
+      if (count > 0) {
+        redirect(`/orga/evenements/${eventId}/modifier?erreur=date_avancee`);
+      }
+    }
   }
 
   const categories = parserCategories(formData);

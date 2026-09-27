@@ -26,6 +26,7 @@ function BoutonEnregistrer() {
  */
 export default function FormulaireEdition({
   action,
+  erreur,
   titre,
   lieu,
   ville,
@@ -38,6 +39,8 @@ export default function FormulaireEdition({
   imagesInitiales,
 }: {
   action: (formData: FormData) => void;
+  /** Message du dernier refus serveur (?erreur= de l'URL), null sinon. */
+  erreur: string | null;
   titre: string;
   lieu: string;
   ville: string;
@@ -66,6 +69,11 @@ export default function FormulaireEdition({
           {pays ? `${pays} · ` : ""}📍 {lieu}, {ville} — le nom, le pays, le lieu et la
           ville ne sont pas modifiables ici.
         </p>
+        {erreur && (
+          <p className="alerte-erreur" role="alert">
+            {erreur}
+          </p>
+        )}
 
         <div className="bloc-form">
           <div className="num-titre">

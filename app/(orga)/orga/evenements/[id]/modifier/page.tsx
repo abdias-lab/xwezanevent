@@ -10,6 +10,18 @@ export const metadata: Metadata = {
   title: "Modifier l'événement — XwézanEvent",
 };
 
+// Messages des refus de modifierEvenement (./actions.ts, paramètre ?erreur=).
+const MESSAGES_ERREUR: Record<string, string> = {
+  champs: "La date de début est obligatoire.",
+  dates: "La date de fin ne peut pas précéder la date de début.",
+  date_passee:
+    "Impossible de placer l'événement à une date passée. Choisis une date à partir d'aujourd'hui.",
+  date_avancee:
+    "Des billets ont déjà été vendus : tu peux repousser l'événement, mais pas avancer sa date. Pour un cas exceptionnel, écris à contact@xwezan.com.",
+  verification: "Vérification impossible pour le moment. Aucune modification n'a été enregistrée, réessaie dans un instant.",
+  affiche: "L'envoi d'une image a échoué. Aucune modification n'a été enregistrée, réessaie.",
+};
+
 interface EventRow {
   id: string;
   titre: string;
@@ -28,8 +40,10 @@ interface EventRow {
 
 export default async function ModifierEvenementPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams: { erreur?: string };
 }) {
   const supabase = creerClientServeur();
   const {
@@ -62,6 +76,7 @@ export default async function ModifierEvenementPage({
       <Header />
       <FormulaireEdition
         action={modifierAvecId}
+        erreur={searchParams.erreur ? MESSAGES_ERREUR[searchParams.erreur] ?? null : null}
         titre={event.titre}
         lieu={event.lieu}
         ville={event.ville}
