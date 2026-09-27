@@ -986,6 +986,26 @@
   }
 }
 
+/* ---------- Attente de paiement ---------- */
+.attenteRond {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  border: 3px solid var(--piste);
+  border-top-color: var(--or);
+  animation: tourne 0.9s linear infinite;
+}
+@keyframes tourne {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .attenteRond {
+    animation-duration: 3s;
+  }
+}
+
 /* ---------- Scanner ---------- */
 .modes {
   display: grid;
