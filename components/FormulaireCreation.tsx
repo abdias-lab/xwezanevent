@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { publierEvenement } from "@/app/(orga)/creer/actions";
 import SelecteurCategories from "@/components/SelecteurCategories";
 import SelecteurImages from "@/components/SelecteurImages";
+import { aujourdhuiPortoNovo } from "@/lib/date";
 
 const VILLES = ["Cotonou", "Porto-Novo", "Ouidah", "Abomey", "Parakou", "Grand-Popo"];
 
@@ -30,9 +31,15 @@ function BoutonPublier({ actif }: { actif: boolean }) {
 
 export default function FormulaireCreation({
   paysDisponibles,
+  erreur,
 }: {
   paysDisponibles: { code: string; nom: string; drapeau: string }[];
+  /** Message du dernier refus serveur (?erreur= de l'URL), null sinon. */
+  erreur: string | null;
 }) {
+  // Confort seulement : la règle « pas de date passée » est tenue par
+  // publierEvenement côté serveur.
+  const aujourdhui = aujourdhuiPortoNovo();
   const [titre, setTitre] = useState("");
   const [description, setDescription] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
@@ -97,6 +104,11 @@ export default function FormulaireCreation({
         <p className="sous">
           Remplis les informations ci-dessous pour publier ton événement
         </p>
+        {erreur && (
+          <p className="alerte-erreur" role="alert">
+            {erreur}
+          </p>
+        )}
 
         {/* 1. Infos générales */}
         <div className="bloc-form">
@@ -142,6 +154,7 @@ export default function FormulaireCreation({
                 id="date_debut"
                 name="date_debut"
                 type="date"
+                min={aujourdhui}
                 value={dateDebut}
                 onChange={(e) => setDateDebut(e.target.value)}
               />
@@ -177,7 +190,7 @@ export default function FormulaireCreation({
                 id="date_fin"
                 name="date_fin"
                 type="date"
-                min={dateDebut || undefined}
+                min={dateDebut || aujourdhui}
                 value={dateFin}
                 onChange={(e) => setDateFin(e.target.value)}
               />

@@ -759,3 +759,24 @@ l'identique. **Toutes les données supprimées** en fin de test (virements,
 commandes, types de billet, événements, entrées `journal_actions` des deux
 comptes, comptes et profils) : empreinte SHA-256 du contenu complet des tables
 et des comptes identique avant/après.
+
+## Test du 2026-09-27 (étape 3 : date passée refusée à la création)
+
+Correctif testé : contrôle serveur dans `publierEvenement`
+(`app/(orga)/creer/actions.ts`, amélioration A1 de `design/BUGS_REFONTE.md`),
+validations déplacées avant l'envoi des images, affichage des erreurs sur
+`/creer`, `min` des champs date. Test en conditions réelles (`npm run dev`,
+script temporaire hors dépôt), soumissions HTTP réelles du formulaire `/creer`
+avec une vraie image PNG jointe, compte `test-etape3-orga@xwezanevent-test.com`
+(mot de passe aléatoire, jamais noté).
+
+Résultats (13/13 conformes) : date passée et date d'hier → `date_passee`,
+aucun événement créé et **aucune image laissée dans le bucket `affiches`** ;
+format invalide → `champs` ; fin avant début → `dates` ; nom manquant avec
+image → `champs`, aucune image orpheline ; date du jour → événement créé en
+`en_validation`, `date_reference_virement` égale à la date, une image envoyée ;
+message affiché sur `/creer?erreur=date_passee` ; calendrier limité à aujourd'hui.
+
+**Toutes les données supprimées** (image du bucket, images, catégories, types
+de billet, événement, journal, compte et profil). Empreinte SHA-256 des tables,
+des comptes et de la liste des fichiers du bucket `affiches` identique avant/après.

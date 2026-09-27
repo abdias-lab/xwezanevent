@@ -7,6 +7,9 @@ import { revalidatePath } from "next/cache";
 import { uploaderImageEvenement } from "@/lib/images-evenement";
 import { MAX_IMAGES } from "@/lib/affiche";
 import { MAX_CATEGORIES } from "@/lib/categories";
+import { aujourdhuiPortoNovo } from "@/lib/date";
+
+const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 interface TicketSaisi {
   nom?: string;
@@ -61,6 +64,30 @@ export async function publierEvenement(formData: FormData) {
   const ville = String(formData.get("ville") || "").trim();
   const pays_code = String(formData.get("pays_code") || "").trim();
 
+  // Validations sans effet de bord AVANT l'envoi des images : un refus ne
+  // doit pas laisser de fichiers orphelins dans le stockage.
+  if (
+    !titre ||
+    !DATE_ISO.test(date_debut) ||
+    (date_fin !== null && !DATE_ISO.test(date_fin)) ||
+    !lieu ||
+    !ville ||
+    !pays_code
+  ) {
+    redirect("/creer?erreur=champs");
+  }
+  // Jamais confiance au client seul (checkbox + min sur l'input côté
+  // navigateur) : revalidé ici, comme la contrainte CHECK en base.
+  if (date_fin && date_fin < date_debut) {
+    redirect("/creer?erreur=dates");
+  }
+  // Pas d'événement dans le passé (design/BUGS_REFONTE.md, amélioration A1) :
+  // la date conditionne le J+3 des reversements, la règle est donc tenue ici
+  // et pas seulement par le `min` du navigateur.
+  if (date_debut < aujourdhuiPortoNovo()) {
+    redirect("/creer?erreur=date_passee");
+  }
+
   const fichiersImages = formData
     .getAll("images_nouvelles")
     .filter((f): f is File => f instanceof File && f.size > 0)
@@ -94,15 +121,6 @@ export async function publierEvenement(formData: FormData) {
     ticketsSaisis = JSON.parse(String(formData.get("tickets") || "[]"));
   } catch {
     ticketsSaisis = [];
-  }
-
-  if (!titre || !date_debut || !lieu || !ville || !pays_code) {
-    redirect("/creer?erreur=champs");
-  }
-  // Jamais confiance au client seul (checkbox + min sur l'input côté
-  // navigateur) : revalidé ici, comme la contrainte CHECK en base.
-  if (date_fin && date_fin < date_debut) {
-    redirect("/creer?erreur=dates");
   }
 
   // Le sélecteur ne propose que les pays actifs, mais le formulaire n'est
