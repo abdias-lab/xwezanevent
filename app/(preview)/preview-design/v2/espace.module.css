@@ -944,6 +944,27 @@
   display: none;
 }
 
+/* ---------- Validation admin ---------- */
+.colonnesValidation {
+  display: grid;
+  gap: var(--s4);
+}
+.actionsValidation {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s2);
+}
+@media (min-width: 768px) {
+  .colonnesValidation {
+    grid-template-columns: 240px minmax(0, 1fr);
+    align-items: start;
+  }
+  .actionsValidation {
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
 /* ---------- Scanner ---------- */
 .modes {
   display: grid;

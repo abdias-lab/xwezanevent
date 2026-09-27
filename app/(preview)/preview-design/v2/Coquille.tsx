@@ -7,8 +7,11 @@ export const B = "/preview-design/v2";
 
 export type EntreeNav = { cle: string; libelle: string; court?: string; href: string; icone: IconName };
 
-/** Navigation de l'espace organisateur. `creer` est l'action centrale de la barre basse. */
-export const NAV_ORGA: { entrees: EntreeNav[]; creer: EntreeNav; role: string; compte: { nom: string; email: string } } = {
+/** Navigation d'un espace de travail. `creer`, s'il existe, est l'action centrale de la barre basse. */
+export type Nav = { entrees: EntreeNav[]; creer?: EntreeNav; role: string; compte: { nom: string; email: string } };
+
+/** Navigation de l'espace organisateur. */
+export const NAV_ORGA: Nav = {
   role: "Organisateur",
   entrees: [
     { cle: "accueil", libelle: "Tableau de bord", court: "Accueil", href: `${B}/orga`, icone: "home" },
@@ -20,14 +23,13 @@ export const NAV_ORGA: { entrees: EntreeNav[]; creer: EntreeNav; role: string; c
   compte: { nom: "Ouidah Live", email: "contact@ouidahlive.bj" },
 };
 
-type Nav = typeof NAV_ORGA;
-
 /**
  * Coquille des espaces de travail : colonne latérale ≥ 1024 px,
  * barre supérieure + barre basse au pouce en dessous.
  */
 export default function Coquille({ nav = NAV_ORGA, actif, children }: { nav?: Nav; actif: string; children: ReactNode }) {
-  const [a, b, c, d] = nav.entrees;
+  const creer = nav.creer;
+  const moitie = Math.ceil(nav.entrees.length / 2);
   const tab = (e: EntreeNav) => (
     <a key={e.cle} href={e.href} className={`${s.tab} ${actif === e.cle ? s.tabOn : ""}`} aria-current={actif === e.cle ? "page" : undefined}>
       <Icon name={e.icone} size={24} />
@@ -39,7 +41,7 @@ export default function Coquille({ nav = NAV_ORGA, actif, children }: { nav?: Na
     <div className={`${v.racine} ${s.racineEspace}`}>
       <div className={s.app}>
         <header className={s.topbar}>
-          <a href={nav.entrees[0].href} className={v.logo} aria-label="XwézanEvent, espace organisateur">
+          <a href={nav.entrees[0].href} className={v.logo} aria-label={`XwézanEvent, ${nav.role.toLowerCase()}`}>
             <span className={v.logoX}>Xwézan</span>
           </a>
           <span className={s.role}>{nav.role}</span>
@@ -49,7 +51,7 @@ export default function Coquille({ nav = NAV_ORGA, actif, children }: { nav?: Na
         </header>
 
         <aside className={s.lateral}>
-          <a href={nav.entrees[0].href} className={v.logo} aria-label="XwézanEvent, espace organisateur">
+          <a href={nav.entrees[0].href} className={v.logo} aria-label={`XwézanEvent, ${nav.role.toLowerCase()}`}>
             <span className={v.logoX}>Xwézan</span>
           </a>
           <p className={s.role}>{nav.role}</p>
@@ -61,9 +63,11 @@ export default function Coquille({ nav = NAV_ORGA, actif, children }: { nav?: Na
               </a>
             ))}
           </nav>
-          <a href={nav.creer.href} className={`${s.btn} ${s.btnOr} ${s.latCreer}`}>
-            <Icon name="plus" /> {nav.creer.libelle}
-          </a>
+          {creer && (
+            <a href={creer.href} className={`${s.btn} ${s.btnOr} ${s.latCreer}`}>
+              <Icon name={creer.icone} /> {creer.libelle}
+            </a>
+          )}
           <div className={s.latBas}>
             <a href={B} className={s.latLien}>
               <Icon name="eye" size={20} /> Voir le site
@@ -85,16 +89,20 @@ export default function Coquille({ nav = NAV_ORGA, actif, children }: { nav?: Na
 
         <main className={s.principal}>{children}</main>
 
-        <nav className={s.tabbar} aria-label="Navigation de l'espace">
-          {tab(a)}
-          {tab(b)}
-          <a href={nav.creer.href} className={s.tabCreer} aria-label={nav.creer.libelle}>
-            <span>
-              <Icon name={nav.creer.icone} size={24} />
-            </span>
-          </a>
-          {tab(c)}
-          {tab(d)}
+        <nav
+          className={s.tabbar}
+          aria-label="Navigation de l'espace"
+          style={{ gridTemplateColumns: `repeat(${nav.entrees.length + (creer ? 1 : 0)}, 1fr)` }}
+        >
+          {nav.entrees.slice(0, moitie).map(tab)}
+          {creer && (
+            <a href={creer.href} className={s.tabCreer} aria-label={creer.libelle}>
+              <span>
+                <Icon name={creer.icone} size={24} />
+              </span>
+            </a>
+          )}
+          {nav.entrees.slice(moitie).map(tab)}
         </nav>
       </div>
     </div>
