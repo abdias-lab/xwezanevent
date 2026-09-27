@@ -965,6 +965,24 @@
   display: none;
 }
 
+/* Formulaire simple (connexion, mot de passe, retrouver mon billet, réglages) :
+   une seule colonne à toutes les tailles, champs et bouton empilés à pleine
+   largeur, même hauteur (48 px). `.form` est réservé aux formulaires avec
+   colonne latérale (créer, modifier, commande). */
+.formSimple {
+  display: grid;
+  gap: var(--s4);
+}
+.formSimple > .btn {
+  width: 100%;
+}
+/* Écran d'un seul formulaire : colonne de lecture alignée à gauche, comme le
+   reste des pages V2 (pas de bloc centré qui flotte dans le vide). */
+.colonneEcran {
+  max-width: 480px;
+  margin-top: var(--s8);
+}
+
 /* ---------- Validation admin ---------- */
 .colonnesValidation {
   display: grid;

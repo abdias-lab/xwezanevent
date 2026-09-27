@@ -83,7 +83,7 @@ export default function Auth({ vueInitiale, erreurInitiale, creeInitial }: { vue
         </p>
       )}
 
-      <form className={s.form} style={{ gap: 16 }} noValidate onSubmit={envoyer}>
+      <form className={s.formSimple} noValidate onSubmit={envoyer}>
         {vue === "inscription" && (
           <div className={champ(nomOk)}>
             <label htmlFor="nom">Nom complet</label>

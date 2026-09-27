@@ -13,7 +13,7 @@ export default function V2Billet({ searchParams }: { searchParams: { etat?: stri
     <div className={`${v.racine} ${s.racineEspace}`}>
       <Header />
       <main className={v.cont}>
-        <div style={{ maxWidth: 440, margin: "32px auto 0" }}>
+        <div className={s.colonneEcran}>
           <h1 className={v.h1}>
             Retrouver <em>mon billet.</em>
           </h1>

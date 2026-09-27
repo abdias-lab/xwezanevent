@@ -67,7 +67,7 @@ export default function Oubli({ envoyeInitial }: { envoyeInitial: boolean }) {
   }
 
   return (
-    <form className={s.form} style={{ gap: 16 }} noValidate onSubmit={envoyer}>
+    <form className={s.formSimple} noValidate onSubmit={envoyer}>
       <div className={`${s.champ} ${tente && !emailOk ? s.champErreur : ""}`}>
         <label htmlFor="email">E-mail du compte</label>
         <input

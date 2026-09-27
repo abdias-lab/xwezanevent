@@ -28,7 +28,7 @@ export default function V2Connexion({ searchParams }: { searchParams: { vue?: st
     <div className={`${v.racine} ${s.racineEspace}`}>
       <Header />
       <main className={v.cont}>
-        <div style={{ maxWidth: 440, margin: "32px auto 0" }}>
+        <div className={s.colonneEcran}>
           <h1 className={v.h1}>
             Bon retour <em>parmi nous.</em>
           </h1>

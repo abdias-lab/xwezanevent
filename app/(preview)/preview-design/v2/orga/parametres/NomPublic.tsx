@@ -19,8 +19,7 @@ export default function NomPublic({ nomPerso, initial, erreur }: { nomPerso: str
 
   return (
     <form
-      className={s.form}
-      style={{ gap: 16 }}
+      className={s.formSimple}
       onSubmit={(e) => {
         e.preventDefault();
         setSauve(valeur.trim());

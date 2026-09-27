@@ -69,8 +69,7 @@ export default function Retrouver({ envoyeInitial }: { envoyeInitial: boolean })
 
   return (
     <form
-      className={s.form}
-      style={{ gap: 16 }}
+      className={s.formSimple}
       noValidate
       onSubmit={(e) => {
         e.preventDefault();

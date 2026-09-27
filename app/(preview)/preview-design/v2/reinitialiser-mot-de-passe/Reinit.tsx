@@ -42,8 +42,7 @@ export default function Reinit({ etatInitial }: { etatInitial: "formulaire" | "t
 
   return (
     <form
-      className={s.form}
-      style={{ gap: 16 }}
+      className={s.formSimple}
       noValidate
       onSubmit={(e) => {
         e.preventDefault();

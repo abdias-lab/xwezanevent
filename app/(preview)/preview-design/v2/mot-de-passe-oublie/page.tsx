@@ -13,7 +13,7 @@ export default function V2MotDePasseOublie({ searchParams }: { searchParams: { e
     <div className={`${v.racine} ${s.racineEspace}`}>
       <Header />
       <main className={v.cont}>
-        <div style={{ maxWidth: 440, margin: "32px auto 0" }}>
+        <div className={s.colonneEcran}>
           <h1 className={v.h1}>
             Mot de passe <em>oublié ?</em>
           </h1>
