@@ -12,8 +12,14 @@ export function Header() {
         <nav className={s.navLiens} aria-label="Navigation principale">
           <a href="/preview-design/v2/evenements">Événements</a>
           <a href="/preview-design/v2/tarifs">Tarifs</a>
-          <a href="#">Organisateurs</a>
         </nav>
+        {/* Action organisateur : bouton distinct des liens de navigation (comme « Publier » en prod). */}
+        <a href="/preview-design/v2/creer" className={s.btnPublier}>
+          <Icon name="plus" size={16} />
+          <span>
+            Publier<span className={s.libelleLong}> un événement</span>
+          </span>
+        </a>
         <a href="/preview-design/v2/connexion" className={s.btnBlanc}>
           Se connecter
         </a>
