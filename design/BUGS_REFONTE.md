@@ -32,6 +32,9 @@ Décidé par Abdias le 2026-09-27. Un seul chantier : l'annulation d'un événem
 3. donner à l'admin un outil pour tracer les remboursements (commandes à rembourser,
    « Marquer remboursé » → `orders.statut = 'rembourse'`) ;
 4. aligner les textes publics sur le délai de 14 jours (CGU §5, `/remboursements`).
+   Aussi `/reversements` (« Si l'événement est annulé ») : « les virements gelés sont débloqués manuellement
+   par notre équipe une fois la situation vérifiée » laisse croire que l'organisateur sera payé ; à
+   réécrire pour dire que ces fonds servent d'abord au remboursement des acheteurs.
 
 Maquettes V2 déjà prêtes : `/admin/billets` (filtre « À rembourser ») et `/compte`
 (section « Événements annulés »).
