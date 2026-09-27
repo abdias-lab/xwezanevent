@@ -13,7 +13,8 @@ export default function RelancerPaiement({ orderId }: { orderId: string }) {
     try {
       const res = await fetch(`/api/orders/${orderId}/reessayer`, { method: "POST" });
       const data = await res.json().catch(() => ({}));
-      if (res.ok && data.gratuit) {
+      // Gratuite, ou paiement précédent finalement abouti (voir la relance).
+      if (res.ok && (data.gratuit || data.finalisee)) {
         window.location.href = `/confirmation?order=${orderId}`;
         return;
       }

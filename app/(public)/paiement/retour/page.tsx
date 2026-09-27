@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { recupererTransaction } from "@/lib/fedapay";
 import { finaliserCommande } from "@/lib/commandes";
 import { redirect } from "next/navigation";
+import { issueTransaction } from "@/lib/statut-paiement";
 
 /**
  * Retour navigateur depuis le checkout FedaPay. Comme il n'y a pas de signature
@@ -47,7 +48,8 @@ export default async function RetourPaiement({
       const trx = await recupererTransaction(Number(order.fedapay_transaction_id));
       console.info(`[fedapay retour] commande ${orderId} → statut reçu : ${trx.status}`);
 
-      if (trx.status === "approved") {
+      // « transferred » compte aussi comme payée (voir lib/statut-paiement.ts).
+      if (issueTransaction(trx.status) === "payee") {
         await finaliserCommande(orderId, trx.amount);
         destination = `/confirmation?order=${orderId}`;
       } else if (trx.status === "declined") {

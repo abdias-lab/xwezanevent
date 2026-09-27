@@ -26,9 +26,9 @@ const MESSAGES: Record<string, { titre: string; detail: string }> = {
     detail: "Le service de paiement FedaPay est momentanément indisponible. Réessaie dans un instant.",
   },
   en_attente: {
-    titre: "Paiement non finalisé",
+    titre: "Paiement en cours de validation",
     detail:
-      "Nous n'avons pas encore reçu la confirmation de FedaPay pour ce paiement. Si tu as bien validé la transaction, ton billet sera confirmé automatiquement d'ici quelques instants — sinon, réessaie ci-dessous.",
+      "FedaPay ne nous a pas encore confirmé ce paiement. Si tu l'as validé sur ton téléphone, ne repaie pas : ton billet sera confirmé automatiquement et envoyé par e-mail. Sinon, la demande expirera d'elle-même.",
   },
   defaut: {
     titre: "Paiement non abouti",
@@ -104,7 +104,15 @@ export default async function PaiementEchec({
         <h1>{titre}</h1>
         <p className="sous">{detail}</p>
 
-        <RelancerPaiement orderId={order.id} />
+        {/* Paiement peut-être encore en cours : jamais de relance ici, on revérifie
+            (design/BUGS_REFONTE.md #12). La relance reste possible pour un échec définitif. */}
+        {searchParams.raison === "en_attente" ? (
+          <Link className="btn btn-or btn-large" href={`/paiement/retour?order=${order.id}`}>
+            Vérifier à nouveau
+          </Link>
+        ) : (
+          <RelancerPaiement orderId={order.id} />
+        )}
 
         <p className="note-c">
           🔒 Ton paiement se fait toujours via FedaPay, de façon sécurisée

@@ -4,6 +4,8 @@ import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { creerTransactionPourCommande, finaliserCommande } from "@/lib/commandes";
 import { aujourdhuiPortoNovo } from "@/lib/date";
+import { recupererTransaction } from "@/lib/fedapay";
+import { issueTransaction } from "@/lib/statut-paiement";
 
 interface PanierLigne {
   ticket_type_id: string;
@@ -35,7 +37,7 @@ export async function POST(
 ) {
   const { data: order } = await supabaseAdmin
     .from("orders")
-    .select("id, user_id, acheteur_nom, acheteur_email, event_id, total, statut, panier")
+    .select("id, user_id, acheteur_nom, acheteur_email, event_id, total, statut, panier, fedapay_transaction_id")
     .eq("id", params.id)
     .maybeSingle();
 
@@ -67,6 +69,51 @@ export async function POST(
       { error: "Cette commande n'est plus modifiable" },
       { status: 409 }
     );
+  }
+
+  // La transaction précédente peut encore aboutir (Mobile Money validé mais
+  // pas encore confirmé par FedaPay). En créer une nouvelle écraserait son
+  // identifiant : son webhook ne retrouverait plus la commande, et l'acheteur
+  // serait débité sans billet, ou deux fois (design/BUGS_REFONTE.md #12).
+  // On ne relance donc que si elle a définitivement échoué. Placé avant les
+  // contrôles d'événement et de stock : un paiement abouti se finalise
+  // toujours, même si l'événement a changé depuis.
+  if (order.fedapay_transaction_id) {
+    let precedente: { status: string; amount: number };
+    try {
+      precedente = await recupererTransaction(Number(order.fedapay_transaction_id));
+    } catch (e) {
+      console.error(`[api/orders/reessayer] vérification de la transaction ${order.fedapay_transaction_id} impossible :`, e);
+      return NextResponse.json(
+        { error: "Impossible de vérifier ton paiement précédent pour l'instant. Réessaie dans un moment." },
+        { status: 503 }
+      );
+    }
+    const issue = issueTransaction(precedente.status);
+    if (issue === "payee") {
+      const resultat = await finaliserCommande(order.id, precedente.amount);
+      if (resultat === "ok" || resultat === "deja") {
+        return NextResponse.json({ orderId: order.id, finalisee: true });
+      }
+      console.error(
+        `[api/orders/reessayer] transaction ${order.fedapay_transaction_id} payée mais finalisation impossible (${resultat}) pour la commande ${order.id}`
+      );
+      return NextResponse.json(
+        { error: "Ton paiement a bien été reçu mais n'a pas pu être rattaché à ta commande. Écris-nous à contact@xwezan.com, rien ne sera perdu." },
+        { status: 409 }
+      );
+    }
+    if (issue === "en_cours") {
+      return NextResponse.json(
+        {
+          error:
+            "Ton paiement précédent est encore en cours de validation. Si tu l'as validé sur ton téléphone, ne repaie pas : tes billets arriveront par e-mail dès sa confirmation.",
+          enCours: true,
+        },
+        { status: 409 }
+      );
+    }
+    // issue === "echec_definitif" : relance sans risque.
   }
 
   const { data: ev } = await supabaseAdmin

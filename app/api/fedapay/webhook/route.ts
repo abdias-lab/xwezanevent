@@ -32,6 +32,13 @@ export async function POST(req: NextRequest) {
 
   if (estApprouve && trxId != null && typeof montant === "number") {
     const commande = await commandeParTransaction(String(trxId));
+    if (!commande) {
+      // Paiement réel sans commande rattachée : ne doit jamais passer inaperçu
+      // (argent reçu, aucun billet émis). Voir design/BUGS_REFONTE.md #12.
+      console.error(
+        `[fedapay webhook] ALERTE : transaction ${trxId} approuvée (${montant} F) sans commande correspondante`
+      );
+    }
     if (commande) {
       const r = await finaliserCommande(commande.id, montant);
       if (r === "montant") {

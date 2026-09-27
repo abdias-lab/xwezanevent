@@ -803,3 +803,26 @@ Comptes supprimés, empreinte SHA-256 des tables et des comptes identique avant/
 Vérification en **production** après déploiement de `94fee17` (même jour, compte
 `test-bug8-prod@xwezanevent-test.com`, créé puis supprimé) : `/creer` conservé,
 `//site-externe.com` et `/%09/site-externe.com` → `/`. Base identique avant/après.
+
+## Test du 2026-09-27 (bug #12 : relance de paiement, paiement perdu ou double)
+
+Environnement : serveur local, **FedaPay sandbox** (clé `sk_sandbox`, le script refuse de
+tourner autrement), aucun argent réel. Correctif testé : garde de
+`app/api/orders/[id]/reessayer` (`lib/statut-paiement.ts`), alerte du webhook,
+`/paiement/retour` et page d'échec « en attente ». Données de test : compte
+`test-bug12@xwezanevent-test.com`, événement `test-bug12-paiement`, commande invité
+`en_attente` (acheteur `gbedoloabdias@gmail.com`) liée à une vraie transaction sandbox
+« pending ».
+
+Résultats (14/14 conformes) : relance avec la transaction « pending » → refusée (409,
+message « ne repaie pas »), identifiant de transaction **inchangé** ; retour FedaPay →
+échec « en attente » ; cette page propose « Vérifier à nouveau » et plus aucune
+relance, la relance reste proposée pour un refus ; webhook signé (vraie clé sandbox)
+d'un paiement sans commande → alerte « ALERTE : transaction … sans commande » dans les
+logs ; webhook signé de la transaction de la commande → commande payée, 1 billet, stock
+décrémenté, e-mail de confirmation envoyé ; relance d'une commande payée → 409.
+
+Non testé en réel : branches « approved » et « declined » de la relance (le sandbox
+refuse le paiement et le changement de statut par l'API : « Opération non autorisée »).
+Toutes les données supprimées, empreinte des tables et comptes identique avant/après.
+
