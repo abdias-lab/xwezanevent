@@ -214,3 +214,50 @@
 .section .inclus {
   padding-left: 0;
 }
+
+/* FAQ : accordéon natif (details/summary), utilisable sans JavaScript. */
+.faq {
+  display: grid;
+  border-top: 1px solid var(--border);
+}
+.faq details {
+  border-bottom: 1px solid var(--border);
+}
+.faq summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--s4);
+  padding: var(--s4) 0;
+  font: 700 16px/24px var(--corps);
+  color: #fff;
+  cursor: pointer;
+  list-style: none;
+}
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+.faq summary:focus-visible {
+  outline: 2px solid var(--or);
+  outline-offset: 4px;
+}
+.faq summary svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--or);
+  transition: transform var(--d2) var(--ease);
+}
+.faq details[open] summary svg {
+  transform: rotate(45deg);
+}
+.faq .reponse {
+  padding: 0 0 var(--s4);
+  font-size: 16px;
+  line-height: 26px;
+  color: #d6d6d6;
+}
+@media (prefers-reduced-motion: reduce) {
+  .faq summary svg {
+    transition: none;
+  }
+}
