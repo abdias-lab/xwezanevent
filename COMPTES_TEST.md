@@ -728,3 +728,34 @@ Messages d'erreur affichés vérifiés sur la page pour les 6 codes.
 (`events`, `ticket_types`, `tickets`, `orders`, `payouts`, `profiles`,
 `event_categories`, `event_images`, `journal_actions`, `pays`) et des comptes
 `auth.users` identique avant/après : base revenue à son état initial.
+
+## Test du 2026-09-27 (bug #2, étape 2 : date de référence du J+3 en cliquet)
+
+Correctif testé : migration `20260927120000_date_reference_virement.sql`
+(appliquée par Abdias, vérification 0 ligne) et lecture de
+`date_reference_virement` dans `lib/payouts.ts` et ses 4 appelants. Test en
+conditions réelles (`npm run dev`, script temporaire hors dépôt) :
+
+- comptes `test-etape2-orga@xwezanevent-test.com` (organisateur) et
+  `test-etape2-admin@xwezanevent-test.com` (admin), mots de passe aléatoires jamais notés ;
+- événements `test-etape2-cliquet` et `test-etape2-passe`, commandes invité
+  `paye` insérées directement (acheteur `test-etape2-acheteur@xwezanevent-test.com`,
+  téléphone factice), deux demandes de virement de test.
+
+Résultats (16/16 conformes). Trigger, par écritures **directes service_role**
+(hors action) : sans vente la référence suit la date ; écriture directe de la
+colonne ignorée ; avec vente, report → monte, date passée forcée → ne recule
+pas, suppression de la date de fin → ne recule pas, colonne forcée → recalculée ;
+commande remboursée → la référence suit de nouveau. Application, routes HTTP
+réelles : date forcée au passé avec vente → demande de virement refusée (403,
+« à partir du 2026-11-18 »), tableau de bord annonçant le 18 nov., traitement
+admin d'une demande prématurée refusé (403, demande restée en attente) ;
+événement réellement passé depuis plus de 3 jours → demande acceptée (920 F)
+puis traitée par l'admin.
+
+Un premier passage a échoué avant la partie HTTP (serveur de dev planté par
+manque de mémoire) ; son nettoyage automatique avait déjà remis la base à
+l'identique. **Toutes les données supprimées** en fin de test (virements,
+commandes, types de billet, événements, entrées `journal_actions` des deux
+comptes, comptes et profils) : empreinte SHA-256 du contenu complet des tables
+et des comptes identique avant/après.

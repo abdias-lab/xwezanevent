@@ -6,18 +6,31 @@ import { aujourdhuiPortoNovo, ajouterJours } from "@/lib/date";
 export const DELAI_PAYOUT_JOURS = 3;
 
 /**
- * Date (YYYY-MM-DD, Africa/Porto-Novo) à partir de laquelle un virement peut
- * être demandé pour cet événement : date_fin + délai si `date_fin` existe un
- * jour (colonne absente du schéma actuel — confirmé par audit), sinon
- * date_debut + délai.
+ * Dates d'un événement nécessaires au calcul du J+3. `date_reference_virement`
+ * est obligatoire : tout appelant doit la sélectionner, sinon TypeScript refuse.
  */
-export function dateDisponibilitePayout(event: { date_debut: string; date_fin?: string | null }): string {
-  const dateReference = event.date_fin ?? event.date_debut;
+export type DatesPayout = { date_debut: string; date_fin?: string | null; date_reference_virement: string };
+
+/**
+ * Date (YYYY-MM-DD, Africa/Porto-Novo) à partir de laquelle un virement peut
+ * être demandé : la plus tardive entre `date_reference_virement` et la date
+ * actuelle de l'événement (date_fin, sinon date_debut), plus le délai.
+ *
+ * `date_reference_virement` est tenue par un trigger en base
+ * (20260927120000_date_reference_virement.sql) : dès qu'une commande est
+ * payée, elle ne peut plus reculer. Avancer la date d'un événement vendu ne
+ * rapproche donc jamais le virement (design/BUGS_REFONTE.md, bug #2) ;
+ * reporter l'événement le repousse bien.
+ */
+export function dateDisponibilitePayout(event: DatesPayout): string {
+  const dateActuelle = event.date_fin ?? event.date_debut;
+  const dateReference =
+    event.date_reference_virement > dateActuelle ? event.date_reference_virement : dateActuelle;
   return ajouterJours(dateReference, DELAI_PAYOUT_JOURS);
 }
 
 /** true si le délai de J+3 après l'événement est atteint (comparaison en date Africa/Porto-Novo). */
-export function payoutDisponible(event: { date_debut: string; date_fin?: string | null }): boolean {
+export function payoutDisponible(event: DatesPayout): boolean {
   return aujourdhuiPortoNovo() >= dateDisponibilitePayout(event);
 }
 

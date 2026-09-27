@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifierAdmin, journaliserActionAdmin } from "@/lib/admin-auth";
-import { dateDisponibilitePayout, payoutDisponible } from "@/lib/payouts";
+import { dateDisponibilitePayout, payoutDisponible, type DatesPayout } from "@/lib/payouts";
 
 /**
  * Marque une demande de payout 'demande' → 'traite'.
@@ -22,7 +22,7 @@ export async function POST(
   // une ligne 'demande' antérieure à ce contrôle traînerait en base.
   const { data: payout, error: payoutError } = await supabaseAdmin
     .from("payouts")
-    .select("id, events(date_debut, date_fin)")
+    .select("id, events(date_debut, date_fin, date_reference_virement)")
     .eq("id", params.id)
     .maybeSingle();
 
@@ -34,8 +34,14 @@ export async function POST(
     return NextResponse.json({ error: "Demande introuvable" }, { status: 404 });
   }
 
-  const event = payout.events as unknown as { date_debut: string; date_fin: string | null } | null;
-  if (event && !payoutDisponible(event)) {
+  // Fail-closed, comme la route orga : si l'événement ou sa date n'a pas pu
+  // être chargé, on refuse le traitement plutôt que de sauter le contrôle J+3.
+  const event = payout.events as unknown as DatesPayout | null;
+  if (!event?.date_reference_virement) {
+    console.error("[api/admin/payouts/traiter] événement introuvable ou date de référence absente, payout :", params.id);
+    return NextResponse.json({ error: "Événement introuvable" }, { status: 404 });
+  }
+  if (!payoutDisponible(event)) {
     return NextResponse.json(
       {
         error: `Les virements sont disponibles 3 jours après la tenue de l'événement (à partir du ${dateDisponibilitePayout(event)}).`,
