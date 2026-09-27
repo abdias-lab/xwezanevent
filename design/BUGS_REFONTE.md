@@ -20,6 +20,21 @@ après la refonte, indépendamment d'elle : corriger la prod, pas seulement la p
 | 13 | 2026-09-27 | QR des billets : `lib/commandes.ts` (PNG des e-mails, `margin: 1`, `width: 180`), `lib/emails/confirmation-commande.ts` (`<img width="84">`, `border-radius:8px`), `lib/emails/recapitulatif-billets.ts` (`width="72"`), `app/(public)/confirmation/page.tsx` (SVG 150 px, `margin: 1`) | **Lisibilité au scan, le soir en extérieur.** Dans les e-mails (ce que montrent la plupart des invités), le QR est affiché en 84 px (72 px dans le récapitulatif), avec une zone de silence d'un seul module sur le fond sombre de l'e-mail (la norme en demande 4, en clair), et des coins arrondis qui rognent les motifs de repérage. Sur la page de confirmation : 150 px, zone de silence d'environ 3,4 modules grâce au cadre blanc. Aucun agrandissement possible, aucun conseil de luminosité. | QR noir pur sur blanc pur, zone de silence de 4 modules, correction d'erreur Q, sans arrondi sur l'image ; dans les e-mails : image d'au moins 200 px dans un bloc blanc ; sur le site : QR d'au moins 260 px, mode plein écran sur fond blanc, écran maintenu allumé, conseil de luminosité, référence en clair pour la recherche manuelle (maquetté dans la preview V2 `/confirmation`). Mesure du 2026-09-27 (décodeur jsQR, images de synthèse) : le QR des e-mails tel que rendu (fond sombre + arrondi 8 px) est **illisible à 72 et 84 px même en conditions parfaites** (l'arrondi rogne les motifs de repérage, la marge d'un module ne fait que ~3 px) ; lisible sans arrondi, ou à partir de 120 px. Le rapport arrondi/taille est le même quelle que soit la densité d'écran. Un décodeur caméra (scanner de l'entrée, zxing) peut être plus tolérant, non vérifié. | **Corrigé** (2026-09-27) : `lib/qr-billet.ts`, e-mails et page de confirmation. Test réel : QR de l'e-mail de confirmation scanné en photo par `xwezan.com/scan` → « Entrée valide ». |
 | 14 | 2026-09-27 | `/compte` : `app/(compte)/compte/page.tsx` (select sans `events.statut`) | **Événement annulé invisible pour l'acheteur.** La page ne lit pas le statut de l'événement : le billet d'un événement annulé reste affiché « ✓ Payé » avec « Voir mes billets » (billet pourtant invalidé au scan), sans mention d'annulation ni de remboursement à venir. Avec l'absence d'e-mail d'annulation (n°7), l'acheteur peut se présenter à l'entrée. | Lire `events.statut` : pour un événement annulé, afficher « Événement annulé », l'état du remboursement (commande `paye` → « remboursement en cours, sous 14 jours » ; `rembourse` → « remboursé »), et masquer le QR. À traiter avec le n°7. Maquetté dans la preview V2 `/compte`. | À faire, avec le n°7 |
 
+## Chantiers (bugs à traiter ensemble)
+
+### Chantier « annulation d'un événement » : n°7 + n°14, prioritaire juste après la refonte
+
+Décidé par Abdias le 2026-09-27. Un seul chantier : l'annulation d'un événement doit
+1. envoyer un e-mail aux acheteurs (annulation, remboursement sous 14 jours, fonds bloqués
+   donc remboursement indépendant de l'organisateur) ;
+2. mettre à jour leur page `/compte` (événement annulé, QR masqué, état du remboursement) ;
+3. donner à l'admin un outil pour tracer les remboursements (commandes à rembourser,
+   « Marquer remboursé » → `orders.statut = 'rembourse'`) ;
+4. aligner les textes publics sur le délai de 14 jours (CGU §5, `/remboursements`).
+
+Maquettes V2 déjà prêtes : `/admin/billets` (filtre « À rembourser ») et `/compte`
+(section « Événements annulés »).
+
 ## Améliorations à remonter en prod
 
 Choix faits dans les previews V2 et validés par Abdias pour la prod. Ce ne sont pas des bugs.
