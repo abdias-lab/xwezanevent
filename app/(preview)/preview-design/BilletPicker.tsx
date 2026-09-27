@@ -7,8 +7,11 @@ import { fcfa } from "./_data";
 type Tarif = { id: string; nom: string; detail: string; prix: number };
 type Styles = Record<string, string>;
 
-/** Sélecteur de billets : état local uniquement, aucun appel réseau. */
-export default function BilletPicker({ tarifs, s }: { tarifs: Tarif[]; s: Styles }) {
+/**
+ * Sélecteur de billets : état local uniquement, aucun appel réseau.
+ * `commande` (facultatif, V2) : page de commande, le panier y est passé en paramètres.
+ */
+export default function BilletPicker({ tarifs, s, commande }: { tarifs: Tarif[]; s: Styles; commande?: string }) {
   const [q, setQ] = useState<Record<string, number>>({});
   const total = tarifs.reduce((somme, t) => somme + (q[t.id] ?? 0) * t.prix, 0);
   const n = Object.values(q).reduce((a, b) => a + b, 0);
@@ -43,10 +46,17 @@ export default function BilletPicker({ tarifs, s }: { tarifs: Tarif[]; s: Styles
           <span className={s.totalLabel}>{n > 0 ? `${n} billet${n > 1 ? "s" : ""}` : "Total"}</span>
           <span className={s.totalMontant}>{n > 0 ? fcfa(total) : "—"}</span>
         </div>
-        <button type="button" className={s.cta} disabled={n === 0}>
-          <Icon name="phone" size={20} />
-          Payer en Mobile Money
-        </button>
+        {commande && n > 0 ? (
+          <a className={s.cta} href={`${commande}?${new URLSearchParams(Object.entries(q).filter(([, x]) => x > 0).map(([k, x]) => [k, String(x)]))}`}>
+            <Icon name="phone" size={20} />
+            Payer en Mobile Money
+          </a>
+        ) : (
+          <button type="button" className={s.cta} disabled={n === 0}>
+            <Icon name="phone" size={20} />
+            Payer en Mobile Money
+          </button>
+        )}
       </div>
     </>
   );

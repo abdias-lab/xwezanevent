@@ -800,4 +800,6 @@ conditions réelles (`npm run dev`, scripts temporaires hors dépôt) avec le co
 `test-bug8-prod@xwezanevent-test.com`) : `xwezan.com/connexion?redirect=//site-externe.com`
 et `?redirect=/%09/site-externe.com` renvoyaient bien vers le site externe.
 Comptes supprimés, empreinte SHA-256 des tables et des comptes identique avant/après.
-
+Vérification en **production** après déploiement de `94fee17` (même jour, compte
+`test-bug8-prod@xwezanevent-test.com`, créé puis supprimé) : `/creer` conservé,
+`//site-externe.com` et `/%09/site-externe.com` → `/`. Base identique avant/après.

@@ -92,7 +92,7 @@ export default function V2Detail({ searchParams }: { searchParams: { etat?: stri
                 <div className={s.tete}>
                   <h2 className={s.h2}>Billets</h2>
                 </div>
-                <BilletPicker tarifs={ev.tarifs} s={s} />
+                <BilletPicker tarifs={ev.tarifs} s={s} commande="/preview-design/v2/commande" />
               </section>
             </aside>
           </div>
