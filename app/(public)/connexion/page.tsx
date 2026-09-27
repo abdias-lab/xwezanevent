@@ -2,6 +2,7 @@ import AuthForm from "@/components/AuthForm";
 import PanneauMarketing from "@/components/PanneauMarketing";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
+import { cheminInterne } from "@/lib/redirection";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -13,11 +14,9 @@ export default async function Connexion({
 }: {
   searchParams: { redirect?: string };
 }) {
-  // On n'accepte que des chemins internes (évite les redirections ouvertes)
-  const dest =
-    searchParams.redirect && searchParams.redirect.startsWith("/")
-      ? searchParams.redirect
-      : "/";
+  // On n'accepte que des chemins internes (évite les redirections ouvertes,
+  // y compris « //site.com » et « /<tab>/site.com » : voir lib/redirection.ts).
+  const dest = cheminInterne(searchParams.redirect);
 
   const supabase = creerClientServeur();
   const {

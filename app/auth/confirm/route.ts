@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { redirect } from "next/navigation";
 import { creerClientServeur } from "@/lib/supabase-server";
+import { cheminInterne } from "@/lib/redirection";
 
 // Sous-ensemble utile de EmailOtpType (@supabase/auth-js) : évite une
 // dépendance d'import fragile pour un simple type de paramètre d'URL.
@@ -23,7 +24,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as TypeOtp | null;
-  const next = searchParams.get("next") ?? "/";
+  // Chemin interne uniquement : sinon, un lien portant un jeton valide et
+  // next=//site.com renverrait vers l'extérieur (BUGS_REFONTE #8).
+  const next = cheminInterne(searchParams.get("next"));
 
   if (token_hash && type) {
     const supabase = creerClientServeur();

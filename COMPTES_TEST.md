@@ -780,3 +780,24 @@ message affiché sur `/creer?erreur=date_passee` ; calendrier limité à aujourd
 **Toutes les données supprimées** (image du bucket, images, catégories, types
 de billet, événement, journal, compte et profil). Empreinte SHA-256 des tables,
 des comptes et de la liste des fichiers du bucket `affiches` identique avant/après.
+
+## Test du 2026-09-27 (bug #8 : redirection ouverte)
+
+Correctif testé : `lib/redirection.ts` (`cheminInterne`), appliqué à
+`app/(public)/connexion/page.tsx`, `lib/pays-action.ts` et
+`app/auth/confirm/route.ts`. Tests unitaires (`npm test`, 3 tests) et test en
+conditions réelles (`npm run dev`, scripts temporaires hors dépôt) avec le compte
+`test-bug8@xwezanevent-test.com` (mot de passe aléatoire, jamais noté) :
+
+- `/connexion?redirect=…` avec session active : `/creer` conservé ; `//site-externe.com`,
+  `/%09/site-externe.com`, `/%5Csite-externe.com`, `https://site-externe.com` → `/` ;
+- `/auth/confirm` avec un vrai jeton (`admin.generateLink`, magiclink) : `next=/compte`
+  conservé ; `next=//site-externe.com` et `next=/%09/site-externe.com` → `/` ;
+- action serveur `changerPays` (appel encodé comme React) : `chemin=/evenements`
+  conservé ; `//site-externe.com` et `/<tab>/site-externe.com` → `/`.
+
+11/11 conformes. Constat préalable sur la **production** (compte
+`test-bug8-prod@xwezanevent-test.com`) : `xwezan.com/connexion?redirect=//site-externe.com`
+et `?redirect=/%09/site-externe.com` renvoyaient bien vers le site externe.
+Comptes supprimés, empreinte SHA-256 des tables et des comptes identique avant/après.
+

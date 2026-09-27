@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { COOKIE_PAYS } from "@/lib/pays";
+import { cheminInterne } from "@/lib/redirection";
 
 /**
  * Change le pays de navigation (cookie, 1 an) — appelé par
@@ -38,5 +39,5 @@ export async function changerPays(formData: FormData) {
     });
   }
 
-  redirect(chemin.startsWith("/") ? chemin : "/");
+  redirect(cheminInterne(chemin));
 }
