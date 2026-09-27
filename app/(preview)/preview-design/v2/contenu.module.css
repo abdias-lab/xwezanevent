@@ -133,3 +133,84 @@
     padding: 0;
   }
 }
+
+/* Chiffre clé (page Tarifs). */
+.chiffreCle {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s4);
+  flex-wrap: wrap;
+}
+.chiffreCle b {
+  font: 900 clamp(3.5rem, 16vw, 6rem) / 1 var(--display);
+  color: var(--or);
+}
+.chiffreCle span {
+  max-width: 24ch;
+  font-size: 17px;
+  line-height: 24px;
+  color: #fff;
+}
+
+/* Calcul ligne à ligne (exemple de tarif). */
+.calcul {
+  display: grid;
+  margin: 0;
+}
+.calcul div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s2) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+  line-height: 22px;
+}
+.calcul dt {
+  color: #d6d6d6;
+}
+.calcul dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.calcul .total {
+  border-bottom: 0;
+}
+.calcul .total dt,
+.calcul .total dd {
+  color: var(--or);
+  font-size: 17px;
+}
+
+/* Liste de fonctionnalités avec icône. */
+.inclus {
+  display: grid;
+  gap: var(--s3);
+  list-style: none;
+  padding: 0;
+}
+.inclus li {
+  display: flex;
+  gap: var(--s3);
+  align-items: flex-start;
+}
+.inclus li::marker {
+  content: none;
+}
+.inclus svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--or);
+}
+@media (min-width: 768px) {
+  .inclus {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s4) var(--s6);
+  }
+}
+
+.section .inclus {
+  padding-left: 0;
+}
