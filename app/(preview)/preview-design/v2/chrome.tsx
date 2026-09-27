@@ -10,7 +10,7 @@ export function Header() {
           <span className={s.logoX}>Xwézan</span>
         </a>
         <nav className={s.navLiens} aria-label="Navigation principale">
-          <a href="#">Événements</a>
+          <a href="/preview-design/v2/evenements">Événements</a>
           <a href="/preview-design/v2/tarifs">Tarifs</a>
           <a href="#">Organisateurs</a>
         </nav>
