@@ -2133,9 +2133,10 @@
     align-items: center;
     gap: 6px;
   }
+  /* Lisibilité au scan (lib/qr-billet.ts) : 220 px minimum, jamais d'arrondi. */
   .zone-qr svg {
-    width: 150px;
-    height: 150px;
+    width: 220px;
+    height: 220px;
   }
   .zone-qr .scan {
     font-family: var(--space);

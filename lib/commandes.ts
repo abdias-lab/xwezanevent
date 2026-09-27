@@ -4,6 +4,7 @@ import { emailConfirmationCommande, type BilletEmail } from "@/lib/emails/confir
 import { emailRecapitulatifBillets, type CommandeRecap } from "@/lib/emails/recapitulatif-billets";
 import { creerTransactionEtLien } from "@/lib/fedapay";
 import QRCode from "qrcode";
+import { LARGEUR_QR_PNG, OPTIONS_QR_BILLET } from "@/lib/qr-billet";
 
 interface PanierItem {
   ticket_type_id: string;
@@ -110,10 +111,9 @@ async function envoyerConfirmationCommande(
     const qrPngParTicket = await Promise.all(
       ticketsGeneres.map((t) =>
         QRCode.toBuffer(t.code_qr, {
+          ...OPTIONS_QR_BILLET,
           type: "png",
-          margin: 1,
-          width: 180,
-          color: { dark: "#151009", light: "#ffffff" },
+          width: LARGEUR_QR_PNG,
         })
       )
     );
@@ -209,10 +209,9 @@ export async function envoyerRecapitulatifBillets(
       const qrPngParTicket = await Promise.all(
         tickets.map((t) =>
           QRCode.toBuffer(t.code_qr, {
+            ...OPTIONS_QR_BILLET,
             type: "png",
-            margin: 1,
-            width: 180,
-            color: { dark: "#151009", light: "#ffffff" },
+            width: LARGEUR_QR_PNG,
           })
         )
       );

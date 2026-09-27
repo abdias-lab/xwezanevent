@@ -1,5 +1,6 @@
 import { enveloppeEmail, boutonEmail, echapperHtml } from "@/lib/emails/layout";
 import type { BilletEmail } from "@/lib/emails/confirmation-commande";
+import { TAILLE_QR_AFFICHAGE } from "@/lib/qr-billet";
 
 function fmt(n: number): string {
   return n.toLocaleString("fr-FR").replace(/\s/g, " ") + " FCFA";
@@ -48,11 +49,19 @@ export function emailRecapitulatifBillets(d: RecapitulatifBilletsData): {
           (b) => `
 <table role="presentation" width="100%" style="margin-bottom:10px;background:#151009;border:1px solid rgba(228,169,63,0.16);border-radius:14px;">
 <tr>
-<td style="padding:14px 16px;vertical-align:middle;">
+<td style="padding:14px 16px 12px;vertical-align:middle;">
 <div style="font-weight:600;color:#f3eada;font-size:14px;">${echapperHtml(b.nom)}</div>
+<div style="color:#b7a88f;font-size:12px;margin-top:2px;">À présenter à l'entrée</div>
 </td>
-<td style="padding:10px;text-align:right;width:84px;">
-<img src="cid:${b.qrCid}" width="72" height="72" alt="QR code du billet" style="display:block;margin-left:auto;border-radius:8px;" />
+</tr>
+<tr>
+<td style="padding:0 16px 16px;" align="center">
+<!-- QR : bloc blanc, jamais d'arrondi (lisibilité au scan, voir lib/qr-billet.ts) -->
+<table role="presentation" align="center" style="background:#ffffff;border-collapse:collapse;">
+<tr><td style="padding:12px;background:#ffffff;">
+<img src="cid:${b.qrCid}" width="${TAILLE_QR_AFFICHAGE}" height="${TAILLE_QR_AFFICHAGE}" alt="QR code du billet" style="display:block;width:${TAILLE_QR_AFFICHAGE}px;height:${TAILLE_QR_AFFICHAGE}px;border:0;" />
+</td></tr>
+</table>
 </td>
 </tr>
 </table>`

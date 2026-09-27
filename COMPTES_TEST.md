@@ -839,3 +839,18 @@ numéro de test FedaPay, l'autre annulée sur la page FedaPay. Relance réelle :
 Données supprimées. L'empreinte de `orders` a changé à cause d'une **vraie commande**
 (MIWADÚNÙ, 40 000 F, en attente) passée sur le site pendant le test, sans lien avec lui.
 
+## Test du 2026-09-27 (bug #13 : lisibilité des QR de billets)
+
+Correctif testé : `lib/qr-billet.ts` (noir sur blanc, zone de silence de 4 modules,
+correction d'erreur Q, 220 px, PNG 480 px), QR des e-mails dans un bloc blanc sans
+arrondi, page de confirmation alignée. Contrôle préalable par décodage (jsQR) : l'ancien
+QR d'e-mail (84 px, fond sombre, arrondi 8 px) ne se décodait pas ; le nouveau se décode
+à 220, 150 et 100 px.
+
+**Test réel** : billet de test (compte `test-bug13@xwezanevent-test.com`, événement
+`test-bug13-qr` en brouillon, commande invité) finalisé par le vrai chemin de code local
+(webhook signé sandbox → `finaliserCommande`), e-mail de confirmation reçu par Abdias,
+QR photographié et scanné avec la vraie page `xwezan.com/scan` (compte admin) :
+« Entrée valide ». En base : billet passé en `utilise`. Données supprimées, empreinte des
+tables et comptes identique avant/après.
+

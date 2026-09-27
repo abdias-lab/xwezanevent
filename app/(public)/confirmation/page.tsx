@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import QRCode from "qrcode";
+import { OPTIONS_QR_BILLET } from "@/lib/qr-billet";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -124,12 +125,7 @@ export default async function Confirmation({
         order.tickets.map(async (t) => ({
           id: t.id,
           nom: t.ticket_types?.nom ?? "Billet",
-          qr: await QRCode.toString(t.code_qr, {
-            type: "svg",
-            margin: 1,
-            width: 150,
-            color: { dark: "#151009", light: "#ffffff" },
-          }),
+          qr: await QRCode.toString(t.code_qr, { ...OPTIONS_QR_BILLET, type: "svg" }),
         }))
       )
     : [];
