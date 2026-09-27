@@ -288,6 +288,27 @@
   line-height: 16px;
   color: var(--muted);
 }
+/* Hiérarchie par la taille : libellé 12 px < chiffres 24 px < chiffre héros
+   48 px. Le doré est réservé aux chiffres qui appellent une action : le
+   héros (revenu net) et .kpiAction (montant à virer, s'il y en a un). */
+.kpiAction .kpiValeur {
+  color: var(--or);
+}
+/* Taux de remplissage sous un chiffre : information, pas décoration. */
+.kpiBarre {
+  display: block;
+  height: 4px;
+  margin: 2px 0 2px;
+  border-radius: 999px;
+  background: var(--piste);
+  overflow: hidden;
+}
+.kpiBarre span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--or);
+}
 /* Chiffre principal de la vue : un seul par page. */
 .kpiHeros {
   grid-column: 1 / -1;

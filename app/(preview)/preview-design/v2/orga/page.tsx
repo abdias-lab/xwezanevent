@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import s from "../espace.module.css";
 import Coquille, { B, RubanEtats } from "../Coquille";
 import Icon from "../../Icon";
+import Compteur from "./Compteur";
 import DemandeVirement from "./DemandeVirement";
 import { Jauge, SqueletteListe, StatutEvt } from "./ui";
 import { COMMISSION, EVENEMENTS_ORGA, ORGA, chiffres, dateAnnee, dateCourteOrga, etatPage, montant, nombre, totaux } from "./_orga";
@@ -14,6 +15,7 @@ export default function V2Orga({ searchParams }: { searchParams: { etat?: string
   const t = totaux(evs);
   const aVirer = evs.map((e) => ({ e, c: chiffres(e) })).filter(({ c }) => c.peutDemander && c.disponible > 0);
   const enValidation = evs.filter((e) => e.statut === "en_validation");
+  const remplissage = t.capacite > 0 ? Math.round((t.vendus / t.capacite) * 100) : 0;
 
   return (
     <Coquille actif="accueil">
@@ -49,31 +51,48 @@ export default function V2Orga({ searchParams }: { searchParams: { etat?: string
             <div className={`${s.kpi} ${s.kpiHeros}`}>
               <span className={s.kpiLabel}>Revenu net</span>
               <span className={s.kpiValeur}>
-                {nombre(t.net)} <small>FCFA</small>
+                <Compteur valeur={t.net} /> <small>FCFA</small>
               </span>
               <span className={s.kpiContexte}>après {Math.round(COMMISSION * 100)} % de frais, tous événements</span>
             </div>
             <div className={s.kpi}>
               <span className={s.kpiLabel}>Billets vendus</span>
-              <span className={s.kpiValeur}>{nombre(t.vendus)}</span>
-              <span className={s.kpiContexte}>sur {nombre(t.capacite)} places</span>
+              <span className={s.kpiValeur}>
+                <Compteur valeur={t.vendus} />
+              </span>
+              <span
+                className={s.kpiBarre}
+                role="meter"
+                aria-valuemin={0}
+                aria-valuemax={t.capacite}
+                aria-valuenow={t.vendus}
+                aria-label={`Taux de remplissage : ${remplissage} %`}
+              >
+                <span style={{ width: `${remplissage}%` }} />
+              </span>
+              <span className={s.kpiContexte}>
+                {remplissage} % des {nombre(t.capacite)} places
+              </span>
             </div>
             <div className={s.kpi}>
               <span className={s.kpiLabel}>En vente</span>
-              <span className={s.kpiValeur}>{t.publies}</span>
+              <span className={s.kpiValeur}>
+                <Compteur valeur={t.publies} />
+              </span>
               <span className={s.kpiContexte}>{evs.length} événements au total</span>
             </div>
             <div className={s.kpi}>
               <span className={s.kpiLabel}>Revenu brut</span>
               <span className={s.kpiValeur}>
-                {nombre(t.brut)} <small>FCFA</small>
+                <Compteur valeur={t.brut} /> <small>FCFA</small>
               </span>
               <span className={s.kpiContexte}>avant frais</span>
             </div>
-            <div className={s.kpi}>
+            {/* Doré seulement s'il y a une action à faire (montant à récupérer). */}
+            <div className={`${s.kpi} ${t.disponible > 0 ? s.kpiAction : ""}`}>
               <span className={s.kpiLabel}>À virer</span>
               <span className={s.kpiValeur}>
-                {nombre(t.disponible)} <small>FCFA</small>
+                <Compteur valeur={t.disponible} /> <small>FCFA</small>
               </span>
               <span className={s.kpiContexte}>disponible maintenant</span>
             </div>
