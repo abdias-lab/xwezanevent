@@ -58,3 +58,15 @@ comptes de test à nettoyer avant le lancement.
 - Nettoyage des comptes de test
 - Audit de sécurité externe
 - Revérifier le cas « paiement annulé » en conditions live
+
+## Après le lancement
+
+- **Relance automatique des paiements abandonnés** (pas avant d'avoir dépassé une
+  dizaine d'abandons par mois : à ce volume, la relance à la main suffit et renseigne
+  mieux). Le jour où on le fera :
+  - un seul message, envoyé 1 h après l'abandon, jamais de série ;
+  - par e-mail via Resend pour commencer (WhatsApp Business demande une vérification
+    Meta) ;
+  - vérifier le statut de la commande au moment de l'envoi, jamais à la
+    programmation : ne jamais écrire à quelqu'un qui vient de payer ;
+  - le contenu dépendra de ce qu'on aura appris en contactant les abandons à la main.
