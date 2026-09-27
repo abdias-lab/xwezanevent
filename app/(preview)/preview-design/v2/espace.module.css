@@ -1006,6 +1006,99 @@
   }
 }
 
+/* ---------- E-billet ----------
+   Le bloc du QR est volontairement blanc et contrasté, en rupture avec le
+   fond sombre : il est scanné le soir, dehors, sur des écrans peu lumineux.
+   Lisibilité d'abord (voir BUGS_REFONTE #13). */
+.billet {
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.billetHaut {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s4);
+}
+.billetTitre {
+  font: 800 18px/24px var(--corps);
+}
+.qrBloc {
+  display: grid;
+  justify-items: center;
+  gap: var(--s2);
+  padding: var(--s4) var(--s4) var(--s3);
+  background: #fff;
+  color: #000;
+}
+.qrBloc svg {
+  display: block;
+  width: min(100%, 320px);
+  min-width: 260px;
+  height: auto;
+}
+.qrRef {
+  font: 700 18px/24px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  letter-spacing: 0.08em;
+  color: #000;
+}
+.qrAide {
+  font-size: 13px;
+  line-height: 18px;
+  color: #333;
+  text-align: center;
+}
+.billetActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4) var(--s4);
+  background: #fff;
+}
+.billetActions .btn {
+  background: #000;
+  color: #fff;
+}
+.billetActions .btnGris {
+  background: #fff;
+  color: #000;
+  box-shadow: inset 0 0 0 2px #000;
+}
+/* Plein écran : blanc total, QR aussi grand que l'écran le permet. */
+.pleinEcran {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--s3);
+  padding: var(--s4);
+  background: #fff;
+  color: #000;
+  text-align: center;
+}
+.pleinEcran svg {
+  display: block;
+  width: min(92vw, 70vh);
+  height: auto;
+}
+.pleinEcranFermer {
+  position: absolute;
+  top: var(--s3);
+  right: var(--s3);
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: #000;
+  color: #fff;
+  cursor: pointer;
+}
+
 /* ---------- Scanner ---------- */
 .modes {
   display: grid;
