@@ -6,6 +6,7 @@ import { EVENEMENTS } from "../../../_data";
 import { StatutEvt } from "../../orga/ui";
 import { STATUTS, dateCourteOrga, montant, nombre, type Statut } from "../../orga/_orga";
 import { A, EVENEMENTS_ADMIN, NAV_ADMIN, chiffresAdmin, depuis, joursDepuis, nomAffiche, organisateur, type EvenementAdmin } from "../_admin";
+import Gestion from "./Gestion";
 import Validation, { type Controle, type EvenementAValider } from "./Validation";
 
 // Formats d'affiche de démonstration (_data.ts) : portrait 2:3, paysage 3:2, carré.
@@ -19,7 +20,7 @@ const FILTRES: { cle: string; libelle: string; statut: Statut }[] = [
   { cle: "annule", libelle: "Annulés", statut: "annule" },
 ];
 
-const COLS = { "--cols": "minmax(0, 2fr) minmax(0, 1.2fr) 120px 140px 120px" } as CSSProperties;
+const COLS = { "--cols": "minmax(0, 1.8fr) minmax(0, 1fr) 100px 130px 110px minmax(0, 1.7fr)" } as CSSProperties;
 
 /** Contrôles automatiques proposés à l'admin (et motifs de refus prêts à l'emploi). */
 function controles(e: EvenementAdmin): Controle[] {
@@ -47,6 +48,7 @@ export default function V2AdminEvenements({ searchParams }: { searchParams: { st
   const vide = searchParams.etat === "vide";
   const liste = vide ? [] : EVENEMENTS_ADMIN.filter((e) => e.statut === filtre.statut).sort((a, b) => a.soumisLe.localeCompare(b.soumisLe));
   const compte = (st: Statut) => (vide ? 0 : EVENEMENTS_ADMIN.filter((e) => e.statut === st).length);
+  const nbALaUne = EVENEMENTS_ADMIN.filter((e) => e.statut === "publie" && e.aLaUne).length;
 
   const aValider: EvenementAValider[] = liste.map((e) => {
     const o = organisateur(e.organisateur);
@@ -74,8 +76,12 @@ export default function V2AdminEvenements({ searchParams }: { searchParams: { st
     <Coquille nav={NAV_ADMIN} actif="evenements">
       <div className={s.entete}>
         <div>
-          <h1 className={s.titre}>Validation des événements</h1>
-          <p className={s.sousTitre}>Chaque événement soumis attend ton accord avant d&apos;être mis en vente.</p>
+          <h1 className={s.titre}>{filtre.cle === "attente" ? "Validation des événements" : "Événements"}</h1>
+          <p className={s.sousTitre}>
+            {filtre.cle === "attente"
+              ? "Chaque événement soumis attend ton accord avant d'être mis en vente."
+              : "Mise à la une, annulation et suppression des événements."}
+          </p>
         </div>
       </div>
 
@@ -111,6 +117,7 @@ export default function V2AdminEvenements({ searchParams }: { searchParams: { st
             <span>Vendus</span>
             <span>Ventes</span>
             <span>Statut</span>
+            <span>Actions</span>
           </li>
           {liste.map((e) => {
             const c = chiffresAdmin(e);
@@ -141,6 +148,7 @@ export default function V2AdminEvenements({ searchParams }: { searchParams: { st
                 <span className={s.cellule}>
                   <StatutEvt statut={e.statut} />
                 </span>
+                <Gestion titre={e.titre} statut={e.statut} vendus={c.vendus} brut={c.brut} aLaUneInitial={!!e.aLaUne} />
               </li>
             );
           })}
@@ -148,7 +156,7 @@ export default function V2AdminEvenements({ searchParams }: { searchParams: { st
       )}
 
       <p className={s.note} style={{ marginTop: 16 }}>
-        Statut affiché : {STATUTS[filtre.statut]}. La mise en avant, l&apos;annulation et la suppression restent à maquetter (page Événements de la prod).
+        Statut affiché : {STATUTS[filtre.statut]}. {filtre.cle === "publie" ? `${nbALaUne} à la une sur l'accueil.` : ""}
       </p>
       <RubanEtats chemin={`${A}/evenements`} etats={["normal", "vide"]} />
     </Coquille>

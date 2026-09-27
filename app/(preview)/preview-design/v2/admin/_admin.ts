@@ -11,10 +11,13 @@ export const NAV_ADMIN: Nav = {
   role: "Administration",
   entrees: [
     { cle: "accueil", libelle: "Tableau de bord", court: "Accueil", href: A, icone: "home" },
-    { cle: "evenements", libelle: "Validation des événements", court: "Validation", href: `${A}/evenements`, icone: "shield" },
+    { cle: "evenements", libelle: "Événements", court: "Événements", href: `${A}/evenements`, icone: "shield" },
     { cle: "virements", libelle: "Virements", court: "Virements", href: `${A}/virements`, icone: "wallet" },
-    { cle: "organisateurs", libelle: "Organisateurs", court: "Orgas", href: `${A}/organisateurs`, icone: "users" },
+    { cle: "organisateurs", libelle: "Organisateurs", court: "Orgas", href: `${A}/organisateurs`, icone: "users", secondaire: true },
+    { cle: "billets", libelle: "Billets et remboursements", court: "Billets", href: `${A}/billets`, icone: "ticket", secondaire: true },
+    { cle: "commissions", libelle: "Commissions", court: "Commissions", href: `${A}/commissions`, icone: "percent", secondaire: true },
   ],
+  plus: { cle: "plus", libelle: "Plus", court: "Plus", href: `${A}/plus`, icone: "more" },
   compte: { nom: "Équipe Xwézan", email: "contact@xwezan.com" },
 };
 
@@ -37,6 +40,7 @@ export type EvenementAdmin = {
   image: "portrait" | "paysage" | "carre" | null;
   commission: number;
   motifRefus?: string;
+  aLaUne?: boolean; // events.mis_en_avant
 };
 
 export type Organisateur = {
@@ -136,6 +140,7 @@ export const EVENEMENTS_ADMIN: EvenementAdmin[] = [
     ],
     image: "paysage",
     commission: 0.08,
+    aLaUne: true,
   },
   {
     id: "nuit-zinli",
@@ -278,3 +283,54 @@ export function depuis(d: string) {
   const n = joursDepuis(d);
   return n <= 0 ? "aujourd'hui" : n === 1 ? "hier" : `il y a ${n} jours`;
 }
+
+// ---------- Billets (page Billets et remboursements) ----------
+export type StatutBilletAdmin = "valide" | "utilise" | "annule";
+export type BilletAdmin = {
+  ref: string;
+  commande: string;
+  evenement: string; // id d'EVENEMENTS_ADMIN
+  tarif: string;
+  prix: number;
+  nom: string;
+  tel: string;
+  email: string;
+  invite: boolean; // achat sans compte (orders.acheteur_*)
+  statut: StatutBilletAdmin;
+  acheteLe: string; // AAAA-MM-JJ HH:MM
+  rembourse?: string; // date de remboursement, billets d'événements annulés
+};
+
+const PRENOMS_A = ["Aïcha", "Koffi", "Mariam", "Sèna", "Rodrigue", "Fifamè", "Ulrich", "Gloria", "Achille", "Nadège", "Codjo", "Esther", "Hermann", "Bénédicta"];
+const NOMS_A = ["Houngbédji", "Adjovi", "Dossou", "Agossou", "Tossou", "Kpadonou", "Zinsou", "Ahouandjinou", "Gbaguidi"];
+
+/** Échantillon de billets par événement vendu (quelques-uns par tarif, pas la totalité). */
+export const BILLETS_ADMIN: BilletAdmin[] = (() => {
+  const out: BilletAdmin[] = [];
+  let i = 0;
+  for (const e of EVENEMENTS_ADMIN) {
+    for (const t of e.tarifs) {
+      const n = Math.min(t.vendus, e.statut === "annule" ? 12 : 4);
+      for (let k = 0; k < n; k++, i++) {
+        const prenom = PRENOMS_A[i % PRENOMS_A.length];
+        const nom = NOMS_A[(i * 5) % NOMS_A.length];
+        const statut: StatutBilletAdmin = e.statut === "annule" ? "annule" : e.statut === "termine" || i % 4 === 1 ? "utilise" : "valide";
+        out.push({
+          ref: `XWZ-${(9120 + i * 53).toString(36).toUpperCase()}`,
+          commande: `c${1000 + Math.floor(i / 2)}`,
+          evenement: e.id,
+          tarif: t.nom,
+          prix: t.prix,
+          nom: `${prenom} ${nom}`,
+          tel: `01 9${i % 10} ${String(10 + ((i * 17) % 89)).padStart(2, "0")} ${String(20 + ((i * 29) % 79)).padStart(2, "0")} ${String(30 + ((i * 7) % 69)).padStart(2, "0")}`,
+          email: `${prenom.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}.${nom.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}@exemple.bj`,
+          invite: i % 3 === 0,
+          statut,
+          acheteLe: `2026-${e.statut === "annule" ? "08" : "09"}-${String(1 + ((i * 3) % 26)).padStart(2, "0")} ${String(8 + (i % 14)).padStart(2, "0")}:${String((i * 13) % 60).padStart(2, "0")}`,
+          rembourse: e.statut === "annule" && k < 4 ? "2026-08-27" : undefined,
+        });
+      }
+    }
+  }
+  return out;
+})();

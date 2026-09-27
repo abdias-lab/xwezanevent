@@ -137,6 +137,13 @@ const CHEMINS: Record<string, ReactNode> = {
       <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
     </>
   ),
+  percent: (
+    <>
+      <path d="M19 5 5 19" />
+      <circle cx="7" cy="7" r="2.5" />
+      <circle cx="17" cy="17" r="2.5" />
+    </>
+  ),
   users: (
     <>
       <circle cx="9" cy="8.5" r="3.5" />

@@ -5,10 +5,14 @@ import Icon, { type IconName } from "../Icon";
 
 export const B = "/preview-design/v2";
 
-export type EntreeNav = { cle: string; libelle: string; court?: string; href: string; icone: IconName };
+/** `secondaire` : visible dans la colonne latérale, regroupé sous « Plus » dans la barre basse. */
+export type EntreeNav = { cle: string; libelle: string; court?: string; href: string; icone: IconName; secondaire?: boolean };
 
-/** Navigation d'un espace de travail. `creer`, s'il existe, est l'action centrale de la barre basse. */
-export type Nav = { entrees: EntreeNav[]; creer?: EntreeNav; role: string; compte: { nom: string; email: string } };
+/**
+ * Navigation d'un espace de travail. `creer`, s'il existe, est l'action
+ * centrale de la barre basse ; `plus` mène aux entrées secondaires sur mobile.
+ */
+export type Nav = { entrees: EntreeNav[]; creer?: EntreeNav; plus?: EntreeNav; role: string; compte: { nom: string; email: string } };
 
 /** Navigation de l'espace organisateur. */
 export const NAV_ORGA: Nav = {
@@ -29,9 +33,12 @@ export const NAV_ORGA: Nav = {
  */
 export default function Coquille({ nav = NAV_ORGA, actif, children }: { nav?: Nav; actif: string; children: ReactNode }) {
   const creer = nav.creer;
-  const moitie = Math.ceil(nav.entrees.length / 2);
+  const secondaires = nav.entrees.filter((e) => e.secondaire).map((e) => e.cle);
+  const onglets = [...nav.entrees.filter((e) => !e.secondaire), ...(nav.plus ? [nav.plus] : [])];
+  const moitie = Math.ceil(onglets.length / 2);
+  const estActif = (e: EntreeNav) => actif === e.cle || (e === nav.plus && secondaires.includes(actif));
   const tab = (e: EntreeNav) => (
-    <a key={e.cle} href={e.href} className={`${s.tab} ${actif === e.cle ? s.tabOn : ""}`} aria-current={actif === e.cle ? "page" : undefined}>
+    <a key={e.cle} href={e.href} className={`${s.tab} ${estActif(e) ? s.tabOn : ""}`} aria-current={estActif(e) ? "page" : undefined}>
       <Icon name={e.icone} size={24} />
       {e.court ?? e.libelle}
     </a>
@@ -92,9 +99,9 @@ export default function Coquille({ nav = NAV_ORGA, actif, children }: { nav?: Na
         <nav
           className={s.tabbar}
           aria-label="Navigation de l'espace"
-          style={{ gridTemplateColumns: `repeat(${nav.entrees.length + (creer ? 1 : 0)}, 1fr)` }}
+          style={{ gridTemplateColumns: `repeat(${onglets.length + (creer ? 1 : 0)}, 1fr)` }}
         >
-          {nav.entrees.slice(0, moitie).map(tab)}
+          {onglets.slice(0, moitie).map(tab)}
           {creer && (
             <a href={creer.href} className={s.tabCreer} aria-label={creer.libelle}>
               <span>
@@ -102,7 +109,7 @@ export default function Coquille({ nav = NAV_ORGA, actif, children }: { nav?: Na
               </span>
             </a>
           )}
-          {nav.entrees.slice(moitie).map(tab)}
+          {onglets.slice(moitie).map(tab)}
         </nav>
       </div>
     </div>
