@@ -14,7 +14,7 @@ export function Header() {
           <a href="#">Tarifs</a>
           <a href="#">Organisateurs</a>
         </nav>
-        <a href="#" className={s.btnBlanc}>
+        <a href="/preview-design/v2/connexion" className={s.btnBlanc}>
           Se connecter
         </a>
         <form className={s.pilule} role="search">
