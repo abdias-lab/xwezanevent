@@ -1,0 +1,131 @@
+/* Page d'index des previews : neutre, volontairement sans lien avec une des trois directions. */
+.racine {
+  --bg: #111214;
+  --carte: #1a1c1f;
+  --ligne: rgb(255 255 255 / 0.12);
+  --texte: #f2f2f0;
+  --muted: #9b9ea3;
+  --d1: 150ms;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 100vh;
+  padding: 32px 16px 64px;
+  background: var(--bg);
+  color: var(--texte);
+  font: 500 16px/24px var(--pv-body), system-ui, sans-serif;
+}
+.racine *,
+.racine *::before,
+.racine *::after {
+  box-sizing: border-box;
+}
+.racine h1,
+.racine h2,
+.racine p,
+.racine ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.racine a {
+  color: inherit;
+  text-decoration: none;
+}
+.racine :focus-visible {
+  outline: 2px solid #e4a93f;
+  outline-offset: 2px;
+}
+.cont {
+  max-width: 960px;
+  margin: 0 auto;
+}
+.titre {
+  font: 800 1.75rem/1.1 var(--pv-display), system-ui, sans-serif;
+  text-transform: uppercase;
+}
+.intro {
+  margin-top: 16px;
+  max-width: 60ch;
+  color: var(--muted);
+}
+.astuce {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border: 1px dashed var(--ligne);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.liste {
+  display: grid;
+  gap: 16px;
+  margin-top: 32px;
+}
+.version {
+  padding: 24px;
+  border: 1px solid var(--ligne);
+  border-radius: 16px;
+  background: var(--carte);
+}
+.version h2 {
+  font: 800 1.125rem/1.2 var(--pv-display), system-ui, sans-serif;
+  text-transform: uppercase;
+}
+.version p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+.palette {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.pastille {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--ligne);
+}
+.liens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+}
+.lien {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--ligne);
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color var(--d1) var(--ease), background var(--d1) var(--ease);
+}
+.lien:hover {
+  border-color: #e4a93f;
+}
+.lienPrimaire {
+  background: #f2f2f0;
+  color: #111214;
+  border-color: #f2f2f0;
+  font-weight: 700;
+}
+.lienPrimaire:hover {
+  background: #fff;
+  border-color: #fff;
+}
+.etats {
+  margin-top: 48px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.etats strong {
+  color: var(--texte);
+}
+@media (min-width: 768px) {
+  .liste {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
