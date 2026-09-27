@@ -26,8 +26,8 @@ const heure = () => new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", mi
 const norm = (x: string) => x.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
 /** Billets de démonstration : événements en vente + un annulé, comme en prod (tous les événements de l'organisateur). */
-function billetsInitiaux(): Billet[] {
-  return EVENEMENTS_ORGA.filter((e) => e.statut === "publie" || e.statut === "annule").flatMap((e) =>
+function billetsInitiaux(evenementId?: string): Billet[] {
+  return EVENEMENTS_ORGA.filter((e) => (evenementId ? e.id === evenementId : e.statut === "publie" || e.statut === "annule")).flatMap((e) =>
     billetsDe(e).map((b) => ({ ref: b.ref, nom: b.nom, tel: b.tel, tarif: b.tarif, evenement: e.titre, statut: b.statut, entre: b.scanne })),
   );
 }
@@ -37,9 +37,25 @@ function billetsInitiaux(): Billet[] {
  * manuelle. Aucune caméra ni requête ici : les scans sont simulés par la
  * barre « Simuler un scan », réservée à la preview.
  */
-export default function Scanner({ cameraRefusee }: { cameraRefusee: boolean }) {
+/**
+ * `evenementId` : limite le contrôle à un seul événement (lien de scan délégué,
+ * comme /scan/lien/[token] en prod). `compteur` : affiche « scannés / vendus »
+ * au lieu du compteur de session. `retour` : lien vers l'espace organisateur,
+ * absent pour un accès délégué sans compte.
+ */
+export default function Scanner({
+  cameraRefusee,
+  evenementId,
+  compteur,
+  retour = true,
+}: {
+  cameraRefusee: boolean;
+  evenementId?: string;
+  compteur?: { scannes: number; total: number };
+  retour?: boolean;
+}) {
   const [mode, setMode] = useState<"scan" | "recherche">("scan");
-  const [billets, setBillets] = useState<Billet[]>(billetsInitiaux);
+  const [billets, setBillets] = useState<Billet[]>(() => billetsInitiaux(evenementId));
   const [resultat, setResultat] = useState<Resultat | null>(null);
   const [cle, setCle] = useState(0); // relance l'animation du minuteur
   const [validesSession, setValidesSession] = useState(0);
@@ -101,7 +117,11 @@ export default function Scanner({ cameraRefusee }: { cameraRefusee: boolean }) {
       </div>
 
       <p className={s.note} style={{ textAlign: "center", marginBottom: 16 }} aria-live="polite">
-        {validesSession === 0 ? "Aucune entrée validée depuis l'ouverture de cette page." : `${validesSession} entrée${validesSession > 1 ? "s" : ""} validée${validesSession > 1 ? "s" : ""} depuis l'ouverture de cette page.`}
+        {compteur
+          ? `${compteur.scannes + validesSession} / ${compteur.total} billets scannés`
+          : validesSession === 0
+            ? "Aucune entrée validée depuis l'ouverture de cette page."
+            : `${validesSession} entrée${validesSession > 1 ? "s" : ""} validée${validesSession > 1 ? "s" : ""} depuis l'ouverture de cette page.`}
       </p>
 
       {mode === "scan" && (
@@ -153,11 +173,13 @@ export default function Scanner({ cameraRefusee }: { cameraRefusee: boolean }) {
 
       {mode === "recherche" && <Recherche billets={billets} onValider={valider} />}
 
-      <p style={{ marginTop: 24, textAlign: "center" }}>
-        <a href={`${B}/orga`} className={s.note} style={{ textDecoration: "underline" }}>
-          Retour au tableau de bord
-        </a>
-      </p>
+      {retour && (
+        <p style={{ marginTop: 24, textAlign: "center" }}>
+          <a href={`${B}/orga`} className={s.note} style={{ textDecoration: "underline" }}>
+            Retour au tableau de bord
+          </a>
+        </p>
+      )}
     </div>
   );
 }
