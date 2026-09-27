@@ -11,7 +11,7 @@ export function Header() {
         </a>
         <nav className={s.navLiens} aria-label="Navigation principale">
           <a href="#">Événements</a>
-          <a href="#">Tarifs</a>
+          <a href="/preview-design/v2/tarifs">Tarifs</a>
           <a href="#">Organisateurs</a>
         </nav>
         <a href="/preview-design/v2/connexion" className={s.btnBlanc}>
@@ -32,9 +32,9 @@ export function Footer() {
       <div className={`${s.cont} ${s.footerCorps}`}>
         <div className={s.slogan}>{SLOGAN}</div>
         <div className={s.footerLiens}>
-          <a href="#">FAQ</a>
-          <a href="#">Remboursements</a>
-          <a href="#">CGU</a>
+          <a href="/preview-design/v2/faq">FAQ</a>
+          <a href="/preview-design/v2/remboursements">Remboursements</a>
+          <a href="/preview-design/v2/cgu">CGU</a>
           <a href="mailto:contact@xwezan.com">Contact</a>
         </div>
         <div>© Xwézan · Billetterie du Bénin</div>
