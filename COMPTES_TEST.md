@@ -826,3 +826,16 @@ Non testé en réel : branches « approved » et « declined » de la relance (l
 refuse le paiement et le changement de statut par l'API : « Opération non autorisée »).
 Toutes les données supprimées, empreinte des tables et comptes identique avant/après.
 
+Complément du même jour, test (a) : deux vraies transactions **sandbox** de 100 F de test
+(compte `test-bug12a@xwezanevent-test.com`, événement `test-bug12a-paiement` resté en
+**brouillon** pour ne jamais apparaître sur le site public), l'une payée par Abdias avec le
+numéro de test FedaPay, l'autre annulée sur la page FedaPay. Relance réelle :
+- transaction payée (statut sandbox « approved ») → commande **finalisée** par la relance,
+  1 billet, identifiant de transaction inchangé (aucune nouvelle transaction), e-mail de
+  confirmation reçu : 4/4 conformes ;
+- transaction annulée : le sandbox la laisse en « pending » (incohérence déjà notée dans le
+  code de `/paiement/retour`), la garde refuse donc la relance. Cas « échec définitif » non
+  démontrable en sandbox ; en live, Abdias a constaté que FedaPay affiche bien « Annulée ».
+Données supprimées. L'empreinte de `orders` a changé à cause d'une **vraie commande**
+(MIWADÚNÙ, 40 000 F, en attente) passée sur le site pendant le test, sans lien avec lui.
+
