@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MAX_IMAGES, TAILLE_AFFICHE_MAX, TYPES_AFFICHE_AUTORISES } from "@/lib/affiche";
+import { MAX_IMAGES, TYPES_AFFICHE_AUTORISES } from "@/lib/affiche";
+import { compresserImage, POIDS_MAX_ORIGINAL, POIDS_MAX_TOTAL } from "@/lib/compression-image";
 
 interface SlotExistante {
   key: string;
@@ -30,6 +31,9 @@ type Slot = SlotExistante | SlotNouvelle;
  *
  * `imagesInitiales` permet de préremplir avec les images déjà en base
  * (édition) ; laisser vide pour la création.
+ *
+ * Chaque fichier ajouté est compressé dans le navigateur (lib/compression-image.ts) :
+ * Vercel refuse les requêtes de plus de 4,5 Mo, le formulaire en envoie jusqu'à 4.
  */
 export default function SelecteurImages({
   imagesInitiales = [],
@@ -44,6 +48,7 @@ export default function SelecteurImages({
   );
   const [principaleKey, setPrincipaleKey] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [preparation, setPreparation] = useState(false);
   const inputFichierRef = useRef<HTMLInputElement>(null);
   const inputNouvellesRef = useRef<HTMLInputElement>(null);
 
@@ -98,22 +103,38 @@ export default function SelecteurImages({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [principal?.key]);
 
-  function ajouterFichier(e: React.ChangeEvent<HTMLInputElement>) {
-    const fichier = e.target.files?.[0] ?? null;
+  async function ajouterFichier(e: React.ChangeEvent<HTMLInputElement>) {
+    const original = e.target.files?.[0] ?? null;
     e.target.value = "";
     setErreur(null);
-    if (!fichier) return;
+    if (!original) return;
 
     if (slots.length >= MAX_IMAGES) {
       setErreur(`${MAX_IMAGES} images maximum.`);
       return;
     }
-    if (!TYPES_AFFICHE_AUTORISES[fichier.type]) {
+    if (!TYPES_AFFICHE_AUTORISES[original.type]) {
       setErreur("Format non supporté — utilise un JPG, PNG ou WebP.");
       return;
     }
-    if (fichier.size > TAILLE_AFFICHE_MAX) {
-      setErreur("L'image dépasse 5 Mo.");
+    if (original.size > POIDS_MAX_ORIGINAL) {
+      setErreur("L'image dépasse 25 Mo.");
+      return;
+    }
+
+    let fichier: File;
+    setPreparation(true);
+    try {
+      fichier = await compresserImage(original);
+    } catch {
+      setErreur("Cette image n'a pas pu être préparée. Essaie une autre image (JPG, PNG ou WebP).");
+      return;
+    } finally {
+      setPreparation(false);
+    }
+    const totalNouvelles = slots.reduce((n, s) => n + (s.type === "nouvelle" ? s.file.size : 0), 0);
+    if (totalNouvelles + fichier.size > POIDS_MAX_TOTAL) {
+      setErreur("Les images sont trop lourdes au total. Retire une image ou choisis-en une plus légère.");
       return;
     }
 
@@ -150,7 +171,7 @@ export default function SelecteurImages({
       />
 
       <label>
-        Images <small>(JPG, PNG ou WebP — 5 Mo max, {MAX_IMAGES} maximum)</small>
+        Images <small>(JPG, PNG ou WebP, {MAX_IMAGES} maximum — allégées automatiquement)</small>
       </label>
       <div className="images-grille">
         {slots.map((s) => {
@@ -181,8 +202,8 @@ export default function SelecteurImages({
           );
         })}
         {slots.length < MAX_IMAGES && (
-          <button type="button" className="image-slot-ajouter" onClick={() => inputFichierRef.current?.click()}>
-            <span>+ Ajouter</span>
+          <button type="button" className="image-slot-ajouter" disabled={preparation} onClick={() => inputFichierRef.current?.click()}>
+            <span>{preparation ? "Préparation de l'image…" : "+ Ajouter"}</span>
           </button>
         )}
       </div>
