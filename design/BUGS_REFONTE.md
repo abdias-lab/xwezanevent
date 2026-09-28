@@ -21,6 +21,7 @@ après la refonte, indépendamment d'elle : corriger la prod, pas seulement la p
 | 14 | 2026-09-27 | `/compte` : `app/(compte)/compte/page.tsx` (select sans `events.statut`) | **Événement annulé invisible pour l'acheteur.** La page ne lit pas le statut de l'événement : le billet d'un événement annulé reste affiché « ✓ Payé » avec « Voir mes billets » (billet pourtant invalidé au scan), sans mention d'annulation ni de remboursement à venir. Avec l'absence d'e-mail d'annulation (n°7), l'acheteur peut se présenter à l'entrée. | Lire `events.statut` : pour un événement annulé, afficher « Événement annulé », l'état du remboursement (commande `paye` → « remboursement en cours, sous 14 jours » ; `rembourse` → « remboursé »), et masquer le QR. À traiter avec le n°7. Maquetté dans la preview V2 `/compte`. | À faire, avec le n°7 |
 | 15 | 2026-09-27 | Contact : `app/api/contact/route.ts` | **Faible priorité. Aucune limite de fréquence** : seul un champ piège (honeypot) filtre les robots. Un robot qui laisse ce champ vide peut envoyer autant de messages qu'il veut, chacun relayé par e-mail via Resend (coût, réputation du domaine d'envoi). | Limite par adresse IP et par e-mail (ex. 3 messages / 10 min), sur le modèle de `demandes_retrouver_billet`. | À faire |
 | 16 | 2026-09-27 | Catalogue : `app/(public)/evenements/page.tsx` (menu « Trier ») | **Cosmétique, mais trompeur.** Le menu « Trier : Date (proche) / Prix croissant / Prix décroissant / Popularité » n'a ni nom ni gestionnaire : changer le tri ne fait rien. | Brancher un vrai tri (paramètre `?tri=`, tri côté serveur dans `getEvenementsPublies`) ou retirer le menu. La preview V2 propose un tri réel date / prix. |
+| 17 | 2026-09-28 | Pays : `lib/pays.ts` (`getPaysActuel`), utilisé par `/evenements`, `/faq`, `/tarifs` et le pied de page | **Cookie de pays jamais revalidé.** `getPaysActuel` renvoie la valeur du cookie `xwz_pays` (1 an) sans vérifier que le pays est encore actif (contrairement à la détection par IP et à `getPaysActuelDetail`). Après la désactivation du Togo, un visiteur qui l'avait choisi voit un catalogue vide pendant jusqu'à un an, sans sélecteur pour revenir au Bénin, et des opérateurs togolais (Flooz, Mixx) dans la FAQ et les Tarifs. L'accueil n'est pas touché (`getPaysActuelDetail` retombe sur le Bénin). | Dans `getPaysActuel`, ignorer un cookie dont le pays n'est pas actif (même contrôle que `changerPays`), et retomber sur l'IP puis `PAYS_DEFAUT`. Petit correctif, à faire **avant ou avec** la désactivation du Togo. | À faire |
 
 ## Chantiers (bugs à traiter ensemble)
 
@@ -39,6 +40,17 @@ Décidé par Abdias le 2026-09-27. Un seul chantier : l'annulation d'un événem
 
 Maquettes V2 déjà prêtes : `/admin/billets` (filtre « À rembourser ») et `/compte`
 (section « Événements annulés »).
+
+### Réouverture du Togo : prérequis
+
+Le Togo a été désactivé le 2026-09-28 (`pays.actif = false`, script ponctuel) : il était actif sans aucun événement
+togolais, et les visiteurs situés au Togo voyaient un site vide (MIWADÚNÙ et BEACHMAS masqués). Avant de le rouvrir :
+1. **Vérifier dans FedaPay live** que Flooz et Mixx by Yas sont activés sur le compte marchand (rien dans le code ne
+   le garantit : la page de paiement FedaPay propose ce que le compte accepte).
+2. **Décider quoi montrer à un visiteur togolais** tant qu'il n'y a pas d'événements locaux : probablement les
+   événements béninois, avec un message « Bientôt au Togo », plutôt qu'un catalogue vide.
+3. Avoir corrigé le n°17 (cookie de pays non revalidé).
+Côté V2 : aucun sélecteur de pays à maquetter, il n'apparaît que lorsque deux pays sont actifs.
 
 ## Améliorations à remonter en prod
 
