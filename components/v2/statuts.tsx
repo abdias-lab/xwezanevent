@@ -36,3 +36,14 @@ const CLS_BILLET: Record<StatutBillet, string> = { valide: s.stFort, utilise: s.
 export function StatutBilletV2({ statut }: { statut: StatutBillet }) {
   return <span className={`${s.statut} ${CLS_BILLET[statut]}`}>{STATUTS_BILLET[statut]}</span>;
 }
+
+/** Statut d'un virement ; « gele » correspond à payouts.statut = 'bloque'. */
+export type StatutVirement = "demande" | "traite" | "gele";
+
+export const STATUTS_VIREMENT: Record<StatutVirement, string> = { demande: "En attente", traite: "Traité", gele: "Gelé" };
+
+const CLS_VIR: Record<StatutVirement, string> = { demande: s.stAttente, traite: s.stFort, gele: s.stDanger };
+
+export function StatutVirementV2({ statut }: { statut: StatutVirement }) {
+  return <span className={`${s.statut} ${CLS_VIR[statut]}`}>{STATUTS_VIREMENT[statut]}</span>;
+}

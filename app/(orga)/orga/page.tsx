@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
-import { dateDisponibilitePayout, payoutDisponible } from "@/lib/payouts";
+import { chiffresOrganisateur, type LigneOrga } from "@/lib/orga-chiffres";
 import Coquille from "@/components/v2/Coquille";
 import Icon from "@/components/v2/Icon";
 import Compteur from "@/components/v2/Compteur";
@@ -11,7 +11,7 @@ import Jauge from "@/components/v2/Jauge";
 import DemandeVirement from "@/components/v2/orga/DemandeVirement";
 import { NAV_ORGA } from "@/components/v2/navOrga";
 import { dateAnnee, dateCourte, montant, nombre, pourcent } from "@/components/v2/format";
-import { StatutEvt, type Statut } from "@/components/v2/statuts";
+import { StatutEvt } from "@/components/v2/statuts";
 import s from "@/components/v2/espace.module.css";
 
 export const metadata: Metadata = {
@@ -20,27 +20,11 @@ export const metadata: Metadata = {
 
 const COLS = { "--cols": "minmax(0, 2fr) minmax(0, 1.4fr) 128px 132px 200px" } as CSSProperties;
 
-interface EventOrga {
-  id: string;
-  titre: string;
-  date_debut: string;
-  date_fin: string | null;
-  date_reference_virement: string;
-  ville: string;
-  statut: Statut;
-  taux_commission: number;
-  pays_code: string;
-  ticket_types: { prix: number; quantite_totale: number; quantite_vendue: number }[];
-}
-
-const STATUTS_SANS_VIREMENT = new Set(["annule", "refuse"]);
-
 /**
  * Tableau de bord organisateur (V2), repris de la preview. Une seule action
  * par événement (la plus utile) ; le reste (modifier, annuler, export, lien
  * de scan, billets) est dans la fiche /orga/evenements/[id]. Calculs de la
- * prod : brut sur les billets vendus, net au taux de chaque événement, solde
- * disponible = net − virements demandés ou traités, J+3 (lib/payouts.ts).
+ * prod, partagés avec Mes reversements : lib/orga-chiffres.ts.
  */
 export default async function Orga() {
   const supabase = creerClientServeur();
@@ -49,37 +33,10 @@ export default async function Orga() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/connexion?redirect=/orga");
 
-  const [{ data }, { data: payoutsData }, { data: profil }] = await Promise.all([
-    supabase
-      .from("events")
-      .select("id, titre, date_debut, date_fin, date_reference_virement, ville, statut, taux_commission, pays_code, ticket_types(prix, quantite_totale, quantite_vendue)")
-      .eq("organisateur_id", user.id)
-      .order("date_debut", { ascending: false }),
-    supabase.from("payouts").select("event_id, montant, statut").eq("organisateur_id", user.id).in("statut", ["demande", "traite"]),
+  const [{ events, lignes, totaux: t }, { data: profil }] = await Promise.all([
+    chiffresOrganisateur(supabase, user.id),
     supabase.from("profiles").select("nom, nom_public").eq("id", user.id).maybeSingle(),
   ]);
-
-  const events = (data as unknown as EventOrga[]) ?? [];
-  const dejaDemande = new Map<string, number>();
-  for (const p of (payoutsData ?? []) as { event_id: string; montant: number }[]) dejaDemande.set(p.event_id, (dejaDemande.get(p.event_id) ?? 0) + p.montant);
-
-  const lignes = events.map((e) => {
-    const vendus = e.ticket_types.reduce((n, t) => n + t.quantite_vendue, 0);
-    const capacite = e.ticket_types.reduce((n, t) => n + t.quantite_totale, 0);
-    const brut = e.ticket_types.reduce((n, t) => n + t.prix * t.quantite_vendue, 0);
-    const net = Math.round(brut * (1 - e.taux_commission));
-    const disponible = STATUTS_SANS_VIREMENT.has(e.statut) ? 0 : Math.max(0, net - (dejaDemande.get(e.id) ?? 0));
-    return { e, vendus, capacite, brut, net, disponible, peutDemander: payoutDisponible(e), disponibleLe: dateAnnee(dateDisponibilitePayout(e)) };
-  });
-
-  const t = {
-    net: lignes.reduce((n, l) => n + l.net, 0),
-    brut: lignes.reduce((n, l) => n + l.brut, 0),
-    vendus: lignes.reduce((n, l) => n + l.vendus, 0),
-    capacite: lignes.reduce((n, l) => n + l.capacite, 0),
-    publies: events.filter((e) => e.statut === "publie").length,
-    disponible: lignes.reduce((n, l) => n + (l.peutDemander ? l.disponible : 0), 0),
-  };
   // Taux effectif : peut différer de 8 % si un événement a une commission négociée.
   const taux = t.brut > 0 ? Math.round((1 - t.net / t.brut) * 100) : 8;
   const remplissage = t.capacite > 0 ? Math.round((t.vendus / t.capacite) * 100) : 0;
@@ -264,15 +221,8 @@ export default async function Orga() {
   );
 }
 
-type Ligne = {
-  e: EventOrga;
-  disponible: number;
-  peutDemander: boolean;
-  disponibleLe: string;
-};
-
 /** Une seule action par ligne, la plus utile selon l'état ; le reste est dans la fiche. */
-function ActionLigne({ l }: { l: Ligne }) {
+function ActionLigne({ l }: { l: LigneOrga }) {
   if (l.disponible > 0 && l.peutDemander)
     return (
       <DemandeVirement
@@ -291,7 +241,7 @@ function ActionLigne({ l }: { l: Ligne }) {
         <Icon name="qr" /> Scanner
       </Link>
     );
-  if (l.disponible > 0) return <span className={s.note}>Virement dès le {l.disponibleLe}</span>;
+  if (l.disponible > 0) return <span className={s.note}>Virement dès le {dateAnnee(l.disponibleLe)}</span>;
   return (
     <span className={s.note} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
       Gérer <Icon name="chevron-right" />
