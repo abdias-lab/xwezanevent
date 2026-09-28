@@ -1,23 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { AuthError } from "@supabase/supabase-js";
+import { creerClientNavigateur } from "@/lib/supabase-browser";
 import s from "../espace.module.css";
-import Icon from "../../Icon";
-import { B } from "../Coquille";
+import Icon from "../Icon";
+
+/** Erreurs de updateUser en français (le message Supabase brut était affiché, en anglais). */
+function message(e: AuthError): string {
+  switch (e.code) {
+    case "same_password":
+      return "C'est déjà ton mot de passe actuel. Choisis-en un nouveau.";
+    case "weak_password":
+      return "Mot de passe trop faible. Choisis-en un plus long, avec des lettres et des chiffres.";
+    case "session_not_found":
+    case "session_expired":
+    case "refresh_token_not_found":
+      return "Ton lien a expiré. Demande un nouveau lien depuis « Mot de passe oublié ».";
+    default:
+      return "Le mot de passe n'a pas pu être changé. Réessaie dans un instant.";
+  }
+}
 
 /**
- * Nouveau mot de passe (preview V2). Comme components/ReinitialiserMotDePasseForm.tsx :
- * 8 caractères minimum, confirmation identique. Différences : correspondance
- * vérifiée pendant la saisie, erreurs en français, et après succès on propose
- * « Mon compte » (l'utilisateur est déjà connecté ; la prod le renvoie vers
- * /connexion, qui le redirige aussitôt vers l'accueil).
+ * Nouveau mot de passe (V2), repris de la preview (v2/reinitialiser-mot-de-passe/Reinit.tsx)
+ * et branché sur Supabase comme l'ancien ReinitialiserMotDePasseForm : la
+ * session est déjà ouverte par /auth/confirm, updateUser change le mot de
+ * passe. Après succès, l'utilisateur reste connecté : on propose « Mon compte »
+ * (design/BUGS_REFONTE.md A3) au lieu de le renvoyer vers /connexion.
  */
-export default function Reinit({ etatInitial }: { etatInitial: "formulaire" | "termine" }) {
+export default function Reinit() {
+  const router = useRouter();
+  const supabase = useMemo(() => creerClientNavigateur(), []);
   const [mdp, setMdp] = useState("");
   const [conf, setConf] = useState("");
   const [voir, setVoir] = useState(false);
   const [tente, setTente] = useState(false);
-  const [etat, setEtat] = useState<"formulaire" | "envoi" | "termine">(etatInitial);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [etat, setEtat] = useState<"formulaire" | "envoi" | "termine">("formulaire");
 
   const longOk = mdp.length >= 8;
   const pareil = conf.length > 0 && conf === mdp;
@@ -30,12 +52,12 @@ export default function Reinit({ etatInitial }: { etatInitial: "formulaire" | "t
           <Icon name="check" />
           <span>Mot de passe modifié. Tu es connecté.</span>
         </p>
-        <a href={`${B}/compte`} className={`${s.btn} ${s.btnOr} ${s.btnGrand}`}>
+        <Link href="/compte" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`}>
           Aller à mon compte
-        </a>
-        <a href={B} className={`${s.btn} ${s.btnGris} ${s.btnGrand}`}>
+        </Link>
+        <Link href="/" className={`${s.btn} ${s.btnGris} ${s.btnGrand}`}>
           Voir les événements
-        </a>
+        </Link>
       </div>
     );
   }
@@ -44,17 +66,33 @@ export default function Reinit({ etatInitial }: { etatInitial: "formulaire" | "t
     <form
       className={s.formSimple}
       noValidate
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
+        if (etat === "envoi") return;
         setTente(true);
+        setErreur(null);
         if (!longOk || !pareil) {
           requestAnimationFrame(() => document.querySelector<HTMLElement>(`form [aria-invalid="true"]`)?.focus());
           return;
         }
         setEtat("envoi");
-        setTimeout(() => setEtat("termine"), 700);
+        const { error } = await supabase.auth.updateUser({ password: mdp });
+        if (error) {
+          setErreur(message(error));
+          setEtat("formulaire");
+          return;
+        }
+        setEtat("termine");
+        // L'en-tête (Server Component) passe à « Mon compte ».
+        router.refresh();
       }}
     >
+      {erreur && (
+        <p className={`${s.alerte} ${s.alerteDanger}`} role="alert" style={{ marginBottom: 0 }}>
+          <Icon name="alert" />
+          <span>{erreur}</span>
+        </p>
+      )}
       <div className={`${s.champ} ${tente && !longOk ? s.champErreur : ""}`}>
         <label htmlFor="mdp">Nouveau mot de passe</label>
         <div style={{ position: "relative" }}>
