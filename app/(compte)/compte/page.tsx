@@ -105,11 +105,14 @@ export default async function Compte() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/connexion?redirect=/compte");
 
+  // Filtre user_id indispensable : la RLS laisse aussi un organisateur lire
+  // les commandes de ses événements, qui s'affichaient ici comme les siennes.
   const { data } = await supabase
     .from("orders")
     .select(
       "id, total, statut, events(titre, date_debut, date_fin, heure, ville, affiche_url), tickets(id, ticket_types(nom))"
     )
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   const commandes = ((data as unknown as CommandeRow[]) ?? []).filter(
