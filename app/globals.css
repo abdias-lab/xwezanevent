@@ -56,6 +56,19 @@
     outline-offset: 3px;
     border-radius: 4px;
   }
+  /* Menus déroulants natifs : la liste ouverte est dessinée par le
+     navigateur, qui gardait son fond blanc sous notre texte clair (texte
+     illisible, seule l'option survolée visible — « Ville » sur /creer).
+     color-scheme la passe en sombre ; fond et texte des options explicites
+     pour les navigateurs qui l'ignorent. Tous les <select> du site. */
+  select {
+    color-scheme: dark;
+  }
+  select option,
+  select optgroup {
+    background-color: var(--surface);
+    color: var(--texte);
+  }
 }
 
 /* Motif appliqué (filigrane losange) */
