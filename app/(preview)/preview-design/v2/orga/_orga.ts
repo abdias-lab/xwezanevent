@@ -237,3 +237,9 @@ export type EtatPage = "normal" | "vide" | "chargement";
 export function etatPage(v: string | string[] | undefined): EtatPage {
   return v === "vide" || v === "chargement" ? v : "normal";
 }
+
+/** Comme components/v2/format.ts::pourcent : une part non nulle n'affiche jamais "0 %". */
+export function pourcent(part: number, total: number) {
+  const p = total > 0 ? Math.round((part / total) * 100) : 0;
+  return part > 0 && p === 0 ? "moins de 1\u00A0%" : `${p}\u00A0%`;
+}

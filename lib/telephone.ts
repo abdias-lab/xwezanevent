@@ -61,8 +61,7 @@ export const TELEPHONE_PAR_PAYS: Record<string, ConfigTelephonePays> = {
       { code: "celtiis", nom: "Celtiis Money", nomCourt: "Celtiis" },
     ],
     normaliser: normaliserBenin,
-    aide:
-      "Le numéro doit comporter 10 chiffres et commencer par 01 — exemple : 01 97 12 34 56 (un numéro à 8 chiffres sans le 01 est aussi accepté, il sera complété automatiquement).",
+    aide: "10 chiffres commençant par 01, ou 8 chiffres (01 ajouté automatiquement).",
     exemple: "01 97 12 34 56",
   },
   tg: {

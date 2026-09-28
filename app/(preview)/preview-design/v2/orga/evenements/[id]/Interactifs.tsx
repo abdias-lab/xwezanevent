@@ -6,14 +6,14 @@ import Icon from "../../../../Icon";
 import { StatutBillet } from "../../ui";
 import { STATUTS_BILLET, type Billet, type StatutBillet as TStatut } from "../../_orga";
 
-const COLS = { "--cols": "minmax(0, 1.8fr) 96px minmax(0, 1fr) 112px 96px" } as CSSProperties;
+const COLS = { "--cols": "minmax(0, 1.8fr) 120px minmax(0, 1fr) 112px 96px" } as CSSProperties;
 
-/** Liste des billets vendus : recherche + filtre par statut, état local. */
+/** Liste des billets vendus : recherche (nom, référence) + filtre par statut, état local. */
 export function ListeBillets({ billets, total }: { billets: Billet[]; total: number }) {
   const [q, setQ] = useState("");
   const [f, setF] = useState<"tous" | TStatut>("tous");
   const norm = (x: string) => x.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  const visibles = billets.filter((b) => (f === "tous" || b.statut === f) && norm(`${b.nom} ${b.ref} ${b.tel}`).includes(norm(q.trim())));
+  const visibles = billets.filter((b) => (f === "tous" || b.statut === f) && norm(`${b.nom} ${b.ref}`).includes(norm(q.trim())));
   const n = (k: TStatut) => billets.filter((b) => b.statut === k).length;
 
   if (billets.length === 0) {
@@ -30,7 +30,7 @@ export function ListeBillets({ billets, total }: { billets: Billet[]; total: num
     <>
       <div className={s.recherche}>
         <Icon name="search" size={20} />
-        <input type="search" placeholder="Nom, téléphone ou référence" aria-label="Rechercher un billet" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input type="search" placeholder="Nom ou référence" aria-label="Rechercher un billet" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       <div className={s.puces} role="group" aria-label="Filtrer par statut">
         {(["tous", "valide", "utilise", "annule"] as const).map((k) => (
@@ -73,10 +73,10 @@ export function ListeBillets({ billets, total }: { billets: Billet[]; total: num
             <li key={b.ref} className={s.carte} style={{ ...COLS, gap: 8 }}>
               <div className={s.carteHaut}>
                 <div>
+                  {/* Pas de téléphone : l'organisateur n'y a pas accès (décision du 2026-09-28). */}
                   <p className={s.carteTitre} style={{ fontSize: 15 }}>
                     {b.nom}
                   </p>
-                  <p className={s.carteMeta}>{b.tel}</p>
                 </div>
                 <span className={s.masqueDesktop}>
                   <StatutBillet statut={b.statut} />

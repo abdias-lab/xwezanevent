@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 /**
  * Accès sans compte pour scanner/rechercher les billets d'UN événement
  * précis, via un lien généré/révocable depuis le dashboard organisateur
- * (voir components/orga/LienScan.tsx). Aucune session créée : le jeton est
+ * (voir components/v2/orga/LienScan.tsx). Aucune session créée : le jeton est
  * l'autorisation, transmis à chaque requête (voir extraBody ci-dessous) —
  * re-résolu côté serveur à chaque appel, jamais mis en cache ici.
  */

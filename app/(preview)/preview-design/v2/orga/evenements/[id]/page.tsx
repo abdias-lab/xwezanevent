@@ -4,7 +4,7 @@ import Coquille, { B, RubanEtats } from "../../../Coquille";
 import Icon from "../../../../Icon";
 import DemandeVirement from "../../DemandeVirement";
 import { Jauge, SqueletteListe, StatutEvt } from "../../ui";
-import { COMMISSION, MODIFIABLE, billetsDe, chiffres, dateAnnee, dateCourteOrga, etatPage, evenementOrga, montant, nombre } from "../../_orga";
+import { COMMISSION, MODIFIABLE, billetsDe, chiffres, dateAnnee, dateCourteOrga, etatPage, evenementOrga, montant, nombre, pourcent } from "../../_orga";
 import { Annuler, ListeBillets, LienScan } from "./Interactifs";
 
 /**
@@ -83,7 +83,7 @@ export default function V2FicheEvenement({ params, searchParams }: { params: { i
               <div className={s.kpi}>
                 <span className={s.kpiLabel}>Entrés</span>
                 <span className={s.kpiValeur}>{nombre(e.scannes)}</span>
-                <span className={s.kpiContexte}>{e.scannes > 0 ? `${Math.round((e.scannes / Math.max(1, c.vendus)) * 100)} % des billets` : "scan pas encore ouvert"}</span>
+                <span className={s.kpiContexte}>{e.scannes > 0 ? `${pourcent(e.scannes, Math.max(1, c.vendus))} des billets` : "scan pas encore ouvert"}</span>
               </div>
             </section>
 

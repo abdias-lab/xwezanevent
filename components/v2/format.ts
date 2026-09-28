@@ -38,8 +38,8 @@ export function depuis(iso: string) {
   return n <= 0 ? "aujourd'hui" : n === 1 ? "hier" : `il y a ${n} jours`;
 }
 
-/** Instant ISO → "28 sept. 2026 · 09:42", à l'heure du Bénin (Africa/Porto-Novo). */
-export function dateHeure(iso: string) {
+/** Date (AAAA-MM-JJ) et heure (HH:MM) d'un instant ISO, à l'heure du Bénin (Africa/Porto-Novo). */
+function partiesBenin(iso: string) {
   const p = Object.fromEntries(
     new Intl.DateTimeFormat("en-CA", {
       timeZone: "Africa/Porto-Novo",
@@ -53,5 +53,31 @@ export function dateHeure(iso: string) {
       .formatToParts(new Date(iso))
       .map((x) => [x.type, x.value])
   );
-  return `${dateAnnee(`${p.year}-${p.month}-${p.day}`)} · ${p.hour}:${p.minute}`;
+  return { jour: `${p.year}-${p.month}-${p.day}`, heure: `${p.hour}:${p.minute}` };
+}
+
+/** Instant ISO → "28 sept. 2026 · 09:42", à l'heure du Bénin. */
+export function dateHeure(iso: string) {
+  const { jour, heure } = partiesBenin(iso);
+  return `${dateAnnee(jour)} · ${heure}`;
+}
+
+/** Instant ISO → "28 sept. · 09:42" (sans l'année), à l'heure du Bénin. */
+export function dateHeureCourte(iso: string) {
+  const { jour, heure } = partiesBenin(iso);
+  return `${dateCourte(jour)} · ${heure}`;
+}
+
+/** Instant ISO → "09:42", à l'heure du Bénin. */
+export function heureBenin(iso: string) {
+  return partiesBenin(iso).heure;
+}
+
+/**
+ * Part en pourcentage arrondi : "66 %". Une part non nulle qui s'arrondirait
+ * à 0 s'affiche "moins de 1 %" (6 billets sur 2 252 places ne font pas 0 %).
+ */
+export function pourcent(part: number, total: number) {
+  const p = total > 0 ? Math.round((part / total) * 100) : 0;
+  return part > 0 && p === 0 ? "moins de 1\u00A0%" : `${p}\u00A0%`;
 }
