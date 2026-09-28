@@ -1,0 +1,20 @@
+/* Vrai flux caméra dans le viseur V2 (.viseur de espace.module.css).
+   Propre à l'intégration : la preview n'a pas de caméra. html5-qrcode
+   injecte sa vidéo et une zone ombrée ; on garde la vidéo plein cadre et on
+   retire sa décoration, le cadre doré V2 (.viseurCadre) la remplace. */
+.flux {
+  position: absolute;
+  inset: 0;
+}
+.flux :global(video) {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+.flux :global(#qr-shaded-region) {
+  display: none !important;
+}
+.flux :global(img),
+.flux :global(canvas) {
+  display: none !important;
+}
