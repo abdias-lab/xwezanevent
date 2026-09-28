@@ -1,0 +1,28 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { creerClientNavigateur } from "@/lib/supabase-browser";
+import s from "./espace.module.css";
+import Icon from "./Icon";
+
+/** Déconnexion V2 : même comportement que components/BoutonDeconnexion.tsx, habillage de la coquille. */
+export default function Deconnexion({ className }: { className?: string }) {
+  const router = useRouter();
+  async function deconnexion() {
+    await creerClientNavigateur().auth.signOut();
+    router.push("/");
+    router.refresh();
+  }
+  return (
+    <button
+      type="button"
+      className={className ?? s.latLien}
+      // Remise à zéro du style natif du bouton seulement : taille, graisse et
+      // couleur viennent de .latLien, comme le lien de la preview.
+      style={{ border: 0, background: "none", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}
+      onClick={deconnexion}
+    >
+      <Icon name="logout" size={20} /> Se déconnecter
+    </button>
+  );
+}

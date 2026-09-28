@@ -4,40 +4,26 @@ import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { payoutDisponible } from "@/lib/payouts";
-import BoutonDeconnexion from "@/components/BoutonDeconnexion";
-import ActionsEvenement from "@/components/admin/ActionsEvenement";
-import ActionsPayout from "@/components/admin/ActionsPayout";
-import AfficheEvenement from "@/components/AfficheEvenement";
-import Logo from "@/components/Logo";
+import { TELEPHONE_PAR_PAYS } from "@/lib/telephone";
+import BoutonVerse from "@/components/v2/admin/BoutonVerse";
+import Coquille from "@/components/v2/Coquille";
+import Icon from "@/components/v2/Icon";
+import { NAV_ADMIN } from "@/components/v2/navAdmin";
+import { dateAnnee, dateCourte, depuis, montant, nombre } from "@/components/v2/format";
+import s from "@/components/v2/espace.module.css";
 
 export const metadata: Metadata = {
   title: "Administration — XwézanEvent",
 };
 
-const MOIS_COURTS = [
-  "jan", "fév", "mar", "avr", "mai", "juin",
-  "juil", "août", "sep", "oct", "nov", "déc",
-];
-
-function formatDate(dateISO: string): string {
-  const [a, m, j] = dateISO.split("-");
-  return `${parseInt(j, 10)} ${MOIS_COURTS[parseInt(m, 10) - 1]} ${a}`;
-}
-function formatDateCourte(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getDate()} ${MOIS_COURTS[d.getMonth()]}`;
-}
-function fmt(n: number): string {
-  return n.toLocaleString("fr-FR");
-}
-
 interface EventEnAttente {
   id: string;
   titre: string;
   date_debut: string;
-  affiche_url: string | null;
-  organisateur: { nom: string } | null;
-  ticket_types: { prix: number; quantite_totale: number }[];
+  date_fin: string | null;
+  ville: string;
+  soumis_le: string;
+  organisateur: { nom: string; nom_public: string | null } | null;
 }
 
 interface PayoutDemande {
@@ -51,11 +37,26 @@ interface PayoutDemande {
   events: { titre: string; date_debut: string; date_fin: string | null; date_reference_virement: string } | null;
 }
 
+/** "mtn" → "MTN Mobile Money" (lib/telephone.ts) ; code inconnu affiché tel quel. */
+function nomMoyen(code: string): string {
+  for (const pays of Object.values(TELEPHONE_PAR_PAYS)) {
+    const op = pays.operateurs.find((o) => o.code === code);
+    if (op) return op.nom;
+  }
+  return code.toUpperCase();
+}
+
 /** "0190123456" → "01 90 12 34 56", pour l'affichage admin. */
 function formaterNumero(n: string): string {
   return /^\d{10}$/.test(n) ? n.replace(/(\d{2})(?=\d)/g, "$1 ").trim() : n;
 }
 
+/**
+ * Tableau de bord admin (V2). Rôle de tri : ce qui attend une action de
+ * l'équipe d'abord, les chiffres ensuite. La validation des événements se
+ * fait sur /admin/evenements ; le traitement des virements reste ici tant
+ * que /admin/reversements n'est pas migrée (seul endroit où il existe).
+ */
 export default async function AdminPage() {
   const supabase = creerClientServeur();
   const {
@@ -76,41 +77,41 @@ export default async function AdminPage() {
   // admin (voir supabase/migrations/20260712120000_evenements_termines.sql).
   await supabaseAdmin.rpc("cloturer_evenements_passes");
 
-  const debutMois = new Date(
-    new Date().getFullYear(),
-    new Date().getMonth(),
-    1
-  ).toISOString();
+  const maintenant = new Date();
+  const ilYA7Jours = new Date(maintenant.getTime() - 7 * 86400000).toISOString();
 
   const [
     billetsRes,
     ordersPayesRes,
-    eventsEnAttenteCountRes,
-    organisateursActifsRes,
+    enVenteRes,
+    organisateursRes,
+    nouveauxOrgasRes,
     eventsEnAttenteRes,
     payoutsDemandesRes,
   ] = await Promise.all([
     supabase
       .from("tickets")
       .select("id", { count: "exact", head: true })
-      .neq("statut", "annule")
-      .gte("created_at", debutMois),
+      .neq("statut", "annule"),
     supabase.from("orders").select("total, events(taux_commission)").eq("statut", "paye"),
     supabase
       .from("events")
       .select("id", { count: "exact", head: true })
-      .eq("statut", "en_validation"),
+      .eq("statut", "publie"),
     supabase
       .from("profiles")
       .select("id", { count: "exact", head: true })
       .eq("role", "organisateur"),
     supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "organisateur")
+      .gte("created_at", ilYA7Jours),
+    supabase
       .from("events")
-      .select(
-        "id, titre, date_debut, affiche_url, organisateur:profiles(nom), ticket_types(prix, quantite_totale)"
-      )
+      .select("id, titre, date_debut, date_fin, ville, soumis_le, organisateur:profiles(nom, nom_public)")
       .eq("statut", "en_validation")
-      .order("created_at", { ascending: true }),
+      .order("soumis_le", { ascending: true }),
     // supabaseAdmin : le téléphone de l'organisateur (nécessaire pour
     // effectuer le virement Mobile Money) n'est plus lisible via le rôle
     // Postgres `authenticated` (voir migration 20260717140000) — le
@@ -125,234 +126,212 @@ export default async function AdminPage() {
       .order("created_at", { ascending: true }),
   ]);
 
-  const billetsVendusMois = billetsRes.count ?? 0;
+  const billetsVendus = billetsRes.count ?? 0;
   const commandesPayees = (ordersPayesRes.data ?? []) as unknown as {
     total: number;
     events: { taux_commission: number } | null;
   }[];
+  const ventes = commandesPayees.reduce((n, o) => n + o.total, 0);
   const commissions = Math.round(
-    commandesPayees.reduce((s, o) => s + o.total * (o.events?.taux_commission ?? 0.08), 0)
+    commandesPayees.reduce((n, o) => n + o.total * (o.events?.taux_commission ?? 0.08), 0)
   );
-  const eventsEnAttenteCount = eventsEnAttenteCountRes.count ?? 0;
-  const organisateursActifs = organisateursActifsRes.count ?? 0;
+  const enVente = enVenteRes.count ?? 0;
+  const organisateurs = organisateursRes.count ?? 0;
+  const nouveaux = nouveauxOrgasRes.count ?? 0;
 
-  const evenements = (eventsEnAttenteRes.data as unknown as EventEnAttente[]) ?? [];
+  const aValider = (eventsEnAttenteRes.data as unknown as EventEnAttente[]) ?? [];
   const payouts = (payoutsDemandesRes.data as unknown as PayoutDemande[]) ?? [];
+  const demandes = payouts.filter((p) => p.statut === "demande");
+  // Sans événement lié (cas historique), la demande reste traitable, comme avant.
+  const prets = demandes.filter((p) => (p.events ? payoutDisponible(p.events) : true));
+  const prematures = demandes.filter((p) => p.events && !payoutDisponible(p.events));
+  const geles = payouts.filter((p) => p.statut === "bloque");
+  const totalPrets = prets.reduce((n, p) => n + p.montant, 0);
 
-  const nom = profil.nom || user.email || "Admin";
-  const initiale = nom.charAt(0).toUpperCase();
+  const plusAncien = aValider[0];
+  const rien = aValider.length === 0 && prets.length === 0;
+  const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
 
   return (
-    <div className="app">
-      <aside className="lateral">
-        <Logo />
-        <p className="role">Administration</p>
-
-        <p className="groupe">Principal</p>
-        <Link className="item actif" href="/admin">
-          📊 Vue d&apos;ensemble
-        </Link>
-        <Link className="item" href="/admin/evenements">🗓️ Événements</Link>
-        <Link className="item" href="/admin/billets">🎟️ Billets</Link>
-        <Link className="item" href="/admin/commissions">💰 Commissions</Link>
-        <Link className="item" href="/admin/reversements">🏦 Reversements</Link>
-        <Link className="item" href="/admin/organisateurs">👥 Organisateurs</Link>
-        <Link className="item" href="/admin/evenements?statut=termine">🏁 Terminés</Link>
-
-        <div className="bas">
-          <div className="avatar">{initiale}</div>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: "0.92rem" }}>{nom}</div>
-            <BoutonDeconnexion />
-          </div>
+    <Coquille nav={NAV_ADMIN} actif="accueil" compte={{ nom: profil.nom || user.email || "Admin", email: user.email ?? "" }}>
+      <div className={s.entete}>
+        <div>
+          <h1 className={s.titre}>Tableau de bord</h1>
+          <p className={s.sousTitre}>Ce qui attend l&apos;équipe, puis les chiffres de la plateforme.</p>
         </div>
-      </aside>
+      </div>
 
-      <main className="principal">
-        <div className="entete-app">
-          <div>
-            <h1>Tableau de bord admin</h1>
-            <p className="sous">XwézanEvent — Panneau de gestion</p>
-          </div>
-          <Link className="btn btn-ghost" href="/">
-            Voir le site →
-          </Link>
+      <h2 className={s.intertitre} style={{ marginTop: 0 }}>
+        À traiter
+      </h2>
+      {rien ? (
+        <div className={s.vide}>
+          <Icon name="check" size={32} />
+          <p className={s.videTitre}>Rien à traiter</p>
+          <p className={s.videTexte}>Aucun événement en attente de validation, aucun virement prêt à envoyer.</p>
         </div>
-
-        <div className="kpis">
-          <div className="kpi">
-            <div className="libelle">Billets vendus (mois)</div>
-            <div className="valeur">{fmt(billetsVendusMois)}</div>
-            <div className="delta neutre">ce mois-ci</div>
-          </div>
-          <Link className="kpi" href="/admin/commissions">
-            <div className="libelle">Commissions perçues</div>
-            <div className="valeur">
-              {fmt(commissions)} <small>FCFA</small>
-            </div>
-            <div className="delta neutre">sur les commandes payées · détail par événement →</div>
-          </Link>
-          <div className="kpi">
-            <div className="libelle">Événements en attente</div>
-            <div className="valeur">{eventsEnAttenteCount}</div>
-            <div className="delta neutre">à valider</div>
-          </div>
-          <Link className="kpi" href="/admin/organisateurs">
-            <div className="libelle">Organisateurs actifs</div>
-            <div className="valeur">{organisateursActifs}</div>
-            <div className="delta neutre">comptes organisateur · voir le détail →</div>
-          </Link>
-        </div>
-
-        <div className="tableau-panneau" style={{ marginBottom: 24 }}>
-          <h3>Événements en attente de validation</h3>
-
-          {evenements.length === 0 ? (
-            <div className="etat-vide" style={{ margin: "10px auto 4px" }}>
-              <div className="etat-vide-glyphe" aria-hidden="true">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
+      ) : (
+        <ul className={s.pile} style={{ gap: 8 }}>
+          {plusAncien && (
+            <li className={`${s.carte} ${s.carteRangee}`}>
+              <div className={s.carteHaut}>
+                <div>
+                  <p className={s.carteTitre}>{pluriel(aValider.length, "événement")} à valider</p>
+                  <p className={s.carteMeta}>
+                    Le plus ancien attend depuis {depuis(plusAncien.soumis_le).replace("il y a ", "")} : {plusAncien.titre}
+                  </p>
+                </div>
               </div>
-              <h3>Aucun événement en attente</h3>
-              <p>Toutes les demandes de publication ont été traitées.</p>
-            </div>
-          ) : (
-            <table className="donnees">
-              <thead>
-                <tr>
-                  <th>Affiche</th>
-                  <th>Événement</th>
-                  <th>Organisateur</th>
-                  <th>Date</th>
-                  <th>Billets / Prix</th>
-                  <th>Statut</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {evenements.map((ev) => {
-                  const capacite = ev.ticket_types.reduce(
-                    (s, t) => s + t.quantite_totale,
-                    0
-                  );
-                  const prixMin = ev.ticket_types.length
-                    ? Math.min(...ev.ticket_types.map((t) => t.prix))
-                    : 0;
-                  return (
-                    <tr key={ev.id}>
-                      <td>
-                        <AfficheEvenement
-                          className="ev-affiche"
-                          src={ev.affiche_url}
-                          alt={ev.titre}
-                          width={44}
-                          height={44}
-                        />
-                      </td>
-                      <td className="ev-nom">{ev.titre}</td>
-                      <td>{ev.organisateur?.nom ?? "—"}</td>
-                      <td>{formatDate(ev.date_debut)}</td>
-                      <td>
-                        {capacite > 0
-                          ? `${fmt(capacite)} · dès ${fmt(prixMin)} F`
-                          : "—"}
-                      </td>
-                      <td>
-                        <span className="statut st-attente">En attente</span>
-                      </td>
-                      <td>
-                        <ActionsEvenement eventId={ev.id} titre={ev.titre} />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+              <Link href="/admin/evenements" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`}>
+                <Icon name="shield" /> Valider
+              </Link>
+            </li>
           )}
-        </div>
+          {prets.length > 0 && (
+            <li className={`${s.carte} ${s.carteRangee}`}>
+              <div className={s.carteHaut}>
+                <div>
+                  <p className={s.carteTitre}>
+                    {pluriel(prets.length, "virement")} à envoyer · {montant(totalPrets)}
+                  </p>
+                  <p className={s.carteMeta}>Événements tenus depuis plus de 3 jours, prêts à être versés.</p>
+                </div>
+              </div>
+              <a href="#virements" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`}>
+                <Icon name="wallet" /> Traiter
+              </a>
+            </li>
+          )}
+          {prematures.length > 0 && (
+            <li className={`${s.carte} ${s.carteRangee}`}>
+              <div className={s.carteHaut}>
+                <div>
+                  <p className={s.carteTitre}>
+                    {prematures.length} demande{prematures.length > 1 ? "s" : ""} prématurée{prematures.length > 1 ? "s" : ""}
+                  </p>
+                  <p className={s.carteMeta}>
+                    {prematures.map((p) => p.events!.titre).join(", ")} : l&apos;événement n&apos;a pas encore eu lieu, le
+                    virement ne peut pas partir.
+                  </p>
+                </div>
+              </div>
+              <a href="#virements" className={`${s.btn} ${s.btnGris}`}>
+                Voir
+              </a>
+            </li>
+          )}
+        </ul>
+      )}
 
-        <div className="tableau-panneau">
-          <h3 style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            Virements en attente
-            <Link href="/admin/reversements" className="btn btn-ghost" style={{ padding: "6px 12px", fontSize: "0.78rem" }}>
-              Voir tout l&apos;historique →
+      <section className={s.kpis} aria-label="Chiffres de la plateforme" style={{ marginTop: 24 }}>
+        <div className={`${s.kpi} ${s.kpiHeros}`}>
+          <span className={s.kpiLabel}>Commissions perçues</span>
+          <span className={s.kpiValeur}>
+            {nombre(commissions)} <small>FCFA</small>
+          </span>
+          <span className={s.kpiContexte}>sur {montant(ventes)} de ventes</span>
+        </div>
+        <div className={s.kpi}>
+          <span className={s.kpiLabel}>Billets vendus</span>
+          <span className={s.kpiValeur}>{nombre(billetsVendus)}</span>
+          <span className={s.kpiContexte}>tous événements</span>
+        </div>
+        <div className={s.kpi}>
+          <span className={s.kpiLabel}>En vente</span>
+          <span className={s.kpiValeur}>{enVente}</span>
+          <span className={s.kpiContexte}>événements publiés</span>
+        </div>
+        <div className={s.kpi}>
+          <span className={s.kpiLabel}>Organisateurs</span>
+          <span className={s.kpiValeur}>{organisateurs}</span>
+          <span className={s.kpiContexte}>
+            {nouveaux > 0 ? `dont ${nouveaux} inscrit${nouveaux > 1 ? "s" : ""} cette semaine` : "aucun nouveau cette semaine"}
+          </span>
+        </div>
+      </section>
+
+      {aValider.length > 0 && (
+        <>
+          <h2 className={s.intertitre}>
+            En attente de validation
+            <Link href="/admin/evenements">
+              Tout voir <Icon name="chevron-right" />
             </Link>
-          </h3>
+          </h2>
+          <ul className={s.pile} style={{ gap: 8 }}>
+            {aValider.map((e) => (
+              <li key={e.id} className={`${s.carte} ${s.carteLien}`}>
+                <div className={s.carteHaut}>
+                  <div>
+                    <p className={s.carteTitre}>
+                      <Link href={`/admin/evenements#${e.id}`}>{e.titre}</Link>
+                    </p>
+                    <p className={s.carteMeta}>
+                      {e.organisateur?.nom_public || e.organisateur?.nom || "—"} · {dateCourte(e.date_debut, e.date_fin)} · {e.ville}
+                    </p>
+                  </div>
+                  <span className={s.note} style={{ whiteSpace: "nowrap" }}>
+                    soumis {depuis(e.soumis_le)}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className={s.note} style={{ marginTop: 8 }}>
+            Situation au {dateAnnee(maintenant.toISOString())}.
+          </p>
+        </>
+      )}
 
-          {payouts.length === 0 ? (
-            <div className="etat-vide" style={{ margin: "10px auto 4px" }}>
-              <div className="etat-vide-glyphe" aria-hidden="true">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
-              </div>
-              <h3>Aucune demande de virement</h3>
-              <p>Aucun organisateur n&apos;a de virement en attente.</p>
-            </div>
-          ) : (
-            <table className="donnees">
-              <thead>
-                <tr>
-                  <th>Organisateur</th>
-                  <th>Téléphone</th>
-                  <th>Événement</th>
-                  <th>Date événement</th>
-                  <th>Montant</th>
-                  <th>Moyen</th>
-                  <th>Numéro de destination</th>
-                  <th>Demandé le</th>
-                  <th>Statut</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payouts.map((p) => {
-                  const eligible = p.events ? payoutDisponible(p.events) : true;
-                  return (
-                  <tr key={p.id}>
-                    <td className="ev-nom">{p.organisateur?.nom ?? "—"}</td>
-                    <td>{p.organisateur?.telephone ?? "—"}</td>
-                    <td>{p.events?.titre ?? "—"}</td>
-                    <td>
-                      {p.events ? formatDate(p.events.date_debut) : "—"}
-                      <br />
-                      {eligible ? (
-                        <span className="statut st-ok">✓ Éligible</span>
-                      ) : (
-                        <span className="statut st-attente">⚠️ Événement pas encore tenu</span>
-                      )}
-                    </td>
-                    <td className="rev">{fmt(p.montant)} F</td>
-                    <td>{p.moyen.toUpperCase()}</td>
-                    <td style={{ fontFamily: "var(--space)", fontWeight: 700 }}>
-                      {formaterNumero(p.numero_destination)}
-                    </td>
-                    <td>{formatDateCourte(p.created_at)}</td>
-                    <td>
-                      {p.statut === "bloque" ? (
-                        <span className="statut st-annule">Gelé</span>
-                      ) : (
-                        <span className="statut st-attente">En attente</span>
-                      )}
-                    </td>
-                    <td>
-                      {p.statut === "demande" ? (
-                        <ActionsPayout payoutId={p.id} />
-                      ) : (
-                        <span style={{ color: "var(--texte2)", fontSize: "0.82rem" }}>
-                          Événement annulé
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </main>
-    </div>
+      {/* ÉCART PREVIEW (transitoire) : le traitement des virements n'existe
+          qu'ici en prod ; il part sur /admin/reversements quand elle sera migrée. */}
+      {payouts.length > 0 && (
+        <>
+          <h2 className={s.intertitre} id="virements">
+            Virements demandés
+            <Link href="/admin/reversements">
+              Historique <Icon name="chevron-right" />
+            </Link>
+          </h2>
+          <ul className={s.pile} style={{ gap: 8 }}>
+            {[...prets, ...prematures, ...geles].map((p) => {
+              const eligible = p.events ? payoutDisponible(p.events) : true;
+              return (
+                <li key={p.id} className={`${s.carte} ${s.carteRangee}`}>
+                  <div className={s.carteHaut}>
+                    <div>
+                      <p className={s.carteTitre}>
+                        {montant(p.montant)} · {p.organisateur?.nom ?? "—"}
+                      </p>
+                      <p className={s.carteMeta}>
+                        {nomMoyen(p.moyen)} {formaterNumero(p.numero_destination)}
+                        {p.organisateur?.telephone ? ` · tél. ${formaterNumero(p.organisateur.telephone)}` : ""}
+                      </p>
+                      <p className={s.carteMeta}>
+                        {p.events ? `${p.events.titre} · ${dateCourte(p.events.date_debut, p.events.date_fin)}` : "—"} · demandé{" "}
+                        {depuis(p.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                  {p.statut === "bloque" ? (
+                    <span className={s.note}>Gelé : événement annulé</span>
+                  ) : eligible ? (
+                    <BoutonVerse
+                      payoutId={p.id}
+                      montant={p.montant}
+                      moyen={nomMoyen(p.moyen)}
+                      numero={formaterNumero(p.numero_destination)}
+                      organisateur={p.organisateur?.nom ?? "—"}
+                    />
+                  ) : (
+                    <span className={s.note}>Événement pas encore tenu</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </Coquille>
   );
 }
