@@ -74,7 +74,7 @@ export default function Formulaire({
   useEffect(() => {
     if (!fichiersRef.current) return;
     const dt = new DataTransfer();
-    for (const i of images) dt.items.add(i.fichier);
+    for (const i of images) if (i.fichier) dt.items.add(i.fichier);
     fichiersRef.current.files = dt.files;
   }, [images]);
   const indexPrincipale = Math.max(0, images.findIndex((i) => i.cle === principale));

@@ -10,7 +10,7 @@ import { cheminInterne } from "@/lib/redirection";
  * Change le pays de navigation (cookie, 1 an) — appelé par
  * components/SelecteurPays.tsx. Change uniquement le CONTEXTE de
  * filtrage du catalogue public, jamais le pays d'un événement individuel
- * (events.pays_code, figé à la création — voir components/FormulaireEdition.tsx).
+ * (events.pays_code, figé à la création — voir components/v2/orga/modifier/FormulaireModif.tsx).
  *
  * Revalide `code` contre `pays.actif` avant d'écrire le cookie (même
  * principe que la validation serveur du formulaire de création) : le

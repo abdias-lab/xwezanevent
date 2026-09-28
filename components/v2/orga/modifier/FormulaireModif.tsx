@@ -1,64 +1,97 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import s from "../../../../espace.module.css";
-import v from "../../../../v2.module.css";
-import Icon from "../../../../../Icon";
-import Carte from "../../../../../Carte";
-import type { Evenement } from "../../../../../_data";
-import { B } from "../../../../Coquille";
-import Images, { type ImageLocale } from "../../../../creer/Images";
-import { AUJOURDHUI, CATEGORIES_ORGA, montant, nombre, type EvenementOrga } from "../../../_orga";
+import Link from "next/link";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useFormStatus } from "react-dom";
+import s from "../../espace.module.css";
+import v from "../../v2.module.css";
+import Icon from "../../Icon";
+import Carte from "../../public/Carte";
+import type { EvenementCarte } from "../../public/evenement";
+import { montant, nombre } from "../../format";
+import { CATEGORIES, MAX_CATEGORIES, valeurCategorie } from "@/lib/categories";
+import Images, { type ImageLocale } from "../creer/Images";
 
-const MAX_CATEGORIES = 3;
+/** Valeurs enregistrées en base (libellé sans emoji), comme la preview les affiche. */
+const CATEGORIES_V2 = CATEGORIES.map(valeurCategorie);
+
+/** Ce qui est en base au chargement de la page : référence de « modifié » et des règles de date. */
+export type EvenementModif = {
+  id: string;
+  slug: string;
+  titre: string;
+  lieu: string;
+  ville: string;
+  pays: string | null;
+  description: string;
+  categories: string[];
+  debut: string;
+  fin: string | null;
+  heure: string;
+  images: { url: string; principale: boolean }[];
+  tarifs: { nom: string; prix: number; total: number; vendus: number }[];
+};
+
+function BoutonEnregistrer({ modifie, pleine = false }: { modifie: boolean; pleine?: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} style={pleine ? { flex: 1 } : undefined} disabled={!modifie || pending}>
+      {pending ? "Enregistrement…" : pleine ? "Enregistrer" : "Enregistrer les modifications"}
+    </button>
+  );
+}
 
 /**
- * Modification d'un événement (preview V2). Même périmètre que
- * components/FormulaireEdition.tsx : description, catégories, date/heure,
- * images. Nom, lieu, ville, pays et tarifs sont figés (slug indexé, billets
- * déjà imprimés). Règles de date identiques à modifier/actions.ts (cef6910) :
- * pas de date passée, et plus d'avance de date dès qu'un billet est vendu.
+ * Modification d'un événement (V2), repris de la preview
+ * (v2/orga/evenements/[id]/modifier/FormulaireModif.tsx) et branché sur
+ * l'action serveur de prod `modifierEvenement`, qui revalide tout (dates,
+ * ventes, propriété, statut). Nom, lieu, ville, pays et tarifs sont figés.
  */
 export default function FormulaireModif({
+  action,
   e,
   vendus,
-  imageInitiale,
+  aujourdhui,
   erreurServeur,
+  enregistre,
 }: {
-  e: EvenementOrga;
+  action: (formData: FormData) => void;
+  e: EvenementModif;
   vendus: number;
-  imageInitiale: string | null;
-  erreurServeur: boolean;
+  aujourdhui: string;
+  erreurServeur: ReactNode | null;
+  enregistre: boolean;
 }) {
-  // Dernier état enregistré : sert de référence pour « modifié » et pour les
-  // règles de date (comme la ligne en base côté serveur).
-  const [base, setBase] = useState({
-    description: e.description,
-    categories: e.categories,
-    dateDebut: e.debut,
-    dateFin: e.fin ?? "",
-    heure: e.heure,
-  });
-  const initial = base;
+  const initial = { description: e.description, categories: e.categories, dateDebut: e.debut, dateFin: e.fin ?? "", heure: e.heure };
   const [description, setDescription] = useState(initial.description);
   const [categories, setCategories] = useState<string[]>(initial.categories);
   const [dateDebut, setDateDebut] = useState(initial.dateDebut);
   const [multiJours, setMultiJours] = useState(!!e.fin);
   const [dateFin, setDateFin] = useState(initial.dateFin);
   const [heure, setHeure] = useState(initial.heure);
-  const [images, setImages] = useState<ImageLocale[]>(() => (imageInitiale ? [{ cle: "existante-0", nom: "Affiche actuelle", url: imageInitiale }] : []));
-  const [principale, setPrincipale] = useState<string | null>(null);
-  const [etat, setEtat] = useState<"saisie" | "envoi" | "enregistre">("saisie");
+  // Images déjà en ligne : sans fichier, conservées par leur adresse.
+  const [images, setImages] = useState<ImageLocale[]>(() => e.images.map((i) => ({ cle: i.url, nom: "déjà en ligne", url: i.url, fichier: null })));
+  const [principale, setPrincipale] = useState<string | null>(() => e.images.find((i) => i.principale)?.url ?? null);
   const [imagesTouchees, setImagesTouchees] = useState(false);
   const [tente, setTente] = useState(false);
 
   const apercuRef = useRef<HTMLDivElement>(null);
   useEffect(() => apercuRef.current?.setAttribute("inert", ""));
-  const minuterie = useRef<ReturnType<typeof setTimeout>>();
-  useEffect(() => () => clearTimeout(minuterie.current), []);
+
+  // Nouveaux fichiers compressés → <input type="file" name="images_nouvelles"> (DataTransfer).
+  const fichiersRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!fichiersRef.current) return;
+    const dt = new DataTransfer();
+    for (const i of images) if (i.fichier) dt.items.add(i.fichier);
+    fichiersRef.current.files = dt.files;
+  }, [images]);
+  const conservees = images.filter((i) => !i.fichier);
+  const nouvelles = images.filter((i) => i.fichier);
+  const imagePrincipale = images.find((i) => i.cle === principale) ?? images[0] ?? null;
 
   const fin = multiJours && dateFin ? dateFin : null;
-  const ancienneReference = base.dateFin || base.dateDebut;
+  const ancienneReference = initial.dateFin || initial.dateDebut;
   const nouvelleReference = fin ?? dateDebut;
   const debutChange = dateDebut !== initial.dateDebut;
   const dateChangee = debutChange || (fin ?? "") !== initial.dateFin;
@@ -70,9 +103,9 @@ export default function FormulaireModif({
       ? "Indique le dernier jour."
       : multiJours && dateFin <= dateDebut
         ? "Le dernier jour doit venir après le premier."
-        : dateChangee && ((debutChange && dateDebut < AUJOURDHUI) || nouvelleReference < AUJOURDHUI)
+        : dateChangee && ((debutChange && dateDebut < aujourdhui) || nouvelleReference < aujourdhui)
           ? "Impossible de placer l'événement à une date passée."
-          : dateChangee && vendus > 0 && (dateDebut < base.dateDebut || nouvelleReference < ancienneReference)
+          : dateChangee && vendus > 0 && (dateDebut < initial.dateDebut || nouvelleReference < ancienneReference)
             ? `${nombre(vendus)} billets sont déjà vendus : tu peux repousser l'événement, pas avancer sa date.`
             : null;
   const erreurCategories = categories.length === 0 ? "Choisis au moins une catégorie." : null;
@@ -93,8 +126,8 @@ export default function FormulaireModif({
     setCategories((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : prev.length < MAX_CATEGORIES ? [...prev, c] : prev));
 
   const valides = e.tarifs.filter((t) => t.total > 0);
-  const apercu: Evenement = {
-    slug: e.id,
+  const apercu: EvenementCarte = {
+    slug: e.slug,
     titre: e.titre,
     categorie: categories[0] ?? "Catégorie",
     lieu: e.lieu,
@@ -103,21 +136,25 @@ export default function FormulaireModif({
     fin: fin && fin > dateDebut ? fin : undefined,
     heure: heure || "Heure",
     prixMin: Math.min(...valides.map((t) => t.prix)),
+    prixLibelle: valides.length ? undefined : "Tarifs à définir",
     organisateur: "",
     tags: categories,
-    image: (images.find((i) => i.cle === principale) ?? images[0])?.url ?? null,
+    image: imagePrincipale?.url ?? null,
   };
 
   return (
     <form
       className={s.form}
       noValidate
-      aria-busy={etat === "envoi"}
+      action={action}
       onSubmit={(ev) => {
-        ev.preventDefault();
-        if (etat === "envoi" || !modifie) return;
+        if (!modifie) {
+          ev.preventDefault();
+          return;
+        }
         setTente(true);
         if (!valide) {
+          ev.preventDefault();
           // Amène sur le premier problème : champ invalide ou, pour les
           // catégories (boutons), la première puce disponible.
           requestAnimationFrame(() => {
@@ -125,32 +162,33 @@ export default function FormulaireModif({
             champ?.focus();
             champ?.scrollIntoView({ block: "center", behavior: "smooth" });
           });
-          return;
         }
-        setEtat("envoi");
-        minuterie.current = setTimeout(() => {
-          setBase({ description, categories, dateDebut, dateFin: fin ?? "", heure });
-          setEtat("enregistre");
-          setImagesTouchees(false);
-          window.scrollTo({ top: 0 });
-        }, 1000);
       }}
     >
+      {/* Champs attendus par modifierEvenement (app/(orga)/orga/evenements/[id]/modifier/actions.ts). */}
+      <input type="hidden" name="categories" value={JSON.stringify(categories)} />
+      <input type="hidden" name="images_conservees" value={JSON.stringify(conservees.map((i) => i.url))} />
+      {multiJours && dateFin && <input type="hidden" name="date_fin" value={dateFin} />}
+      <input type="hidden" name="image_principale_type" value={imagePrincipale ? (imagePrincipale.fichier ? "nouvelle" : "existante") : ""} />
+      <input
+        type="hidden"
+        name="image_principale_valeur"
+        value={imagePrincipale ? (imagePrincipale.fichier ? String(nouvelles.indexOf(imagePrincipale)) : imagePrincipale.url) : ""}
+      />
+      <input ref={fichiersRef} type="file" name="images_nouvelles" multiple hidden />
+
       <div className={s.formCorps}>
         {erreurServeur && (
           <p className={`${s.alerte} ${s.alerteDanger}`} role="alert" style={{ marginBottom: 8 }}>
             <Icon name="alert" />
-            <span>
-              Des billets ont déjà été vendus : tu peux repousser l&apos;événement, mais pas avancer sa date. Pour un cas exceptionnel, écris à{" "}
-              <a href="mailto:contact@xwezan.com">contact@xwezan.com</a>.
-            </span>
+            <span>{erreurServeur}</span>
           </p>
         )}
-        {etat === "enregistre" && !modifie && (
+        {enregistre && !modifie && (
           <p className={s.alerte} role="status" style={{ marginBottom: 8 }}>
             <Icon name="check" />
             <span>
-              Modifications enregistrées. <a href={`${B}/orga/evenements/${e.id}`}>Retour à la fiche</a>
+              Modifications enregistrées. <Link href={`/orga/evenements/${e.id}`}>Retour à la fiche</Link>
             </span>
           </p>
         )}
@@ -171,7 +209,7 @@ export default function FormulaireModif({
               {e.lieu}, {e.ville}
             </dd>
             <dt>Pays</dt>
-            <dd>{e.pays}</dd>
+            <dd>{e.pays ?? "—"}</dd>
           </dl>
           <p className={s.aide}>
             Ils figurent sur les billets déjà vendus et dans l&apos;adresse de ta page. Pour les corriger, écris à{" "}
@@ -194,7 +232,7 @@ export default function FormulaireModif({
           </div>
           <div className={s.champ}>
             <label htmlFor="description">Description</label>
-            <textarea id="description" rows={5} value={description} onChange={(ev) => setDescription(ev.target.value)} />
+            <textarea id="description" name="description" rows={5} value={description} onChange={(ev) => setDescription(ev.target.value)} />
           </div>
           <div className={s.champ}>
             <span className={s.etiquette} id="cat-label">
@@ -207,7 +245,7 @@ export default function FormulaireModif({
               aria-describedby={tente && erreurCategories ? "cat-msg" : undefined}
               data-invalide={erreurCategories ? "" : undefined}
             >
-              {CATEGORIES_ORGA.map((c) => {
+              {CATEGORIES_V2.map((c) => {
                 const on = categories.includes(c);
                 return (
                   <button
@@ -256,8 +294,9 @@ export default function FormulaireModif({
               <label htmlFor="date_debut">{multiJours ? "Premier jour" : "Date"}</label>
               <input
                 id="date_debut"
+                name="date_debut"
                 type="date"
-                min={vendus > 0 && base.dateDebut > AUJOURDHUI ? base.dateDebut : AUJOURDHUI}
+                min={vendus > 0 && initial.dateDebut > aujourdhui ? initial.dateDebut : aujourdhui}
                 value={dateDebut}
                 aria-invalid={!!erreurDate}
                 aria-describedby="date-msg"
@@ -268,7 +307,7 @@ export default function FormulaireModif({
               <label htmlFor="heure">
                 Heure <small>(début)</small>
               </label>
-              <input id="heure" type="time" value={heure} onChange={(ev) => setHeure(ev.target.value)} />
+              <input id="heure" name="heure" type="time" value={heure} onChange={(ev) => setHeure(ev.target.value)} />
             </div>
           </div>
           <label className={s.case}>
@@ -285,7 +324,7 @@ export default function FormulaireModif({
           {multiJours && (
             <div className={`${s.champ} ${erreurDate && multiJours ? s.champErreur : ""}`}>
               <label htmlFor="date_fin">Dernier jour</label>
-              <input id="date_fin" type="date" min={dateDebut || AUJOURDHUI} value={dateFin} onChange={(ev) => setDateFin(ev.target.value)} />
+              <input id="date_fin" type="date" min={dateDebut || aujourdhui} value={dateFin} onChange={(ev) => setDateFin(ev.target.value)} />
             </div>
           )}
           {erreurDate ? (
@@ -362,27 +401,17 @@ export default function FormulaireModif({
             <Carte e={apercu} s={v} href="#" />
           </div>
         </div>
-        <Enregistrer modifie={modifie} enCours={etat === "envoi"} />
+        <div style={{ display: "grid", gap: 8 }}>
+          <BoutonEnregistrer modifie={modifie} />
+          <p className={s.note}>{modifie ? "Tes modifications ne sont pas encore enregistrées." : "Aucune modification pour l'instant."}</p>
+        </div>
       </aside>
 
       <div className={`${s.barreBas} ${s.masqueDesktop}`}>
         <span className={s.barreBasInfo}>{modifie ? "Modifications non enregistrées" : "Aucune modification"}</span>
-        <button type="submit" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} style={{ flex: 1 }} disabled={!modifie || etat === "envoi"}>
-          {etat === "envoi" ? "Enregistrement…" : "Enregistrer"}
-        </button>
+        <BoutonEnregistrer modifie={modifie} pleine />
       </div>
       <div className={s.espaceBarreBas} aria-hidden="true" />
     </form>
-  );
-}
-
-function Enregistrer({ modifie, enCours }: { modifie: boolean; enCours: boolean }) {
-  return (
-    <div style={{ display: "grid", gap: 8 }}>
-      <button type="submit" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} disabled={!modifie || enCours}>
-        {enCours ? "Enregistrement…" : "Enregistrer les modifications"}
-      </button>
-      <p className={s.note}>{modifie ? "Tes modifications ne sont pas encore enregistrées." : "Aucune modification pour l'instant."}</p>
-    </div>
   );
 }

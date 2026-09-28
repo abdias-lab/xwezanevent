@@ -12,6 +12,8 @@ import { emailEvenementDateModifiee } from "@/lib/emails/evenement-edition";
 import { aujourdhuiPortoNovo, formatPlageDates } from "@/lib/date";
 
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
+/** Statuts modifiables par l'organisateur (même liste que le bouton « Modifier » de sa fiche). */
+const STATUTS_MODIFIABLES = new Set(["brouillon", "en_validation", "publie"]);
 
 function parserCategories(formData: FormData): string[] {
   try {
@@ -59,7 +61,7 @@ export async function modifierEvenement(eventId: string, formData: FormData) {
 
   const { data: event } = await supabaseAdmin
     .from("events")
-    .select("id, organisateur_id, titre, slug, date_debut, date_fin, est_demo, pays_code")
+    .select("id, organisateur_id, titre, slug, date_debut, date_fin, est_demo, pays_code, statut")
     .eq("id", eventId)
     .maybeSingle();
 
@@ -67,6 +69,9 @@ export async function modifierEvenement(eventId: string, formData: FormData) {
   // Un événement vitrine/démo n'a pas de sens à éditer par ce canal — voir
   // supabase/migrations/20260722120000_evenements_demo.sql.
   if (event.est_demo) redirect("/orga");
+  // Terminé, annulé ou refusé : plus modifiable (la page l'affiche, le serveur
+  // le garantit — refonte V2).
+  if (!STATUTS_MODIFIABLES.has(event.statut)) redirect(`/orga/evenements/${eventId}/modifier`);
 
   const description = String(formData.get("description") || "").trim();
   const date_debut = String(formData.get("date_debut") || "");
@@ -250,6 +255,9 @@ export async function modifierEvenement(eventId: string, formData: FormData) {
   }
 
   revalidatePath("/orga");
+  revalidatePath(`/orga/evenements/${eventId}`);
   revalidatePath(`/evenement/${event.slug}`);
-  redirect("/orga?modifie=1");
+  // Retour sur la page de modification, message « Modifications enregistrées »
+  // (refonte V2, comme la preview).
+  redirect(`/orga/evenements/${eventId}/modifier?enregistre=1`);
 }

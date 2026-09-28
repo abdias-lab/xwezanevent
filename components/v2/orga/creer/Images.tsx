@@ -8,14 +8,16 @@ import { compresserImage, POIDS_MAX_ORIGINAL, POIDS_MAX_TOTAL } from "@/lib/comp
 
 const TYPES = Object.keys(TYPES_AFFICHE_AUTORISES);
 
-export type ImageLocale = { cle: string; nom: string; url: string; fichier: File };
+/** `fichier` : image nouvellement ajoutée (compressée) ; null pour une image déjà en ligne (modification). */
+export type ImageLocale = { cle: string; nom: string; url: string; fichier: File | null };
 
 /**
  * Bloc Images (V2), repris de la preview (v2/creer/Images.tsx) : jusqu'à 4
  * images, une principale, aperçus des recadrages V2. Chaque fichier est
  * compressé dans le navigateur avant d'être gardé (lib/compression-image.ts :
  * Vercel refuse les requêtes de plus de 4,5 Mo) ; le formulaire l'envoie
- * ensuite à l'action serveur (images_nouvelles).
+ * ensuite à l'action serveur (images_nouvelles). En modification, les images
+ * déjà en ligne arrivent sans fichier et sont conservées par leur adresse.
  */
 export default function Images({
   images,
@@ -36,7 +38,7 @@ export default function Images({
   // Libère les URL blob au démontage.
   const courantes = useRef(images);
   courantes.current = images;
-  useEffect(() => () => courantes.current.forEach((i) => URL.revokeObjectURL(i.url)), []);
+  useEffect(() => () => courantes.current.forEach((i) => i.fichier && URL.revokeObjectURL(i.url)), []);
 
   const principal = images.find((i) => i.cle === principale) ?? images[0] ?? null;
 
@@ -46,7 +48,7 @@ export default function Images({
     if (input.current) input.current.value = "";
     setErreur(null);
     const places = MAX_IMAGES - images.length;
-    let total = images.reduce((n, i) => n + i.fichier.size, 0);
+    let total = images.reduce((n, i) => n + (i.fichier?.size ?? 0), 0);
     const acceptes: ImageLocale[] = [];
     let refus: string | null = null;
     setPreparation(true);
@@ -83,7 +85,7 @@ export default function Images({
   }
 
   function retirer(img: ImageLocale) {
-    URL.revokeObjectURL(img.url);
+    if (img.fichier) URL.revokeObjectURL(img.url);
     setImages((prev) => prev.filter((i) => i.cle !== img.cle));
     if (principale === img.cle) setPrincipale(null);
     setErreur(null);
