@@ -54,7 +54,9 @@ function Vignette({ e }: { e: Evenement }) {
  * (« ne repaie pas »), événements annulés avec l'état du remboursement
  * (BUGS_REFONTE #14), profil. ?etat=vide pour un compte sans billet.
  */
-export default function V2Compte({ searchParams }: { searchParams: { etat?: string } }) {
+// ?role=organisateur | admin : variantes de l'en-tête connecté (bouton vers l'espace du rôle).
+export default function V2Compte({ searchParams }: { searchParams: { etat?: string; role?: string } }) {
+  const role = searchParams.role === "organisateur" || searchParams.role === "admin" ? searchParams.role : "visiteur";
   const commandes = searchParams.etat === "vide" ? [] : COMMANDES;
   const fin = (c: Commande) => c.ev.fin ?? c.ev.debut;
   const annulees = commandes.filter((c) => c.evAnnule);
@@ -66,7 +68,7 @@ export default function V2Compte({ searchParams }: { searchParams: { etat?: stri
 
   return (
     <div className={`${v.racine} ${s.racineEspace}`}>
-      <Header />
+      <Header connecte={role} />
       <main className={v.cont} style={{ paddingTop: 32 }}>
         <div style={{ maxWidth: 640, margin: "0 auto" }}>
           <h1 className={v.h1}>

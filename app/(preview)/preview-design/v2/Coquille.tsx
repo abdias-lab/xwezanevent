@@ -52,9 +52,14 @@ export default function Coquille({ nav = NAV_ORGA, actif, children }: { nav?: Na
             <span className={v.logoX}>Xwézan</span>
           </a>
           <span className={s.role}>{nav.role}</span>
-          <a href={B} className={s.iconeBtn} aria-label="Voir le site">
-            <Icon name="eye" size={20} />
-          </a>
+          <span style={{ display: "flex", gap: 4 }}>
+            <a href={`${B}/compte`} className={s.iconeBtn} aria-label="Mes billets">
+              <Icon name="ticket" size={20} />
+            </a>
+            <a href={B} className={s.iconeBtn} aria-label="Voir le site">
+              <Icon name="eye" size={20} />
+            </a>
+          </span>
         </header>
 
         <aside className={s.lateral}>
@@ -76,6 +81,9 @@ export default function Coquille({ nav = NAV_ORGA, actif, children }: { nav?: Na
             </a>
           )}
           <div className={s.latBas}>
+            <a href={`${B}/compte`} className={s.latLien}>
+              <Icon name="ticket" size={20} /> Mes billets
+            </a>
             <a href={B} className={s.latLien}>
               <Icon name="eye" size={20} /> Voir le site
             </a>

@@ -46,9 +46,14 @@ export default function Coquille({ nav, actif, compte, children }: { nav: Nav; a
         <header className={s.topbar}>
           {logo}
           <span className={s.role}>{nav.role}</span>
-          <Link href="/" className={s.iconeBtn} aria-label="Voir le site">
-            <Icon name="eye" size={20} />
-          </Link>
+          <span style={{ display: "flex", gap: 4 }}>
+            <Link href="/compte" className={s.iconeBtn} aria-label="Mes billets">
+              <Icon name="ticket" size={20} />
+            </Link>
+            <Link href="/" className={s.iconeBtn} aria-label="Voir le site">
+              <Icon name="eye" size={20} />
+            </Link>
+          </span>
         </header>
 
         <aside className={s.lateral}>
@@ -68,6 +73,9 @@ export default function Coquille({ nav, actif, compte, children }: { nav: Nav; a
             </Link>
           )}
           <div className={s.latBas}>
+            <Link href="/compte" className={s.latLien}>
+              <Icon name="ticket" size={20} /> Mes billets
+            </Link>
             <Link href="/" className={s.latLien}>
               <Icon name="eye" size={20} /> Voir le site
             </Link>

@@ -1,20 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { AuthError } from "@supabase/supabase-js";
+import { creerClientNavigateur } from "@/lib/supabase-browser";
+import { normaliserNumero } from "@/lib/telephone";
 import s from "../espace.module.css";
-import Icon from "../../Icon";
-import { B } from "../Coquille";
+import Icon from "../Icon";
 
 type Vue = "connexion" | "inscription";
 
 /**
- * Connexion / inscription (preview V2). Mêmes champs et règles que
- * components/AuthForm.tsx : e-mail + mot de passe ; inscription avec nom,
- * téléphone (pour Mobile Money) et mot de passe de 8 caractères minimum.
- * Erreurs toujours en français (en prod, l'inscription affiche le message
- * Supabase brut : BUGS_REFONTE #9). Aucun appel réseau.
+ * Erreurs Supabase en français (design/BUGS_REFONTE.md n°9 : l'inscription
+ * affichait le message brut, en anglais). Codes de supabase-js ; message
+ * générique pour tout le reste.
  */
-export default function Auth({ vueInitiale, erreurInitiale, creeInitial }: { vueInitiale: Vue; erreurInitiale: boolean; creeInitial: boolean }) {
+function messageInscription(e: AuthError): string {
+  switch (e.code) {
+    case "user_already_exists":
+    case "email_exists":
+      return "Un compte existe déjà avec cette adresse. Connecte-toi, ou utilise « Mot de passe oublié ».";
+    case "weak_password":
+      return "Mot de passe trop faible. Choisis-en un plus long, avec des lettres et des chiffres.";
+    case "email_address_invalid":
+      return "Cette adresse e-mail n'est pas acceptée. Vérifie-la ou utilise-en une autre.";
+    case "over_email_send_rate_limit":
+    case "over_request_rate_limit":
+      return "Trop de tentatives. Réessaie dans quelques minutes.";
+    default:
+      return "La création du compte a échoué. Réessaie dans un instant.";
+  }
+}
+
+/**
+ * Connexion / inscription (V2), reprise de la preview (v2/connexion/Auth.tsx)
+ * et branchée sur Supabase Auth comme l'ancien components/AuthForm.tsx :
+ * e-mail + mot de passe ; inscription avec nom, téléphone (Mobile Money,
+ * facultatif) et mot de passe de 8 caractères minimum.
+ */
+export default function Auth({ vueInitiale, redirect }: { vueInitiale: Vue; redirect: string }) {
+  const router = useRouter();
+  const supabase = useMemo(() => creerClientNavigateur(), []);
   const [vue, setVue] = useState<Vue>(vueInitiale);
   const [email, setEmail] = useState("");
   const [mdp, setMdp] = useState("");
@@ -22,8 +49,8 @@ export default function Auth({ vueInitiale, erreurInitiale, creeInitial }: { vue
   const [nom, setNom] = useState("");
   const [tel, setTel] = useState("");
   const [tente, setTente] = useState(false);
-  const [erreur, setErreur] = useState<string | null>(erreurInitiale ? "E-mail ou mot de passe incorrect." : null);
-  const [cree, setCree] = useState(creeInitial);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [cree, setCree] = useState(false);
   const [enCours, setEnCours] = useState(false);
 
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -39,8 +66,9 @@ export default function Auth({ vueInitiale, erreurInitiale, creeInitial }: { vue
     setCree(false);
   }
 
-  function envoyer(e: React.FormEvent) {
+  async function envoyer(e: React.FormEvent) {
     e.preventDefault();
+    if (enCours) return;
     setTente(true);
     setErreur(null);
     const valide = vue === "connexion" ? emailOk && mdp.length > 0 : emailOk && mdpOk && nomOk && telOk;
@@ -49,15 +77,40 @@ export default function Auth({ vueInitiale, erreurInitiale, creeInitial }: { vue
       return;
     }
     setEnCours(true);
-    setTimeout(() => {
-      setEnCours(false);
-      if (vue === "inscription") {
-        setCree(true);
-        setVue("connexion");
-        setMdp("");
-        setTente(false);
-      } else setErreur("Preview : aucune connexion réelle. Le parcours s'arrête ici.");
-    }, 700);
+    if (vue === "connexion") {
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: mdp });
+      if (error) {
+        setEnCours(false);
+        setErreur(error.code === "over_request_rate_limit" ? "Trop de tentatives. Réessaie dans quelques minutes." : "E-mail ou mot de passe incorrect.");
+        return;
+      }
+      router.push(redirect);
+      router.refresh();
+      return;
+    }
+    // Téléphone enregistré au format normalisé quand il est reconnu (sinon tel quel,
+    // la base le borne : 20260717150000_capture_telephone_inscription.sql).
+    const telephone = chiffresTel ? (normaliserNumero("bj", tel) ?? tel.trim()) : "";
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password: mdp,
+      options: { data: { nom: nom.trim(), telephone } },
+    });
+    setEnCours(false);
+    if (error) {
+      setErreur(messageInscription(error));
+      return;
+    }
+    if (data.session) {
+      // Session immédiate (confirmation e-mail désactivée).
+      router.push(redirect);
+      router.refresh();
+      return;
+    }
+    setCree(true);
+    setVue("connexion");
+    setMdp("");
+    setTente(false);
   }
 
   const champ = (ok: boolean) => `${s.champ} ${tente && !ok ? s.champErreur : ""}`;
@@ -154,9 +207,9 @@ export default function Auth({ vueInitiale, erreurInitiale, creeInitial }: { vue
         </div>
 
         {vue === "connexion" && (
-          <a href={`${B}/mot-de-passe-oublie`} className={s.note} style={{ justifySelf: "start", textDecoration: "underline" }}>
+          <Link href="/mot-de-passe-oublie" className={s.note} style={{ justifySelf: "start", textDecoration: "underline" }}>
             Mot de passe oublié ?
-          </a>
+          </Link>
         )}
 
         <button type="submit" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} aria-disabled={enCours}>
@@ -166,9 +219,9 @@ export default function Auth({ vueInitiale, erreurInitiale, creeInitial }: { vue
         {vue === "inscription" && (
           <p className={s.note}>
             En créant un compte, tu acceptes les{" "}
-            <a href="#" style={{ textDecoration: "underline" }}>
+            <Link href="/cgu" style={{ textDecoration: "underline" }}>
               conditions générales
-            </a>
+            </Link>
             .
           </p>
         )}
