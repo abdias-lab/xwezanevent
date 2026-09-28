@@ -2,8 +2,12 @@
    Lecture d'abord : colonne d'environ 68 caractères alignée à gauche, sommaire
    cliquable, titres de section nets, liens soulignés. */
 
+/* Haut et bas seulement : les marges latérales viennent de .cont (16 px sur
+   mobile, 24 px au-delà). Un `padding: … 0 …` les écrasait, le texte
+   touchait les bords de l'écran. */
 .page {
-  padding: var(--s8) 0 var(--s16);
+  padding-top: var(--s8);
+  padding-bottom: var(--s16);
 }
 .grille {
   display: grid;
@@ -17,8 +21,16 @@
 }
 .entete {
   display: grid;
+  /* minmax(0, …) : un mot plus large que l'écran (« REMBOURSEMENTS. » à
+     390 px) ne peut plus élargir la colonne et pousser l'en-tête dans la
+     marge ; le titre se coupe à la place (césure française, html lang="fr"). */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--s3);
   max-width: 68ch;
+}
+.entete h1 {
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 .intro {
   font-size: 17px;
