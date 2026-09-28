@@ -37,3 +37,21 @@ export function depuis(iso: string) {
   const n = joursDepuis(iso);
   return n <= 0 ? "aujourd'hui" : n === 1 ? "hier" : `il y a ${n} jours`;
 }
+
+/** Instant ISO → "28 sept. 2026 · 09:42", à l'heure du Bénin (Africa/Porto-Novo). */
+export function dateHeure(iso: string) {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Africa/Porto-Novo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(new Date(iso))
+      .map((x) => [x.type, x.value])
+  );
+  return `${dateAnnee(`${p.year}-${p.month}-${p.day}`)} · ${p.hour}:${p.minute}`;
+}

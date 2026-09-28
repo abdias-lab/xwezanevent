@@ -283,6 +283,14 @@
   font-weight: 700;
   color: var(--muted);
 }
+/* Grille à 2 colonnes (< 768 px) : l'unité passe toujours sous le chiffre
+   dans les petites tuiles, pour qu'un montant à 7 chiffres ou plus ne la
+   renvoie pas à la ligne au hasard (tuiles de hauteur constante). */
+@media (max-width: 767px) {
+  .kpi:not(.kpiHeros) .kpiValeur small {
+    display: block;
+  }
+}
 .kpiContexte {
   font-size: 12px;
   line-height: 16px;

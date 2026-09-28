@@ -4,8 +4,8 @@ import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { payoutDisponible } from "@/lib/payouts";
-import { TELEPHONE_PAR_PAYS } from "@/lib/telephone";
 import BoutonVerse from "@/components/v2/admin/BoutonVerse";
+import { formaterNumero, nomMoyen } from "@/components/v2/admin/moyens";
 import Coquille from "@/components/v2/Coquille";
 import Icon from "@/components/v2/Icon";
 import { NAV_ADMIN } from "@/components/v2/navAdmin";
@@ -37,25 +37,11 @@ interface PayoutDemande {
   events: { titre: string; date_debut: string; date_fin: string | null; date_reference_virement: string } | null;
 }
 
-/** "mtn" → "MTN Mobile Money" (lib/telephone.ts) ; code inconnu affiché tel quel. */
-function nomMoyen(code: string): string {
-  for (const pays of Object.values(TELEPHONE_PAR_PAYS)) {
-    const op = pays.operateurs.find((o) => o.code === code);
-    if (op) return op.nom;
-  }
-  return code.toUpperCase();
-}
-
-/** "0190123456" → "01 90 12 34 56", pour l'affichage admin. */
-function formaterNumero(n: string): string {
-  return /^\d{10}$/.test(n) ? n.replace(/(\d{2})(?=\d)/g, "$1 ").trim() : n;
-}
-
 /**
  * Tableau de bord admin (V2). Rôle de tri : ce qui attend une action de
  * l'équipe d'abord, les chiffres ensuite. La validation des événements se
- * fait sur /admin/evenements ; le traitement des virements reste ici tant
- * que /admin/reversements n'est pas migrée (seul endroit où il existe).
+ * fait sur /admin/evenements. Le traitement des virements existe ici ET sur
+ * /admin/reversements (choix du 2026-09-28, écart assumé à la preview).
  */
 export default async function AdminPage() {
   const supabase = creerClientServeur();
@@ -199,9 +185,9 @@ export default async function AdminPage() {
                   <p className={s.carteMeta}>Événements tenus depuis plus de 3 jours, prêts à être versés.</p>
                 </div>
               </div>
-              <a href="#virements" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`}>
+              <Link href="/admin/reversements" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`}>
                 <Icon name="wallet" /> Traiter
-              </a>
+              </Link>
             </li>
           )}
           {prematures.length > 0 && (
@@ -217,9 +203,9 @@ export default async function AdminPage() {
                   </p>
                 </div>
               </div>
-              <a href="#virements" className={`${s.btn} ${s.btnGris}`}>
+              <Link href="/admin/reversements" className={`${s.btn} ${s.btnGris}`}>
                 Voir
-              </a>
+              </Link>
             </li>
           )}
         </ul>
@@ -285,8 +271,8 @@ export default async function AdminPage() {
         </>
       )}
 
-      {/* ÉCART PREVIEW (transitoire) : le traitement des virements n'existe
-          qu'ici en prod ; il part sur /admin/reversements quand elle sera migrée. */}
+      {/* ÉCART PREVIEW accepté (2026-09-28) : bouton de traitement gardé ici
+          en plus de /admin/reversements. */}
       {payouts.length > 0 && (
         <>
           <h2 className={s.intertitre} id="virements">
@@ -319,11 +305,13 @@ export default async function AdminPage() {
                     <span className={s.note}>Gelé : événement annulé</span>
                   ) : eligible ? (
                     <BoutonVerse
-                      payoutId={p.id}
-                      montant={p.montant}
-                      moyen={nomMoyen(p.moyen)}
-                      numero={formaterNumero(p.numero_destination)}
-                      organisateur={p.organisateur?.nom ?? "—"}
+                      virement={{
+                        id: p.id,
+                        montant: p.montant,
+                        moyen: nomMoyen(p.moyen),
+                        numero: formaterNumero(p.numero_destination),
+                        organisateur: p.organisateur?.nom ?? "—",
+                      }}
                     />
                   ) : (
                     <span className={s.note}>Événement pas encore tenu</span>
