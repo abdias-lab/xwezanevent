@@ -33,7 +33,7 @@ export function mois(d: string) {
   return MOIS[parse(d).m];
 }
 /** « sam. 24 oct. » ; festival : « 13–15 nov. ». */
-export function dateCarte(e: EvenementCarte) {
+export function dateCarte(e: Pick<EvenementCarte, "debut" | "fin">) {
   const a = parse(e.debut);
   if (e.fin) {
     const b = parse(e.fin);
