@@ -26,21 +26,24 @@ export const PAYS_DEFAUT = "bj";
 async function detecterPaysParIP(): Promise<string | null> {
   const code = headers().get("x-vercel-ip-country")?.toLowerCase();
   if (!code) return null;
+  return (await estPaysActif(code)) ? code : null;
+}
 
+/** true si ce code correspond à un pays actif en base (jamais fait confiance sans cette vérification). */
+async function estPaysActif(code: string): Promise<boolean> {
   const { data } = await supabase
     .from("pays")
     .select("code")
     .eq("code", code)
     .eq("actif", true)
     .maybeSingle();
-
-  return data?.code ?? null;
+  return !!data;
 }
 
 /**
  * Pays actuellement parcouru (contexte de filtrage du catalogue public —
  * PAS le pays d'un événement individuel, voir events.pays_code). Le cookie
- * (choix manuel via SelecteurPays) prime toujours sur la géolocalisation :
+ * (choix manuel via SelecteurPays) prime sur la géolocalisation tant que son pays est actif :
  * une fois posé, il n'est plus jamais recalculé par IP tant qu'il n'est pas
  * changé à nouveau. Sans cookie (première visite), on tente la
  * géolocalisation IP avant de retomber sur PAYS_DEFAUT — jamais vide.
@@ -53,8 +56,12 @@ async function detecterPaysParIP(): Promise<string | null> {
  * pays).
  */
 export async function getPaysActuel(): Promise<string> {
+  // Le cookie n'est retenu que si son pays est toujours actif : après la
+  // désactivation d'un pays (ex. le Togo, 2026-09-28), un cookie resté à
+  // ce pays pendant jusqu'à un an filtrait le catalogue sur zéro événement,
+  // sans sélecteur pour en sortir (design/BUGS_REFONTE.md, bug #17).
   const cookiePays = cookies().get(COOKIE_PAYS)?.value;
-  if (cookiePays) return cookiePays;
+  if (cookiePays && (await estPaysActif(cookiePays))) return cookiePays;
 
   const paysGeolocalise = await detecterPaysParIP();
   return paysGeolocalise ?? PAYS_DEFAUT;
