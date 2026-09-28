@@ -20,7 +20,7 @@ type Commande = {
 };
 
 const ev = (slug: string) => EVENEMENTS.find((e) => e.slug === slug) ?? EVENEMENTS[0];
-const fcfa = (n: number) => (n === 0 ? "Gratuit" : `${n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} FCFA`);
+const fcfa = (n: number) => (n === 0 ? "Gratuit" : `${n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "\u00A0")}\u00A0FCFA`);
 
 // Commandes de démonstration : à venir, en attente, annulée, passée.
 const COMMANDES: Commande[] = [

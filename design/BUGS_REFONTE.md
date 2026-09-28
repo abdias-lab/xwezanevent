@@ -52,6 +52,39 @@ togolais, et les visiteurs situés au Togo voyaient un site vide (MIWADÚNÙ et 
 3. ~~Avoir corrigé le n°17 (cookie de pays non revalidé).~~ Fait (`64405dc`).
 Côté V2 : aucun sélecteur de pays à maquetter, il n'apparaît que lorsque deux pays sont actifs.
 
+### Projet Supabase de développement séparé : après la refonte
+
+Décidé par Abdias le 2026-09-28 : à faire après la refonte, pas en parallèle. Aujourd'hui le local
+tourne sur la base de prod ; les tests créent des données `[TEST]` visibles un moment dans le vrai
+`/admin`, d'où le nettoyage systématique et la vérification par empreinte. Effort estimé : une
+demi-journée, dont 1 h à 1 h 30 de manipulations dans les tableaux de bord.
+
+Ordre recommandé :
+1. **Migrations unifiées** : un seul fichier qui rejoue les 41 migrations dans l'ordre (pas de CLI
+   Supabase configurée). Activer pg_cron avant (`20260712120000`). Les mises à jour de données
+   ciblant des événements de prod (démo, `test-paiement-live`) sont sans effet sur une base vide.
+2. **Comparaison des schémas dev / prod** (fonctions, policies, triggers, GRANT), en lecture seule :
+   les migrations ont été appliquées à la main, une correction faite directement en prod ne se
+   verrait pas autrement. Indispensable.
+3. **Configuration Auth**, absente du repo : modèles d'e-mails (`/auth/confirm` attend un
+   `token_hash`), Site URL et URL de redirection, confirmation d'e-mail, SMTP (Resend ou tests via
+   `generateLink`).
+4. **Seed complet** : compte admin, organisateurs, commandes payées via `finaliserCommande`,
+   virements dans chaque statut, cas difficiles (titres longs, noms sans espace, montants à 7
+   chiffres). Reporter les réglages faits par script ponctuel, sinon ils manquent en dev
+   (ex. **Togo inactif**).
+
+Garde-fou obligatoire : **tout script ponctuel affiche la base visée (URL du projet Supabase)
+avant de s'exécuter**, et demande confirmation quand c'est la prod. Avec deux jeux de clés sur la
+même machine, le risque principal est de lancer un script sur la mauvaise base.
+
+À régler en même temps :
+- variables Vercel « Preview » vers le projet dev, FedaPay en **sandbox** (jamais les clés live) :
+  c'est aussi ce qui fera marcher le déploiement de preview de `refonte-v2`, en échec aujourd'hui ;
+- une clé Resend séparée pour le dev ;
+- plan gratuit : projet mis en pause après 7 jours d'inactivité, à relancer depuis le tableau de bord ;
+- ensuite, chaque migration s'applique d'abord au dev, puis à la prod.
+
 ## Améliorations à remonter en prod
 
 Choix faits dans les previews V2 et validés par Abdias pour la prod. Ce ne sont pas des bugs.

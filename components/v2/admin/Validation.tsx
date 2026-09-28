@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import s from "../../espace.module.css";
-import Icon from "../../../Icon";
-import { dateCourteOrga, montant, nombre } from "../../orga/_orga";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import s from "../espace.module.css";
+import Icon from "../Icon";
+import { dateCourte, montant, nombre } from "../format";
 
 export type Controle = { texte: string; motif: string };
 
@@ -14,7 +15,7 @@ export type EvenementAValider = {
   orgaPerso: string;
   orgaEmail: string;
   debut: string;
-  fin?: string;
+  fin: string | null;
   heure: string;
   lieu: string;
   ville: string;
@@ -28,15 +29,68 @@ export type EvenementAValider = {
 
 type Decision = { type: "valide" } | { type: "refuse"; motif: string };
 
+/** POST sur une route admin ; renvoie le message d'erreur, ou null si c'est fait. */
+async function appeler(url: string, corps?: object): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: corps ? { "Content-Type": "application/json" } : undefined,
+      body: corps ? JSON.stringify(corps) : undefined,
+    });
+    if (res.ok) return null;
+    const data = await res.json().catch(() => null);
+    return data?.error ?? "Erreur";
+  } catch {
+    return "Erreur réseau";
+  }
+}
+
 /**
- * File de validation (preview V2). Mêmes actions qu'en prod
- * (components/admin/ActionsEvenement.tsx) : valider, ou refuser avec un
- * motif envoyé par e-mail. État local uniquement, aucun appel réseau.
+ * File de validation (V2), reprise de la preview
+ * (app/(preview)/preview-design/v2/admin/evenements/Validation.tsx) et
+ * branchée sur /api/admin/events/[id]/valider et /refuser (qui envoient
+ * l'e-mail à l'organisateur). Comme pour les virements : la carte traitée
+ * reste affichée avec sa décision, la page serveur est rafraîchie aussitôt
+ * pour que les compteurs soient justes.
  */
 export default function Validation({ evenements }: { evenements: EvenementAValider[] }) {
-  const [decisions, setDecisions] = useState<Record<string, Decision>>({});
+  const router = useRouter();
+  const [decisions, setDecisions] = useState<Record<string, { d: Decision; vue: EvenementAValider; index: number }>>({});
   const [refus, setRefus] = useState<EvenementAValider | null>(null);
-  const restants = evenements.filter((e) => !decisions[e.id]).length;
+  const [enCours, setEnCours] = useState<string | null>(null);
+  const [erreurs, setErreurs] = useState<Record<string, string>>({});
+
+  const affiches = useMemo(() => {
+    const liste = [...evenements];
+    for (const t of Object.values(decisions).sort((a, b) => a.index - b.index)) {
+      if (!liste.some((e) => e.id === t.vue.id)) liste.splice(Math.min(t.index, liste.length), 0, t.vue);
+    }
+    return liste;
+  }, [evenements, decisions]);
+  const restants = affiches.filter((e) => !decisions[e.id]).length;
+
+  function decider(e: EvenementAValider, d: Decision) {
+    const index = affiches.findIndex((x) => x.id === e.id);
+    setDecisions((p) => ({ ...p, [e.id]: { d, vue: e, index } }));
+    router.refresh();
+  }
+
+  async function valider(e: EvenementAValider) {
+    setEnCours(e.id);
+    setErreurs((p) => ({ ...p, [e.id]: "" }));
+    const err = await appeler(`/api/admin/events/${e.id}/valider`);
+    setEnCours(null);
+    if (err) return setErreurs((p) => ({ ...p, [e.id]: err }));
+    decider(e, { type: "valide" });
+  }
+
+  async function refuser(e: EvenementAValider, motif: string): Promise<string | null> {
+    const err = await appeler(`/api/admin/events/${e.id}/refuser`, { motif: motif || undefined });
+    if (err) return err;
+    decider(e, { type: "refuse", motif });
+    setRefus(null);
+    return null;
+  }
 
   return (
     <>
@@ -44,9 +98,10 @@ export default function Validation({ evenements }: { evenements: EvenementAValid
         {restants === 0 ? "File vide : tous les événements ont été traités." : `${restants} à traiter, du plus ancien au plus récent.`}
       </p>
       <ul className={s.pile} style={{ gap: 16 }}>
-        {evenements.map((e) => {
-          const d = decisions[e.id];
+        {affiches.map((e) => {
+          const d = decisions[e.id]?.d;
           const places = e.tarifs.reduce((n, t) => n + t.total, 0);
+          const erreur = erreurs[e.id];
           return (
             <li key={e.id} id={e.id} className={s.bloc} style={{ scrollMarginTop: 80 }}>
               <div className={s.carteHaut}>
@@ -92,14 +147,14 @@ export default function Validation({ evenements }: { evenements: EvenementAValid
                     <dl className={s.paires} style={{ fontSize: 14, lineHeight: "20px" }}>
                       <dt>Quand</dt>
                       <dd>
-                        {dateCourteOrga(e.debut, e.fin)} · {e.heure}
+                        {dateCourte(e.debut, e.fin)} · {e.heure}
                       </dd>
                       <dt>Où</dt>
                       <dd>
                         {e.lieu}, {e.ville}
                       </dd>
                       <dt>Catégories</dt>
-                      <dd>{e.categories.join(", ")}</dd>
+                      <dd>{e.categories.join(", ") || "—"}</dd>
                       <dt>Tarifs</dt>
                       <dd>
                         {e.tarifs.map((t) => (
@@ -137,16 +192,20 @@ export default function Validation({ evenements }: { evenements: EvenementAValid
                     </p>
                   )}
 
+                  {/* Absent de la preview (qui ne simule pas d'échec) : message d'erreur de la route. */}
+                  {erreur && (
+                    <p className={`${s.alerte} ${s.alerteDanger}`} role="alert" style={{ marginBottom: 0 }}>
+                      <Icon name="alert" />
+                      <span>{erreur}</span>
+                    </p>
+                  )}
+
                   <div className={s.actionsValidation}>
-                    <button type="button" className={`${s.btn} ${s.btnGris} ${s.btnGrand}`} onClick={() => setRefus(e)}>
+                    <button type="button" className={`${s.btn} ${s.btnGris} ${s.btnGrand}`} disabled={enCours !== null} onClick={() => setRefus(e)}>
                       <Icon name="x" /> Refuser
                     </button>
-                    <button
-                      type="button"
-                      className={`${s.btn} ${s.btnOr} ${s.btnGrand}`}
-                      onClick={() => setDecisions((p) => ({ ...p, [e.id]: { type: "valide" } }))}
-                    >
-                      <Icon name="check" /> Valider et publier
+                    <button type="button" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} disabled={enCours !== null} onClick={() => valider(e)}>
+                      <Icon name="check" /> {enCours === e.id ? "Publication…" : "Valider et publier"}
                     </button>
                   </div>
                 </>
@@ -156,25 +215,29 @@ export default function Validation({ evenements }: { evenements: EvenementAValid
         })}
       </ul>
 
-      {refus && (
-        <FeuilleRefus
-          e={refus}
-          onFermer={() => setRefus(null)}
-          onRefuser={(motif) => {
-            setDecisions((p) => ({ ...p, [refus.id]: { type: "refuse", motif } }));
-            setRefus(null);
-          }}
-        />
-      )}
+      {refus && <FeuilleRefus e={refus} onFermer={() => setRefus(null)} onRefuser={(motif) => refuser(refus, motif)} />}
     </>
   );
 }
 
-function FeuilleRefus({ e, onFermer, onRefuser }: { e: EvenementAValider; onFermer: () => void; onRefuser: (motif: string) => void }) {
+function FeuilleRefus({ e, onFermer, onRefuser }: { e: EvenementAValider; onFermer: () => void; onRefuser: (motif: string) => Promise<string | null> }) {
   const [motif, setMotif] = useState("");
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
   const ajouter = (m: string) => setMotif((prev) => (prev.includes(m) ? prev : prev.trim() ? `${prev.trim()} ${m}` : m));
+
+  async function confirmer() {
+    setEnCours(true);
+    setErreur(null);
+    const err = await onRefuser(motif.trim());
+    if (err) {
+      setErreur(err);
+      setEnCours(false);
+    }
+  }
+
   return (
-    <div className={s.fond} onClick={onFermer}>
+    <div className={s.fond} onClick={() => !enCours && onFermer()}>
       <div className={s.feuille} role="dialog" aria-modal="true" aria-labelledby="titre-refus" onClick={(ev) => ev.stopPropagation()}>
         <div>
           <h2 id="titre-refus" className={s.feuilleTitre}>
@@ -201,12 +264,19 @@ function FeuilleRefus({ e, onFermer, onRefuser }: { e: EvenementAValider; onFerm
           <textarea id="motif" rows={4} value={motif} autoFocus placeholder="Ex : affiche manquante, description incomplète…" onChange={(ev) => setMotif(ev.target.value)} />
           {!motif.trim() && <span className={s.aide}>Sans motif, l&apos;organisateur ne saura pas quoi corriger.</span>}
         </div>
+        {/* Absent de la preview (qui ne simule pas d'échec) : message d'erreur de la route. */}
+        {erreur && (
+          <p className={`${s.alerte} ${s.alerteDanger}`} role="alert">
+            <Icon name="alert" />
+            <span>{erreur}</span>
+          </p>
+        )}
         <div className={s.feuilleActions}>
-          <button type="button" className={`${s.btn} ${s.btnGris} ${s.btnGrand}`} onClick={onFermer}>
+          <button type="button" className={`${s.btn} ${s.btnGris} ${s.btnGrand}`} disabled={enCours} onClick={onFermer}>
             Annuler
           </button>
-          <button type="button" className={`${s.btn} ${s.btnDanger} ${s.btnGrand}`} onClick={() => onRefuser(motif.trim())}>
-            Refuser l&apos;événement
+          <button type="button" className={`${s.btn} ${s.btnDanger} ${s.btnGrand}`} disabled={enCours} onClick={confirmer}>
+            {enCours ? "Envoi…" : "Refuser l'événement"}
           </button>
         </div>
       </div>

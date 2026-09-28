@@ -180,10 +180,10 @@ export function dateAnnee(d: string) {
   return `${j} ${MOIS[m - 1]} ${y}`;
 }
 export function nombre(n: number) {
-  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "\u00A0");
 }
 export function montant(n: number) {
-  return `${nombre(n)} FCFA`;
+  return `${nombre(n)}\u00A0FCFA`;
 }
 
 // ---------- Billets (page détail d'événement) ----------

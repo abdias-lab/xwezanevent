@@ -18,6 +18,8 @@ const FILTRES: { cle: string; libelle: string; statut: Statut }[] = [
   { cle: "termine", libelle: "Terminés", statut: "termine" },
   { cle: "refuse", libelle: "Refusés", statut: "refuse" },
   { cle: "annule", libelle: "Annulés", statut: "annule" },
+  // Ajout du 2026-09-28 (intégration) : sans cette puce, les brouillons n'étaient visibles nulle part côté admin.
+  { cle: "brouillon", libelle: "Brouillons", statut: "brouillon" },
 ];
 
 const COLS = { "--cols": "minmax(0, 1.8fr) minmax(0, 1fr) 100px 130px 110px minmax(0, 1.7fr)" } as CSSProperties;

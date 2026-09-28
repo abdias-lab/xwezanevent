@@ -5,11 +5,11 @@ const MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août"
 
 /** 12500 → "12 500" (espace fine insécable évitée : rendu identique partout). */
 export function nombre(n: number) {
-  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "\u00A0");
 }
 
 export function montant(n: number) {
-  return `${nombre(n)} FCFA`;
+  return `${nombre(n)}\u00A0FCFA`;
 }
 
 /** "2026-11-13" (+ fin "2026-11-15") → "13–15 nov." ; sans fin → "13 nov.". */
