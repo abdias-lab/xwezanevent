@@ -58,13 +58,16 @@ export default async function PaiementEchec({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Compte connecté : lecture via RLS (policy `user_id = auth.uid()`).
+  // Compte connecté : SA commande uniquement (filtre user_id : la RLS laisse
+  // aussi un organisateur lire les commandes de ses événements, voir
+  // /confirmation).
   let order: OrderRow | null = null;
   if (user) {
     const { data } = await supabase
       .from("orders")
       .select(SELECTION_COMMANDE)
       .eq("id", orderId)
+      .eq("user_id", user.id)
       .maybeSingle();
     order = data as unknown as OrderRow | null;
   }

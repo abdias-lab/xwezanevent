@@ -66,15 +66,18 @@ export default async function Confirmation({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Compte connecté : lecture via RLS (policy `user_id = auth.uid()`) —
-  // ne renvoie jamais la commande d'un autre compte, ni une commande
-  // invité (voir supabase/migrations/20260804120000_achat_invite.sql).
+  // Compte connecté : SA commande uniquement. Le filtre user_id est
+  // indispensable : la RLS laisse aussi un organisateur lire les commandes
+  // de ses événements (« Organisateurs can read orders for their events »),
+  // qui affichait donc les billets et QR codes de ses acheteurs. Jamais de
+  // commande invité par ce chemin (20260804120000_achat_invite.sql).
   let order: OrderRow | null = null;
   if (user) {
     const { data } = await supabase
       .from("orders")
       .select(SELECTION_COMMANDE)
       .eq("id", orderId)
+      .eq("user_id", user.id)
       .maybeSingle();
     order = data as unknown as OrderRow | null;
   }
