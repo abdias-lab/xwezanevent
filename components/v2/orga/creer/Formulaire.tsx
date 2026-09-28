@@ -141,7 +141,8 @@ export default function Formulaire({
           e.preventDefault();
           // Amène l'organisateur sur le premier champ à corriger.
           requestAnimationFrame(() => {
-            const champ = document.querySelector<HTMLElement>(`form [aria-invalid="true"]`);
+            // Catégories (boutons) : la première puce disponible du groupe signalé.
+            const champ = document.querySelector<HTMLElement>(`form [aria-invalid="true"], form [data-invalide] button:not(:disabled)`);
             champ?.focus();
             champ?.scrollIntoView({ block: "center", behavior: "smooth" });
           });
@@ -219,7 +220,13 @@ export default function Formulaire({
             <span className={s.etiquette} id="cat-label">
               Catégories <small>(jusqu&apos;à {MAX_CATEGORIES})</small>
             </span>
-            <div className={s.puces} role="group" aria-labelledby="cat-label">
+            <div
+              className={s.puces}
+              role="group"
+              aria-labelledby="cat-label"
+              aria-describedby={tente && !check.categories ? "cat-msg" : undefined}
+              data-invalide={check.categories ? undefined : ""}
+            >
               {CATEGORIES_V2.map((c) => {
                 const on = categories.includes(c);
                 return (
@@ -238,7 +245,9 @@ export default function Formulaire({
               })}
             </div>
             {tente && !check.categories ? (
-              <span className={s.erreur}>Choisis au moins une catégorie.</span>
+              <span id="cat-msg" className={s.erreur}>
+                Choisis au moins une catégorie.
+              </span>
             ) : (
               <span className={s.aide}>La première choisie sert d&apos;étiquette principale sur la carte.</span>
             )}
