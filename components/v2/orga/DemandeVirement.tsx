@@ -120,7 +120,7 @@ export default function DemandeVirement({
                     <b className={s.montantOr}>{montant(disponible)}</b>
                   </div>
                   <p className={s.aide}>
-                    {tauxCommission > 0 ? `Net de la commission de ${Math.round(tauxCommission * 100)} %.` : "Aucune commission sur cet événement."}
+                    {tauxCommission > 0 ? `Net de la commission de ${Math.round(tauxCommission * 100)}\u00A0%.` : "Aucune commission sur cet événement."}
                   </p>
                 </div>
                 <div className={s.champ}>

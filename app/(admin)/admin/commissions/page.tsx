@@ -21,7 +21,7 @@ const VUES = [
 
 const COLS = { "--cols": "minmax(0, 2fr) minmax(0, 1.3fr) 150px 90px 150px" } as CSSProperties;
 const COLS_ORGA = { "--cols": "minmax(0, 2fr) 110px 170px 170px" } as CSSProperties;
-const pct = (x: number) => `${Math.round(x * 1000) / 10} %`.replace(".", ",");
+const pct = (x: number) => `${Math.round(x * 1000) / 10}\u00A0%`.replace(".", ",");
 const TAUX_DEFAUT = 0.08;
 
 interface EventCommission {
@@ -159,7 +159,7 @@ export default async function AdminCommissions({ searchParams }: { searchParams:
                     <dt>Ventes</dt>
                     <dd className={s.chiffre}>{montant(brut)}</dd>
                     <dt>Taux</dt>
-                    <dd className={s.chiffre}>{e.taux_commission === 0 ? "0 % (accord)" : pct(e.taux_commission)}</dd>
+                    <dd className={s.chiffre}>{e.taux_commission === 0 ? "0\u00A0% (accord)" : pct(e.taux_commission)}</dd>
                     <dt>Commission</dt>
                     <dd className={`${s.montant} ${s.chiffre}`}>{commission ? montant(commission) : "offerte"}</dd>
                   </dl>
