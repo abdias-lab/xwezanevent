@@ -76,7 +76,9 @@ export default function V2Admin({ searchParams }: { searchParams: { etat?: strin
                         {aValider.length} événement{aValider.length > 1 ? "s" : ""} à valider
                       </p>
                       <p className={s.carteMeta}>
-                        Le plus ancien attend depuis {depuis(plusAncien.soumisLe).replace("il y a ", "")} : {plusAncien.titre}
+                        {depuis(plusAncien.soumisLe) === "aujourd'hui"
+                          ? `Le plus ancien a été soumis aujourd'hui : ${plusAncien.titre}`
+                          : `Le plus ancien attend depuis ${depuis(plusAncien.soumisLe).replace("il y a ", "")} : ${plusAncien.titre}`}
                       </p>
                     </div>
                   </div>

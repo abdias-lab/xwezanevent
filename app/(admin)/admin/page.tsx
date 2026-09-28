@@ -178,7 +178,9 @@ export default async function AdminPage() {
                 <div>
                   <p className={s.carteTitre}>{pluriel(aValider.length, "événement")} à valider</p>
                   <p className={s.carteMeta}>
-                    Le plus ancien attend depuis {depuis(plusAncien.soumis_le).replace("il y a ", "")} : {plusAncien.titre}
+                    {depuis(plusAncien.soumis_le) === "aujourd'hui"
+                      ? `Le plus ancien a été soumis aujourd'hui : ${plusAncien.titre}`
+                      : `Le plus ancien attend depuis ${depuis(plusAncien.soumis_le).replace("il y a ", "")} : ${plusAncien.titre}`}
                   </p>
                 </div>
               </div>

@@ -431,6 +431,8 @@
 }
 .carteTitre {
   font: 700 16px/22px var(--corps);
+  /* Mot sans espace (titre, nom d'organisateur) : coupé plutôt que rogné au bord de la carte. */
+  overflow-wrap: anywhere;
 }
 .carteTitre a::after {
   content: "";
@@ -443,6 +445,7 @@
   font-size: 13px;
   line-height: 18px;
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 .carteBas {
   display: flex;
