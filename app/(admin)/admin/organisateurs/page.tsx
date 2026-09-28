@@ -1,152 +1,232 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import BoutonDeconnexion from "@/components/BoutonDeconnexion";
-import Logo from "@/components/Logo";
+import Coquille from "@/components/v2/Coquille";
+import Icon from "@/components/v2/Icon";
+import { NAV_ADMIN } from "@/components/v2/navAdmin";
+import { dateAnnee, joursDepuis, montant, nombre } from "@/components/v2/format";
+import { formaterNumero } from "@/components/v2/admin/moyens";
+import s from "@/components/v2/espace.module.css";
 
 export const metadata: Metadata = {
   title: "Organisateurs — Administration — XwézanEvent",
 };
 
-function fmt(n: number): string {
-  return n.toLocaleString("fr-FR");
+const COLS = { "--cols": "minmax(0, 1.8fr) minmax(0, 1.6fr) 110px 120px 150px 140px" } as CSSProperties;
+const TRIS = [
+  { cle: "ventes", libelle: "Plus de ventes" },
+  { cle: "recents", libelle: "Inscrits récemment" },
+] as const;
+
+const norm = (x: string) => x.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+interface ProfilOrga {
+  id: string;
+  nom: string;
+  nom_public: string | null;
+  telephone: string | null;
+  created_at: string;
 }
 
 interface EventAgrege {
   organisateur_id: string;
+  statut: string;
+  taux_commission: number;
   ticket_types: { prix: number; quantite_vendue: number }[];
+  orders: { total: number; statut: string }[];
 }
 
-interface OrganisateurLigne {
-  id: string;
-  nom: string;
-  telephone: string | null;
-  nbEvenements: number;
-  billetsVendus: number;
-  revenu: number;
+/** E-mails des comptes (auth.users), lus par pages via service_role. */
+async function emailsComptes(): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  for (let page = 1; ; page++) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error || !data) break;
+    for (const u of data.users) if (u.email) out.set(u.id, u.email);
+    if (data.users.length < 1000) break;
+  }
+  return out;
 }
 
-export default async function AdminOrganisateurs() {
+/**
+ * Organisateurs (V2), repris de la preview : recherche, tri, nom public,
+ * e-mail, commissions et ce qui attend l'équipe (événements à valider,
+ * virements demandés). Ventes et commissions sur les commandes payées, hors
+ * événements annulés ou refusés, au taux propre à chaque événement.
+ */
+export default async function AdminOrganisateurs({ searchParams }: { searchParams: { q?: string; tri?: string } }) {
   const supabase = creerClientServeur();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/connexion?redirect=/admin/organisateurs");
 
-  const { data: profil } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  const { data: profil } = await supabase.from("profiles").select("role, nom").eq("id", user.id).single();
   if (!profil || profil.role !== "admin") redirect("/");
 
-  // supabaseAdmin : le téléphone de l'organisateur (nécessaire pour le
-  // joindre / effectuer un virement) n'est plus lisible via le rôle
-  // Postgres `authenticated` (voir migration 20260717140000) — le
-  // contrôle de rôle applicatif reste assuré par la vérification
-  // `profil.role !== "admin"` ci-dessus, faite via le client de session.
-  const [{ data: organisateursData }, { data: eventsData }] = await Promise.all([
-    supabaseAdmin.from("profiles").select("id, nom, telephone").eq("role", "organisateur"),
-    supabase.from("events").select("organisateur_id, ticket_types(prix, quantite_vendue)"),
+  const q = (searchParams.q ?? "").trim();
+  const tri = TRIS.find((t) => t.cle === searchParams.tri) ?? TRIS[0];
+
+  // supabaseAdmin : le téléphone de l'organisateur n'est plus lisible via le
+  // rôle `authenticated` (migration 20260717140000), les e-mails sont dans
+  // auth.users ; le rôle admin est vérifié ci-dessus via la session.
+  const [{ data: orgasData }, { data: eventsData }, { data: payoutsData }, emails] = await Promise.all([
+    supabaseAdmin.from("profiles").select("id, nom, nom_public, telephone, created_at").eq("role", "organisateur"),
+    supabase.from("events").select("organisateur_id, statut, taux_commission, ticket_types(prix, quantite_vendue), orders(total, statut)"),
+    supabaseAdmin.from("payouts").select("organisateur_id").eq("statut", "demande"),
+    emailsComptes(),
   ]);
 
+  const orgas = (orgasData as ProfilOrga[]) ?? [];
   const evenements = (eventsData as unknown as EventAgrege[]) ?? [];
+  const payouts = (payoutsData as { organisateur_id: string }[]) ?? [];
 
-  const parOrganisateur = new Map<string, { nbEvenements: number; billetsVendus: number; revenu: number }>();
-  for (const ev of evenements) {
-    const agg = parOrganisateur.get(ev.organisateur_id) ?? {
-      nbEvenements: 0,
-      billetsVendus: 0,
-      revenu: 0,
-    };
-    agg.nbEvenements += 1;
-    for (const tt of ev.ticket_types) {
-      agg.billetsVendus += tt.quantite_vendue;
-      agg.revenu += tt.prix * tt.quantite_vendue;
-    }
-    parOrganisateur.set(ev.organisateur_id, agg);
-  }
-
-  const lignes: OrganisateurLigne[] = (
-    (organisateursData ?? []) as { id: string; nom: string; telephone: string | null }[]
-  )
+  const lignes = orgas
     .map((o) => {
-      const agg = parOrganisateur.get(o.id) ?? { nbEvenements: 0, billetsVendus: 0, revenu: 0 };
-      return { id: o.id, nom: o.nom, telephone: o.telephone, ...agg };
+      const evs = evenements.filter((e) => e.organisateur_id === o.id);
+      const comptes = evs.filter((e) => e.statut !== "annule" && e.statut !== "refuse");
+      // Ventes et commissions : commandes payées, comme les pages Commissions et Tableau de bord.
+      const brutEv = (e: EventAgrege) => e.orders.filter((o) => o.statut === "paye").reduce((n, o) => n + o.total, 0);
+      return {
+        o,
+        email: emails.get(o.id) ?? "",
+        tel: o.telephone ? formaterNumero(o.telephone) : null,
+        nbEvts: evs.length,
+        enVente: evs.filter((e) => e.statut === "publie").length,
+        enAttente: evs.filter((e) => e.statut === "en_validation").length,
+        vendus: comptes.reduce((n, e) => n + e.ticket_types.reduce((m, t) => m + t.quantite_vendue, 0), 0),
+        brut: comptes.reduce((n, e) => n + brutEv(e), 0),
+        commission: comptes.reduce((n, e) => n + Math.round(brutEv(e) * e.taux_commission), 0),
+        virementsAttente: payouts.filter((p) => p.organisateur_id === o.id).length,
+        nouveau: joursDepuis(o.created_at) <= 7,
+      };
     })
-    .sort((a, b) => b.revenu - a.revenu);
+    .filter((l) => !q || norm(`${l.o.nom} ${l.o.nom_public ?? ""} ${l.email} ${l.o.telephone ?? ""} ${l.tel ?? ""}`).includes(norm(q)))
+    .sort((a, b) => (tri.cle === "ventes" ? b.brut - a.brut : b.o.created_at.localeCompare(a.o.created_at)));
+
+  const total = orgas.length;
+  const lien = (params: Record<string, string>) => {
+    const u = new URLSearchParams({ ...(q ? { q } : {}), ...(tri.cle !== "ventes" ? { tri: tri.cle } : {}), ...params });
+    for (const [k, v] of Array.from(u.entries())) if (!v) u.delete(k);
+    const str = u.toString();
+    return `/admin/organisateurs${str ? `?${str}` : ""}`;
+  };
 
   return (
-    <div className="app">
-      <aside className="lateral">
-        <Logo />
-        <p className="role">Administration</p>
-
-        <p className="groupe">Principal</p>
-        <Link className="item" href="/admin">📊 Vue d&apos;ensemble</Link>
-        <Link className="item" href="/admin/evenements">🗓️ Événements</Link>
-        <Link className="item" href="/admin/billets">🎟️ Billets</Link>
-        <Link className="item" href="/admin/commissions">💰 Commissions</Link>
-        <Link className="item" href="/admin/reversements">🏦 Reversements</Link>
-        <Link className="item actif" href="/admin/organisateurs">👥 Organisateurs</Link>
-        <Link className="item" href="/admin/evenements?statut=termine">🏁 Terminés</Link>
-
-        <div className="bas">
-          <BoutonDeconnexion />
+    <Coquille nav={NAV_ADMIN} actif="organisateurs" compte={{ nom: profil.nom || user.email || "Admin", email: user.email ?? "" }}>
+      <div className={s.entete}>
+        <div>
+          <h1 className={s.titre}>Organisateurs</h1>
+          <p className={s.sousTitre}>
+            {total} compte{total > 1 ? "s" : ""} organisateur. Le nom personnel n&apos;est jamais affiché publiquement.
+          </p>
         </div>
-      </aside>
+      </div>
 
-      <main className="principal">
-        <div className="entete-app">
-          <div>
-            <h1>Organisateurs</h1>
-            <p className="sous">{lignes.length} compte(s) organisateur</p>
+      {total === 0 ? (
+        <div className={s.vide}>
+          <Icon name="users" size={32} />
+          <p className={s.videTitre}>Aucun organisateur</p>
+          <p className={s.videTexte}>Un compte devient organisateur à la soumission de son premier événement.</p>
+        </div>
+      ) : (
+        <>
+          <form action="/admin/organisateurs" method="get" className={s.recherche} role="search">
+            <Icon name="search" size={20} />
+            <input type="search" name="q" defaultValue={q} placeholder="Nom, e-mail ou téléphone" aria-label="Rechercher un organisateur" />
+            {tri.cle !== "ventes" && <input type="hidden" name="tri" value={tri.cle} />}
+          </form>
+          <div className={s.puces} role="group" aria-label="Trier" style={{ margin: "12px 0 16px" }}>
+            {TRIS.map((t) => (
+              <Link
+                key={t.cle}
+                href={lien({ tri: t.cle === "ventes" ? "" : t.cle })}
+                className={`${s.puce} ${t.cle === tri.cle ? s.puceOn : ""}`}
+                aria-current={t.cle === tri.cle ? "true" : undefined}
+              >
+                {t.libelle}
+              </Link>
+            ))}
           </div>
-          <Link className="btn btn-ghost" href="/admin">
-            ← Vue d&apos;ensemble
-          </Link>
-        </div>
 
-        <div className="tableau-panneau">
           {lignes.length === 0 ? (
-            <div className="etat-vide" style={{ margin: "10px auto 4px" }}>
-              <div className="etat-vide-glyphe" aria-hidden="true">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
-                </svg>
-              </div>
-              <h3>Aucun organisateur</h3>
-              <p>Les comptes organisateur apparaîtront ici dès leur première publication.</p>
+            <div className={s.vide}>
+              <Icon name="search" size={32} />
+              <p className={s.videTitre}>Aucun résultat</p>
+              <p className={s.videTexte}>Aucun organisateur ne correspond à « {q} ».</p>
+              <Link href={lien({ q: "" })} className={`${s.btn} ${s.btnGris}`}>
+                Effacer la recherche
+              </Link>
             </div>
           ) : (
-            <table className="donnees">
-              <thead>
-                <tr>
-                  <th>Organisateur</th>
-                  <th>Téléphone</th>
-                  <th>Événements</th>
-                  <th>Billets vendus</th>
-                  <th>Revenu généré</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lignes.map((l) => (
-                  <tr key={l.id}>
-                    <td className="ev-nom">{l.nom}</td>
-                    <td>{l.telephone ?? "—"}</td>
-                    <td>{fmt(l.nbEvenements)}</td>
-                    <td>{fmt(l.billetsVendus)}</td>
-                    <td className="rev">{fmt(l.revenu)} F</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <ul className={s.liste}>
+              <li className={s.enteteListe} style={COLS} aria-hidden="true">
+                <span>Organisateur</span>
+                <span>Contact</span>
+                <span>Événements</span>
+                <span>Billets</span>
+                <span>Ventes</span>
+                <span>Commissions</span>
+              </li>
+              {lignes.map((l) => (
+                <li key={l.o.id} className={s.carte} style={{ ...COLS, gap: 8 }}>
+                  <div className={s.carteHaut}>
+                    <div>
+                      <p className={s.carteTitre} style={{ fontSize: 15 }}>
+                        {l.o.nom_public || l.o.nom}
+                        {l.nouveau && (
+                          <span className={`${s.statut} ${s.stAttente}`} style={{ marginLeft: 8, verticalAlign: "middle" }}>
+                            Nouveau
+                          </span>
+                        )}
+                      </p>
+                      <p className={s.carteMeta}>
+                        {l.o.nom_public ? l.o.nom : "Pas de nom public"} · inscrit le {dateAnnee(l.o.created_at)}
+                      </p>
+                      {(l.enAttente > 0 || l.virementsAttente > 0) && (
+                        <p className={s.carteMeta} style={{ color: "var(--or)" }}>
+                          {[l.enAttente > 0 && `${l.enAttente} à valider`, l.virementsAttente > 0 && `${l.virementsAttente} virement${l.virementsAttente > 1 ? "s" : ""} en attente`]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <dl className={s.paires}>
+                    <dt>Contact</dt>
+                    <dd>
+                      {l.email ? (
+                        <a href={`mailto:${l.email}`} style={{ textDecoration: "underline" }}>
+                          {l.email}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                      <span className={`${s.note} ${s.chiffre}`} style={{ display: "block" }}>
+                        {l.tel ? <a href={`tel:${l.tel.replace(/\s/g, "")}`}>{l.tel}</a> : "Pas de téléphone"}
+                      </span>
+                    </dd>
+                    <dt>Événements</dt>
+                    <dd className={s.chiffre}>
+                      {l.nbEvts}
+                      {l.enVente > 0 && <span className={s.note}> · {l.enVente} en vente</span>}
+                    </dd>
+                    <dt>Billets</dt>
+                    <dd className={s.chiffre}>{nombre(l.vendus)}</dd>
+                    <dt>Ventes</dt>
+                    <dd className={`${s.montant} ${s.chiffre}`}>{l.brut ? montant(l.brut) : "—"}</dd>
+                    <dt>Commissions</dt>
+                    <dd className={s.chiffre}>{l.commission ? montant(l.commission) : l.brut ? "0 (offerte)" : "—"}</dd>
+                  </dl>
+                </li>
+              ))}
+            </ul>
           )}
-        </div>
-      </main>
-    </div>
+        </>
+      )}
+    </Coquille>
   );
 }

@@ -79,7 +79,7 @@ export default async function AdminPage() {
       .from("tickets")
       .select("id", { count: "exact", head: true })
       .neq("statut", "annule"),
-    supabase.from("orders").select("total, events(taux_commission)").eq("statut", "paye"),
+    supabase.from("orders").select("total, events(taux_commission, statut)").eq("statut", "paye"),
     supabase
       .from("events")
       .select("id", { count: "exact", head: true })
@@ -115,11 +115,14 @@ export default async function AdminPage() {
   const billetsVendus = billetsRes.count ?? 0;
   const commandesPayees = (ordersPayesRes.data ?? []) as unknown as {
     total: number;
-    events: { taux_commission: number } | null;
+    events: { taux_commission: number; statut: string } | null;
   }[];
-  const ventes = commandesPayees.reduce((n, o) => n + o.total, 0);
+  // Comme la page Commissions : les ventes d'un événement annulé ou refusé
+  // sont à rembourser, elles ne comptent ni en ventes ni en commissions.
+  const commandesComptees = commandesPayees.filter((o) => o.events?.statut !== "annule" && o.events?.statut !== "refuse");
+  const ventes = commandesComptees.reduce((n, o) => n + o.total, 0);
   const commissions = Math.round(
-    commandesPayees.reduce((n, o) => n + o.total * (o.events?.taux_commission ?? 0.08), 0)
+    commandesComptees.reduce((n, o) => n + o.total * (o.events?.taux_commission ?? 0.08), 0)
   );
   const enVente = enVenteRes.count ?? 0;
   const organisateurs = organisateursRes.count ?? 0;
