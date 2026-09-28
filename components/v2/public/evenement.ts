@@ -1,0 +1,59 @@
+// Données d'affichage d'un événement public V2 et leurs formats, repris de la
+// preview (app/(preview)/preview-design/_data.ts) : même type, mêmes règles.
+
+export type EvenementCarte = {
+  slug: string;
+  titre: string;
+  categorie: string;
+  lieu: string;
+  ville: string;
+  debut: string; // AAAA-MM-JJ
+  fin?: string; // festival multi-jours
+  heure: string;
+  prixMin: number; // FCFA, 0 = gratuit
+  prixLibelle?: string; // remplace le prix calculé (ex. aperçu sans tarif saisi)
+  organisateur: string;
+  tags: string[];
+  image: string | null; // null = pas d'affiche
+  restantes?: number;
+};
+
+const JOURS = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
+const MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+
+function parse(d: string) {
+  const [y, m, j] = d.split("-").map(Number);
+  return { y, m: m - 1, j, dow: new Date(Date.UTC(y, m - 1, j)).getUTCDay() };
+}
+
+export function jour(d: string) {
+  return String(parse(d).j).padStart(2, "0");
+}
+export function mois(d: string) {
+  return MOIS[parse(d).m];
+}
+/** « sam. 24 oct. » ; festival : « 13–15 nov. ». */
+export function dateCarte(e: EvenementCarte) {
+  const a = parse(e.debut);
+  if (e.fin) {
+    const b = parse(e.fin);
+    return a.m === b.m && a.y === b.y ? `${a.j}–${b.j} ${MOIS[b.m]}` : `${a.j} ${MOIS[a.m]} – ${b.j} ${MOIS[b.m]}`;
+  }
+  return `${JOURS[a.dow]} ${a.j} ${MOIS[a.m]}`;
+}
+export function fcfa(n: number) {
+  if (n === 0) return "Gratuit";
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "\u00A0") + "\u00A0FCFA";
+}
+export function prixDes(e: EvenementCarte) {
+  if (e.prixLibelle) return e.prixLibelle;
+  return e.prixMin === 0 ? "Gratuit" : `Dès ${fcfa(e.prixMin)}`;
+}
+export function initiales(titre: string) {
+  return titre
+    .split(/\s+/)
+    .filter((m) => m.length > 2)
+    .slice(0, 2)
+    .map((m) => m[0].toUpperCase())
+    .join("");
+}

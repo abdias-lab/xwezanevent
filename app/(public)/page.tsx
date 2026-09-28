@@ -20,7 +20,7 @@ import type { ReactNode } from "react";
 export const revalidate = 60;
 
 // `valeur` doit correspondre EXACTEMENT à events.categorie en base (voir la
-// liste des catégories créables dans components/FormulaireCreation.tsx :
+// liste des catégories créables (lib/categories.ts, formulaire components/v2/orga/creer/Formulaire.tsx) :
 // Concert, Festival, Culture & Vodun, Sport, Humour, Soirée — au singulier).
 const CATEGORIES: { nom: ReactNode; valeur: string; glyphe: ReactNode }[] = [
   {

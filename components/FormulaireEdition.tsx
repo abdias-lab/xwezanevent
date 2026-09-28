@@ -22,7 +22,7 @@ function BoutonEnregistrer() {
  * les opérateurs Mobile Money proposés au reversement (voir la suite du
  * chantier multi-pays) — le changer après coup risquerait d'incohérences
  * avec des commandes déjà payées. Réutilise SelecteurCategories/
- * SelecteurImages, partagés avec la création (components/FormulaireCreation.tsx).
+ * SelecteurImages (la création V2 a ses propres blocs : components/v2/orga/creer).
  */
 export default function FormulaireEdition({
   action,

@@ -236,5 +236,8 @@ export async function publierEvenement(formData: FormData) {
   // immédiatement avec le badge « En validation ».
   revalidatePath("/orga");
 
-  redirect("/orga");
+  // Écran « Envoyé pour validation » (refonte V2) : l'organisateur sait que
+  // son événement attend l'équipe, au lieu d'un retour muet sur /orga
+  // (design/BUGS_REFONTE.md n°1). La page revérifie qu'il en est bien l'auteur.
+  redirect(`/creer?envoye=${ev.id}`);
 }
