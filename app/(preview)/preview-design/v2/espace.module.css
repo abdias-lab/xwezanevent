@@ -716,6 +716,14 @@
   min-height: 112px;
   resize: vertical;
 }
+/* Options de la liste ouverte : fond OPAQUE. La règle commune de
+   globals.css prend var(--surface), qui est translucide en V2 : illisible
+   sur un navigateur qui ignore color-scheme (liste blanche). */
+.champ select option,
+.champ select optgroup {
+  background-color: var(--raised);
+  color: #fff;
+}
 .champ input:focus,
 .champ select:focus,
 .champ textarea:focus {
