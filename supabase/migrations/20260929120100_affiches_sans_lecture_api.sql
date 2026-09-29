@@ -1,0 +1,15 @@
+-- Audit n°20 (design/BUGS_REFONTE.md) : la policy « Lecture publique des
+-- affiches » de 20260711120000_affiches_storage_bucket.sql n'a jamais existé
+-- en production, et on choisit de ne pas la créer.
+-- Date: 2026-09-29
+--
+-- Le bucket « affiches » est public : les URL publiques directes (getPublicUrl,
+-- seul usage de l'application) fonctionnent sans policy. Cette policy ne
+-- servait qu'à lister et lire les fichiers par l'API Storage, ce que
+-- l'application ne fait nulle part. Sans elle, personne ne peut énumérer les
+-- fichiers du bucket, y compris les affiches d'événements refusés ou en
+-- validation. Même principe que le reste du projet : pas de droit « au cas
+-- où » quand aucun code n'en a besoin.
+--
+-- Sans effet en production (la policy est absente) ; aligne le dépôt.
+DROP POLICY IF EXISTS "Lecture publique des affiches" ON storage.objects;
