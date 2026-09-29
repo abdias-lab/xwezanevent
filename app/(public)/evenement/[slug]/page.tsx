@@ -1,34 +1,18 @@
-import Header from "@/components/Header";
-import Billetterie from "@/components/Billetterie";
-import CarrouselEvenement from "@/components/CarrouselEvenement";
-import { getEvenementParSlug } from "@/lib/events";
-import { formatPlageDates } from "@/lib/date";
-import { notFound } from "next/navigation";
-import Link from "next/link";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import Icon from "@/components/v2/Icon";
+import Reveal from "@/components/v2/Reveal";
+import { Header, Footer } from "@/components/v2/public/Chrome";
+import Galerie from "@/components/v2/public/Galerie";
+import BilletPicker from "@/components/v2/public/BilletPicker";
+import { dateLongue } from "@/components/v2/public/evenement";
+import { POLICES_V2 } from "@/components/v2/polices";
+import s from "@/components/v2/v2.module.css";
+import { getEvenementParSlug } from "@/lib/events";
 
 export const revalidate = 60;
 
-function formatHeure(heure: string | null): string | null {
-  if (!heure) return null;
-  const [h, m] = heure.split(":");
-  return `${h}h${m}`;
-}
-
-/** Initiales (1 ou 2 lettres) pour l'avatar de repli de l'organisateur, ex. "Bénin Live Events" → "BL". */
-function initiales(nom: string): string {
-  const mots = nom.trim().split(/\s+/).filter(Boolean);
-  return mots
-    .slice(0, 2)
-    .map((m) => m[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
-export async function generateMetadata({
-  params,
-}: {
-  params: { slug: string };
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const ev = await getEvenementParSlug(params.slug);
   if (!ev) return { title: "Événement introuvable — XwézanEvent" };
   return {
@@ -37,162 +21,119 @@ export async function generateMetadata({
   };
 }
 
-export default async function EvenementDetail({
-  params,
-}: {
-  params: { slug: string };
-}) {
+/**
+ * Page événement (V2), reprise de la preview (v2/evenement). Galerie
+ * (affiche + visuels secondaires, visionneuse plein écran), infos, puis
+ * sélecteur de billets qui mène à /evenement/[slug]/commande. Événement
+ * de démonstration ou terminé : pas de sélecteur, un encadré à la place.
+ */
+export default async function EvenementDetail({ params }: { params: { slug: string } }) {
   const ev = await getEvenementParSlug(params.slug);
   if (!ev) notFound();
 
-  const heure = formatHeure(ev.heure);
-  const dateAffichee = formatPlageDates(ev.date_debut, ev.date_fin, { avecAnnee: true });
-  const placesTotales = ev.ticketTypes.reduce((s, t) => s + t.disponibles, 0);
-  const lieuComplet = [ev.lieu, ev.ville].filter(Boolean).join(", ");
-  const urlItineraire = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lieuComplet)}`;
+  const heure = ev.heure ? ev.heure.slice(0, 5) : null;
+  const lieu = `${ev.lieu}, ${ev.ville}`;
+  const itineraire = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lieu)}`;
+  // Affiche principale en premier, puis les autres visuels dans leur ordre.
+  const images = ev.images.length
+    ? [...ev.images.filter((i) => i.principale), ...ev.images.filter((i) => !i.principale)].map((i) => i.url)
+    : ev.affiche_url
+      ? [ev.affiche_url]
+      : [];
+  const paragraphes = (ev.description ?? "").split(/\r?\n/).map((p) => p.trim()).filter(Boolean);
+  const ferme = ev.estDemo || ev.estTermine;
 
   return (
-    <>
+    <div className={`${POLICES_V2} ${s.racine}`}>
       <Header />
+      <main className={s.cont}>
+        <nav className={s.fil} aria-label="Fil d'Ariane">
+          <a href="/evenements">Événements</a>
+          <Icon name="chevron-right" />
+          <span>{ev.ville}</span>
+        </nav>
 
-      {/* -------------------- BANNIÈRE + EN-TÊTE + CARROUSEL -------------------- */}
-      <CarrouselEvenement images={ev.images} afficheUrl={ev.affiche_url} titre={ev.titre}>
-        <div className="entete-ev">
-          <div className="badges-ev">
-            {ev.categories.map((c) => (
-              <span className="badge-ev" key={c}>{c}</span>
-            ))}
-            {placesTotales > 0 && (
-              <span className="badge-ev">
-                👥 {placesTotales.toLocaleString("fr-FR")} places
+        <div className={s.detailGrille}>
+          <div>
+            <Galerie images={images} titre={ev.titre} categorie={ev.categories[0] ?? "Événement"} s={s} />
+            <h1 className={s.dTitre}>{ev.titre}</h1>
+            <p className={s.dQuand}>
+              <Icon name="calendar" size={20} />
+              {dateLongue({ debut: ev.date_debut, fin: ev.date_fin && ev.date_fin !== ev.date_debut ? ev.date_fin : undefined })}
+            </p>
+            <div className={s.puces}>
+              <a className={s.puce} href={itineraire} target="_blank" rel="noopener noreferrer" aria-label={`${lieu} : itinéraire dans Google Maps`}>
+                <Icon name="pin" /> {lieu}
+              </a>
+              {heure && (
+                <span className={s.puce}>
+                  <Icon name="clock" /> {heure}
+                </span>
+              )}
+              <span className={s.puce}>
+                <Icon name="phone" /> Mobile Money
               </span>
+              <span className={s.puce}>
+                <Icon name="qr" /> Billet QR
+              </span>
+            </div>
+
+            {(paragraphes.length > 0 || ev.categories.length > 0 || ev.organisateurNom) && (
+              <Reveal>
+                <section className={s.section} style={{ paddingTop: 48 }}>
+                  <div className={s.tete}>
+                    <h2 className={s.h2}>À propos</h2>
+                  </div>
+                  {paragraphes.map((p, i) => (
+                    <p key={i} className={s.texte} style={i > 0 ? { marginTop: 16 } : undefined}>
+                      {p}
+                    </p>
+                  ))}
+                  {ev.categories.length > 0 && (
+                    <div className={s.puces} style={{ marginTop: 16 }}>
+                      {ev.categories.map((t) => (
+                        <span key={t} className={s.tag}>
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {ev.organisateurNom && (
+                    <p className={s.discret} style={{ marginTop: 24 }}>
+                      Organisé par {ev.organisateurNom} · {lieu}
+                    </p>
+                  )}
+                </section>
+              </Reveal>
             )}
-            {ev.estDemo && (
-              <span className="badge-ev chaud">⚠ Démonstration</span>
-            )}
           </div>
-          <h1>{ev.titre}</h1>
-          <div className="meta-ev">
-            <span>📅 {dateAffichee}{heure ? ` · ${heure}` : ""}</span>
-            <span>📍 {ev.lieu}, {ev.ville}</span>
-          </div>
-        </div>
-      </CarrouselEvenement>
 
-      {/* ---------------------------- CORPS ---------------------------- */}
-      <div className="corps-ev">
-        <div className="colonne">
-          {ev.description && (
-            <>
-              <h2>À propos</h2>
-              {ev.description.split("\n").filter(Boolean).map((para, i) => (
-                <p key={i}>{para}</p>
-              ))}
-            </>
-          )}
-
-          {ev.organisateurNom && (
-            <div className="organisateur-ev">
-              <div className="avatar-orga" aria-hidden="true">
-                {initiales(ev.organisateurNom)}
+          <aside className={s.colAchat}>
+            <section className={s.section} style={{ paddingTop: 32 }}>
+              <div className={s.tete}>
+                <h2 className={s.h2}>{ferme ? (ev.estTermine ? "Événement terminé" : "Démonstration") : "Billets"}</h2>
               </div>
-              <div>
-                <div className="l">Organisé par</div>
-                <div className="v">{ev.organisateurNom}</div>
-              </div>
-            </div>
-          )}
-
-          <h2>Infos pratiques</h2>
-          <div className="pratique">
-            <div className="info-p">
-              <div className="l">📅 Date</div>
-              <div className="v">{dateAffichee}</div>
-            </div>
-            {heure && (
-              <div className="info-p">
-                <div className="l">⏰ Heure</div>
-                <div className="v">{heure}</div>
-              </div>
-            )}
-            <div className="info-p">
-              <div className="l">📍 Ville</div>
-              <div className="v">{ev.ville}</div>
-            </div>
-            <div className="info-p">
-              <div className="l">📱 Paiement</div>
-              <div className="v">MTN, Moov &amp; Celtiis Money</div>
-            </div>
-          </div>
-
-          <h2>Lieu</h2>
-          <div className="carte-lieu">
-            <svg
-              className="routes"
-              viewBox="0 0 400 190"
-              preserveAspectRatio="xMidYMid slice"
-              aria-hidden="true"
-            >
-              <path
-                d="M0 60h400M0 130h400M80 0v190M200 0v190M310 0v190"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                opacity=".5"
-              />
-              <path
-                d="M0 95q100-30 200 0t200 0"
-                stroke="currentColor"
-                strokeWidth="2"
-                fill="none"
-                opacity=".7"
-              />
-            </svg>
-            <a
-              className="epingle"
-              href={urlItineraire}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              📍 {ev.lieu}, {ev.ville}
-            </a>
-          </div>
-        </div>
-
-        {ev.estDemo ? (
-          <aside className="billetterie" aria-label="Billetterie">
-            <h2>Événement de démonstration</h2>
-            <p className="limite">
-              Cet événement sert de vitrine pour présenter la plateforme — la
-              billetterie n&apos;est pas activée, aucun billet réel n&apos;est
-              en vente.
-            </p>
-            <Link className="btn btn-ghost" href="/evenements" style={{ display: "block", textAlign: "center" }}>
-              Voir les événements à venir →
-            </Link>
+              {ferme ? (
+                <>
+                  <p className={s.texte}>
+                    {ev.estTermine
+                      ? "Cet événement est passé : la billetterie est fermée."
+                      : "Cet événement sert de vitrine pour présenter la plateforme : la billetterie n'est pas activée, aucun billet n'est en vente."}
+                  </p>
+                  <a className={s.cta} href="/evenements" style={{ marginTop: 24 }}>
+                    <Icon name="calendar" size={20} />
+                    Voir les événements à venir
+                  </a>
+                </>
+              ) : (
+                <BilletPicker tarifs={ev.ticketTypes} s={s} commande={`/evenement/${ev.slug}/commande`} titre={ev.titre} />
+              )}
+            </section>
           </aside>
-        ) : ev.estTermine ? (
-          <aside className="billetterie" aria-label="Billetterie">
-            <h2>Événement terminé</h2>
-            <p className="limite">
-              Cet événement est passé — la billetterie n&apos;est plus disponible.
-            </p>
-            <Link className="btn btn-ghost" href="/evenements" style={{ display: "block", textAlign: "center" }}>
-              Voir les événements à venir →
-            </Link>
-          </aside>
-        ) : (
-          <Billetterie slug={ev.slug} titre={ev.titre} ticketTypes={ev.ticketTypes} paysCode={ev.paysCode} />
-        )}
-      </div>
-
-      <footer className="footer-mini">
-        <div className="in">
-          <span>
-            <Link href="/evenements">← Tous les événements</Link>
-          </span>
-          <span className="fon">Mì wá djawá !&nbsp;· La fête vous attend.</span>
         </div>
-      </footer>
-    </>
+        {!ferme && <div className={s.espaceBarre} />}
+      </main>
+      <Footer />
+    </div>
   );
 }

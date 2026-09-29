@@ -4,6 +4,7 @@ import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { signaturePanier, creerTransactionPourCommande, finaliserCommande } from "@/lib/commandes";
 import { aujourdhuiPortoNovo } from "@/lib/date";
+import { aidePays, normaliserNumero } from "@/lib/telephone";
 
 interface ItemSaisi {
   id: string;
@@ -115,7 +116,7 @@ export async function POST(req: NextRequest) {
   // 3. Événement publié + types de billets (source de vérité des prix/stock)
   const { data: ev } = await supabaseAdmin
     .from("events")
-    .select("id, titre, date_debut, date_fin, est_demo, ticket_types(id, nom, prix, quantite_totale, quantite_vendue)")
+    .select("id, titre, date_debut, date_fin, est_demo, pays_code, ticket_types(id, nom, prix, quantite_totale, quantite_vendue)")
     .eq("slug", slug)
     .eq("statut", "publie")
     .maybeSingle();
@@ -142,6 +143,17 @@ export async function POST(req: NextRequest) {
       { status: 409 }
     );
   }
+  // Téléphone de l'acheteur invité : validé et normalisé selon le pays de
+  // l'événement (celui où il paie en Mobile Money), jamais stocké tel que
+  // saisi. C'est le seul moyen de le joindre pour un remboursement.
+  if (champsInvite) {
+    const telephone = normaliserNumero(ev.pays_code, champsInvite.acheteur_telephone);
+    if (!telephone) {
+      return NextResponse.json({ error: `Numéro de téléphone invalide. ${aidePays(ev.pays_code)}` }, { status: 400 });
+    }
+    champsInvite.acheteur_telephone = telephone;
+  }
+
   const parId = new Map<string, TicketTypeRow>(
     (ev.ticket_types as TicketTypeRow[]).map((t) => [t.id, t])
   );

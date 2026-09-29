@@ -18,6 +18,13 @@ export type EvenementCarte = {
   restantes?: number;
 };
 
+/**
+ * Plafond de billets par tarif et par commande : un groupe plus grand fait
+ * deux commandes. Ici (module neutre) et non dans BilletPicker : une page
+ * serveur ne lit pas la valeur d'une constante exportée par un module client.
+ */
+export const MAX_PAR_TARIF = 10;
+
 const JOURS = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
 const MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
 

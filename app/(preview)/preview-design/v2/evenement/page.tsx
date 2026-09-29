@@ -1,13 +1,14 @@
 import s from "../v2.module.css";
 import { Header, Footer } from "../chrome";
 import Affiche from "../../Affiche";
+import Galerie from "../../Galerie";
 import BilletPicker from "../../BilletPicker";
 import DetailSquelette from "../../DetailSquelette";
 import Icon from "../../Icon";
 import Reveal from "../../Reveal";
-import { EVENEMENT_DETAIL, dateLongue } from "../../_data";
+import { EVENEMENTS, EVENEMENT_DETAIL, dateLongue } from "../../_data";
 
-export default function V2Detail({ searchParams }: { searchParams: { etat?: string; affiche?: string } }) {
+export default function V2Detail({ searchParams }: { searchParams: { etat?: string; affiche?: string; images?: string } }) {
   const ev = searchParams.affiche === "non" ? { ...EVENEMENT_DETAIL, image: null } : EVENEMENT_DETAIL;
 
   return (
@@ -25,7 +26,12 @@ export default function V2Detail({ searchParams }: { searchParams: { etat?: stri
         ) : (
           <div className={s.detailGrille}>
             <div>
-              <Affiche e={ev} s={s} priorite />
+              {searchParams.images === "plusieurs" ? (
+                // Proposition : affiche + visuels secondaires (programme, lieu), comme le carrousel de la prod.
+                <Galerie images={[ev.image, EVENEMENTS[1].image, EVENEMENTS[4].image, EVENEMENTS[6].image].filter((x): x is string => !!x)} titre={ev.titre} categorie={ev.categorie} s={s} />
+              ) : (
+                <Affiche e={ev} s={s} priorite />
+              )}
               <h1 className={s.dTitre}>{ev.titre}</h1>
               <p className={s.dQuand}>
                 <Icon name="calendar" size={20} />

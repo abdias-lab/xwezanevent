@@ -2,68 +2,118 @@
 
 import { useState } from "react";
 import s from "../espace.module.css";
-import Icon from "../../Icon";
-import { B } from "../Coquille";
-import { fcfa } from "../../_data";
+import Icon from "../Icon";
+import { fcfa, MAX_PAR_TARIF } from "./evenement";
+import { aidePays, exemplePays, normaliserNumero } from "@/lib/telephone";
 
-export type TarifCommande = { id: string; nom: string; detail: string; prix: number; disponibles: number };
-type Compte = { nom: string; email: string; tel: string } | null;
+export type TarifCommande = { id: string; nom: string; prix: number; disponibles: number };
+type Compte = { nom: string; email: string } | null;
 type Phase = "saisie" | "envoi" | "redirection";
-
-const MAX_PAR_TARIF = 10; // limite de la preview (la prod plafonne au stock disponible)
+type Erreur = { texte: string; lien?: { href: string; libelle: string } } | null;
 
 /**
- * Commande (preview V2). En prod, tout se passe dans components/Billetterie.tsx
- * sur la page de l'événement : quantités, choix « se connecter » ou « sans
- * compte », coordonnées de l'invité, POST /api/orders, puis redirection vers
- * FedaPay (ou directement /confirmation si tout est gratuit). Ici : page dédiée,
- * panier dans l'URL (conservé si l'acheteur passe par la connexion).
+ * Commande (V2), reprise de la preview (v2/commande/Commande.tsx) :
+ * quantités, « sans compte » ou connexion, coordonnées de l'invité, POST
+ * /api/orders, puis FedaPay (ou directement /confirmation si tout est
+ * gratuit). Connecté : nom et e-mail du compte, sans téléphone (une
+ * commande liée à un compte n'en porte pas, contrainte
+ * orders_identite_acheteur). Invité : téléphone validé selon le pays de
+ * l'événement, ici et dans /api/orders.
  */
 export default function Commande({
+  slug,
+  paysCode,
   titre,
   quand,
   lieu,
   tarifs,
   initial,
   compte,
-  erreurStock,
 }: {
+  slug: string;
+  paysCode: string;
   titre: string;
   quand: string;
   lieu: string;
   tarifs: TarifCommande[];
   initial: Record<string, number>;
   compte: Compte;
-  erreurStock: boolean;
 }) {
   const [q, setQ] = useState<Record<string, number>>(initial);
   const [mode, setMode] = useState<"compte" | "invite" | null>(compte ? "compte" : null);
-  const [nom, setNom] = useState(compte?.nom ?? "");
-  const [email, setEmail] = useState(compte?.email ?? "");
-  const [tel, setTel] = useState(compte?.tel ?? "");
+  const [nom, setNom] = useState("");
+  const [email, setEmail] = useState("");
+  const [tel, setTel] = useState("");
   const [tente, setTente] = useState(false);
   const [phase, setPhase] = useState<Phase>("saisie");
+  const [erreur, setErreur] = useState<Erreur>(null);
 
   const lignes = tarifs.filter((t) => (q[t.id] ?? 0) > 0);
   const nb = lignes.reduce((n, t) => n + q[t.id], 0);
   const total = lignes.reduce((n, t) => n + q[t.id] * t.prix, 0);
   const gratuit = nb > 0 && total === 0;
-  const change = (t: TarifCommande, d: number) =>
-    setQ((p) => ({ ...p, [t.id]: Math.max(0, Math.min(Math.min(MAX_PAR_TARIF, t.disponibles), (p[t.id] ?? 0) + d)) }));
+  const plafond = (t: TarifCommande) => Math.min(MAX_PAR_TARIF, t.disponibles);
+  const change = (t: TarifCommande, d: number) => setQ((p) => ({ ...p, [t.id]: Math.max(0, Math.min(plafond(t), (p[t.id] ?? 0) + d)) }));
 
-  const nomOk = nom.trim().length > 1;
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const chiffres = tel.replace(/\D/g, "");
-  const telOk = chiffres.length === 8 || (chiffres.length === 10 && chiffres.startsWith("01")) || (chiffres.length === 13 && chiffres.startsWith("22901"));
+  const invite = mode === "invite";
+  const nomOk = !invite || nom.trim().length > 1;
+  const emailOk = !invite || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const telOk = !invite || normaliserNumero(paysCode, tel) !== null;
   const coordonneesOk = nomOk && emailOk && telOk;
   const panier = new URLSearchParams(Object.fromEntries(lignes.map((t) => [t.id, String(q[t.id])]))).toString();
-  const retour = `${B}/commande${panier ? `?${panier}` : ""}`;
+  const retour = `/evenement/${slug}/commande${panier ? `?${panier}` : ""}`;
+  const envoi = phase !== "saisie";
 
-  function payer() {
+  async function payer() {
+    if (envoi) return; // jamais deux envois simultanés
     setTente(true);
+    setErreur(null);
     if (nb === 0 || !mode || !coordonneesOk) return;
     setPhase("envoi");
-    setTimeout(() => setPhase("redirection"), 800);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug,
+          items: lignes.map((t) => ({ id: t.id, qte: q[t.id] })),
+          ...(invite ? { invite: { nom: nom.trim(), email: email.trim(), telephone: tel.trim() } } : {}),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        // Session expirée entre l'affichage et le paiement.
+        setMode(null);
+        setErreur({ texte: "Ta session a expiré. Reconnecte-toi, ou continue sans compte." });
+        setPhase("saisie");
+        return;
+      }
+      if (res.ok && data.gratuit) {
+        window.location.href = `/confirmation?order=${data.orderId}`;
+        return;
+      }
+      if (res.ok && data.url) {
+        setPhase("redirection");
+        window.location.href = data.url; // → paiement FedaPay
+        return;
+      }
+      if (data.dejaPayee) {
+        setErreur({ texte: "Tu as déjà payé cette sélection il y a quelques minutes : rien n'a été payé en plus.", lien: compte ? { href: "/compte", libelle: "Voir mes billets" } : { href: "/billet", libelle: "Retrouver mes billets" } });
+        setPhase("saisie");
+        return;
+      }
+      if (data.orderId) {
+        // Commande créée mais paiement indisponible : page d'échec, réessai sur la même commande.
+        window.location.href = `/paiement/echec?order=${data.orderId}&raison=indisponible`;
+        return;
+      }
+      const message = String(data.error ?? "Une erreur est survenue.");
+      setErreur({ texte: `${message}${/[.!?]$/.test(message) ? "" : "."} Rien n'a été payé.` });
+      setPhase("saisie");
+    } catch {
+      setErreur({ texte: "Connexion impossible. Vérifie ta connexion et réessaie : rien n'a été payé." });
+      setPhase("saisie");
+    }
   }
 
   const libelle = phase === "envoi" ? "Un instant…" : gratuit ? "Réserver gratuitement" : nb === 0 ? "Choisis tes billets" : `Payer ${fcfa(total)}`;
@@ -73,15 +123,8 @@ export default function Commande({
     return (
       <div className={s.vide} role="status" style={{ maxWidth: 520 }}>
         <Icon name="phone" size={48} className={s.montantOr} />
-        <p className={s.videTitre}>{gratuit ? "Réservation confirmée" : "Direction FedaPay…"}</p>
-        <p className={s.videTexte}>
-          {gratuit
-            ? "Tes billets gratuits sont prêts. Tu les reçois aussi par e-mail."
-            : `Tu vas valider ${fcfa(total)} sur FedaPay, notre partenaire de paiement. Garde ton téléphone ${tel.trim()} à portée : une demande de validation Mobile Money va t'arriver.`}
-        </p>
-        <a href={gratuit ? `${B}/confirmation` : `${B}/paiement/retour`} className={`${s.btn} ${s.btnGris} ${s.btnGrand}`}>
-          Preview : {gratuit ? "voir la confirmation" : "simuler le retour de FedaPay"}
-        </a>
+        <p className={s.videTitre}>Direction FedaPay…</p>
+        <p className={s.videTexte}>Tu vas valider {fcfa(total)} sur FedaPay, notre partenaire de paiement. Garde ton téléphone à portée.</p>
       </div>
     );
   }
@@ -89,10 +132,20 @@ export default function Commande({
   return (
     <div className={s.form}>
       <div className={s.formCorps}>
-        {erreurStock && (
+        {erreur && (
           <p className={`${s.alerte} ${s.alerteDanger}`} role="alert" style={{ marginBottom: 8 }}>
             <Icon name="alert" />
-            <span>Il ne reste que 3 places en « Table 6 personnes ». Ajuste ta commande, rien n&apos;a été payé.</span>
+            <span>
+              {erreur.texte}
+              {erreur.lien && (
+                <>
+                  {" "}
+                  <a href={erreur.lien.href} style={{ textDecoration: "underline" }}>
+                    {erreur.lien.libelle}
+                  </a>
+                </>
+              )}
+            </span>
           </p>
         )}
 
@@ -105,6 +158,7 @@ export default function Commande({
               Tes billets
             </h2>
           </div>
+          {tarifs.length === 0 && <p className={s.note}>Aucun billet en vente pour le moment.</p>}
           <ul className={s.pile} style={{ gap: 8 }}>
             {tarifs.map((t) => {
               const n = q[t.id] ?? 0;
@@ -113,9 +167,6 @@ export default function Commande({
                 <li key={t.id} className={s.verrou} style={{ justifyContent: "space-between", color: "inherit", boxShadow: n > 0 ? "inset 0 0 0 1.5px var(--or)" : undefined }}>
                   <span>
                     <b>{t.nom}</b>
-                    <span className={s.note} style={{ display: "block" }}>
-                      {t.detail}
-                    </span>
                     <span className={s.chiffre} style={{ display: "block", fontWeight: 700 }}>
                       {fcfa(t.prix)}
                       {!epuise && t.disponibles <= 10 && <span className={s.note}> · plus que {t.disponibles}</span>}
@@ -125,7 +176,7 @@ export default function Commande({
                     <span className={`${s.statut} ${s.stBarre}`}>Épuisé</span>
                   ) : (
                     <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <button type="button" className={`${s.btn} ${s.btnGris}`} style={{ width: 44, padding: 0 }} aria-label={`Retirer un billet ${t.nom}`} disabled={n === 0} onClick={() => change(t, -1)}>
+                      <button type="button" className={`${s.btn} ${s.btnGris}`} style={{ width: 44, padding: 0 }} aria-label={`Retirer un billet ${t.nom}`} disabled={n === 0 || envoi} onClick={() => change(t, -1)}>
                         <Icon name="minus" />
                       </button>
                       <span className={s.chiffre} style={{ minWidth: 20, textAlign: "center", fontWeight: 700 }} aria-live="polite">
@@ -136,7 +187,7 @@ export default function Commande({
                         className={`${s.btn} ${s.btnGris}`}
                         style={{ width: 44, padding: 0 }}
                         aria-label={`Ajouter un billet ${t.nom}`}
-                        disabled={n >= Math.min(MAX_PAR_TARIF, t.disponibles)}
+                        disabled={n >= plafond(t) || envoi}
                         onClick={() => change(t, 1)}
                       >
                         <Icon name="plus" />
@@ -169,23 +220,33 @@ export default function Commande({
                 <button type="button" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} onClick={() => setMode("invite")}>
                   Continuer sans compte
                 </button>
-                <a href={`${B}/connexion?redirect=${encodeURIComponent(retour)}`} className={`${s.btn} ${s.btnGris} ${s.btnGrand}`}>
+                <a href={`/connexion?redirect=${encodeURIComponent(retour)}`} className={`${s.btn} ${s.btnGris} ${s.btnGrand}`}>
                   J&apos;ai un compte, me connecter
                 </a>
               </div>
               <p className={s.note}>Ton panier est gardé si tu te connectes.</p>
               {tente && <span className={s.erreur}>Choisis comment continuer.</span>}
             </>
+          ) : mode === "compte" && compte ? (
+            <>
+              <p className={s.note} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Icon name="check" size={16} /> Connecté : tes billets seront aussi dans ton compte.
+              </p>
+              <div className={s.champ}>
+                <label htmlFor="nom">Nom</label>
+                <input id="nom" value={compte.nom} readOnly />
+              </div>
+              <div className={s.champ}>
+                <label htmlFor="email">E-mail</label>
+                <input id="email" type="email" value={compte.email} readOnly />
+                <span className={s.aide}>Tes billets arrivent à cette adresse.</span>
+              </div>
+            </>
           ) : (
             <>
-              {mode === "compte" && (
-                <p className={s.note} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Icon name="check" size={16} /> Connecté : tes billets seront aussi dans ton compte.
-                </p>
-              )}
               <div className={champ(nomOk)}>
                 <label htmlFor="nom">Nom sur les billets</label>
-                <input id="nom" autoComplete="name" value={nom} placeholder="Prénom Nom" aria-invalid={tente && !nomOk} onChange={(e) => setNom(e.target.value)} />
+                <input id="nom" autoComplete="name" value={nom} placeholder="Prénom Nom" aria-invalid={tente && !nomOk} disabled={envoi} onChange={(e) => setNom(e.target.value)} />
                 {tente && !nomOk && <span className={s.erreur}>Indique ton prénom et ton nom.</span>}
               </div>
               <div className={champ(emailOk)}>
@@ -197,8 +258,8 @@ export default function Commande({
                   autoComplete="email"
                   value={email}
                   placeholder="ton@email.com"
-                  readOnly={mode === "compte"}
                   aria-invalid={tente && !emailOk}
+                  disabled={envoi}
                   onChange={(e) => setEmail(e.target.value)}
                 />
                 {tente && !emailOk ? <span className={s.erreur}>Indique une adresse e-mail valide.</span> : <span className={s.aide}>Tes billets arrivent à cette adresse.</span>}
@@ -207,23 +268,18 @@ export default function Commande({
                 <label htmlFor="tel">
                   Numéro Mobile Money <small>(celui qui paie)</small>
                 </label>
-                <input id="tel" type="tel" inputMode="tel" autoComplete="tel" value={tel} placeholder="01 97 00 00 00" aria-invalid={tente && !telOk} onChange={(e) => setTel(e.target.value)} />
-                {tente && !telOk ? (
-                  <span className={s.erreur}>10 chiffres commençant par 01, ou 8 chiffres.</span>
-                ) : (
-                  <span className={s.aide}>Il sert aussi en cas de remboursement.</span>
-                )}
+                <input id="tel" type="tel" inputMode="tel" autoComplete="tel" value={tel} placeholder={exemplePays(paysCode)} aria-invalid={tente && !telOk} disabled={envoi} onChange={(e) => setTel(e.target.value)} />
+                {tente && !telOk ? <span className={s.erreur}>{aidePays(paysCode)}</span> : <span className={s.aide}>Il sert aussi en cas de remboursement.</span>}
               </div>
-              {mode === "invite" && !compte && (
-                <button
-                  type="button"
-                  className={s.note}
-                  style={{ background: "none", border: 0, padding: 0, textDecoration: "underline", cursor: "pointer", justifySelf: "start" }}
-                  onClick={() => setMode(null)}
-                >
-                  Finalement, me connecter
-                </button>
-              )}
+              <button
+                type="button"
+                className={s.note}
+                style={{ background: "none", border: 0, padding: 0, textDecoration: "underline", cursor: "pointer", justifySelf: "start" }}
+                disabled={envoi}
+                onClick={() => setMode(null)}
+              >
+                Finalement, me connecter
+              </button>
             </>
           )}
         </section>
@@ -231,7 +287,7 @@ export default function Commande({
 
       <aside className={s.cote}>
         <Recap titre={titre} quand={quand} lieu={lieu} lignes={lignes} q={q} total={total} />
-        <button type="button" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} aria-disabled={phase === "envoi"} onClick={payer}>
+        <button type="button" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} aria-disabled={envoi} onClick={payer}>
           <Icon name={gratuit ? "ticket" : "phone"} /> {libelle}
         </button>
         <Rassurance />
@@ -247,7 +303,7 @@ export default function Commande({
           {nb > 0 ? `${nb} billet${nb > 1 ? "s" : ""}` : "Aucun billet"}
           <b style={{ display: "block", color: "#fff", fontSize: 16 }}>{nb > 0 ? fcfa(total) : "—"}</b>
         </span>
-        <button type="button" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} style={{ flex: 1 }} aria-disabled={phase === "envoi"} onClick={payer}>
+        <button type="button" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} style={{ flex: 1 }} aria-disabled={envoi} onClick={payer}>
           {libelle}
         </button>
       </div>
