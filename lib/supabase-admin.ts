@@ -12,6 +12,15 @@ function creerClientAdmin() {
       persistSession: false,
       autoRefreshToken: false,
     },
+    // Jamais de cache de données Next : Next 14 met en cache les fetch GET des
+    // Server Components (ici avec une validité d'un an), même sous
+    // `dynamic = "force-dynamic"`, dès que la page ne lit pas les cookies.
+    // Une page qui ne passe que par ce client lisait alors une copie figée de
+    // la base (ex. /paiement/retour : commande vue « en_attente » après son
+    // paiement). BUGS_REFONTE n°22.
+    global: {
+      fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+    },
   });
 }
 
