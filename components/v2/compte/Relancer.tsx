@@ -1,8 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import s from "../espace.module.css";
+import Icon from "../Icon";
 
-export default function RelancerPaiement({ orderId }: { orderId: string }) {
+/**
+ * Relance du paiement (V2), reprise de la preview (v2/paiement/echec/Relancer.tsx)
+ * et branchée sur POST /api/orders/[id]/reessayer comme l'ancien
+ * RelancerPaiement. Proposée uniquement pour un échec définitif (annulé,
+ * refusé, indisponible, expiré), jamais pour « en attente » : la route
+ * revérifie de toute façon la transaction précédente (BUGS_REFONTE n°12).
+ */
+export default function Relancer({ orderId, total }: { orderId: string; total: string }) {
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
 
@@ -32,16 +41,14 @@ export default function RelancerPaiement({ orderId }: { orderId: string }) {
 
   return (
     <>
-      {erreur && <p className="note-paiement">{erreur}</p>}
-      <button
-        className="btn btn-or btn-large"
-        type="button"
-        onClick={reessayer}
-        disabled={enCours}
-        aria-busy={enCours}
-      >
-        {enCours && <span className="spinner" aria-hidden="true" />}
-        {enCours ? "Redirection…" : "Réessayer le paiement"}
+      {erreur && (
+        <p className={`${s.alerte} ${s.alerteDanger}`} role="alert" style={{ marginBottom: 0, textAlign: "left" }}>
+          <Icon name="alert" />
+          <span>{erreur}</span>
+        </p>
+      )}
+      <button type="button" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} aria-disabled={enCours} onClick={reessayer}>
+        <Icon name="repeat" /> {enCours ? "Redirection vers FedaPay…" : `Réessayer, ${total}`}
       </button>
     </>
   );
