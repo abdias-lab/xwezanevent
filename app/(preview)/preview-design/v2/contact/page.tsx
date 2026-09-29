@@ -44,7 +44,7 @@ export default function V2Contact({ searchParams }: { searchParams: { etat?: str
         }
         sections={[
           {
-            id: "message",
+            id: "formulaire", // pas « message » : c'est déjà l'id du champ du formulaire
             titre: "Envoie-nous un message",
             contenu: <Formulaire envoyeInitial={searchParams.etat === "envoye"} erreurInitiale={searchParams.etat === "erreur"} />,
           },

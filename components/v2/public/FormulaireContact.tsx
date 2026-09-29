@@ -2,23 +2,24 @@
 
 import { useState } from "react";
 import s from "../espace.module.css";
-import Icon from "../../Icon";
+import Icon from "../Icon";
 
 const MAX_MESSAGE = 5000; // limite de /api/contact
 
 /**
- * Formulaire de contact (preview V2). Mêmes champs et limites que
- * components/FormulaireContact.tsx → POST /api/contact (nom et e-mail ≤ 200,
- * message ≤ 5000, champ piège « site_web » invisible). Aucun envoi réel.
+ * Formulaire de contact (V2), repris de la preview (v2/contact/Formulaire.tsx)
+ * et branché sur POST /api/contact comme l'ancien FormulaireContact : nom et
+ * e-mail ≤ 200, message ≤ 5000, champ piège « site_web » invisible.
  */
-export default function Formulaire({ envoyeInitial, erreurInitiale }: { envoyeInitial: boolean; erreurInitiale: boolean }) {
+export default function FormulaireContact() {
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [piege, setPiege] = useState("");
   const [tente, setTente] = useState(false);
   const [enCours, setEnCours] = useState(false);
-  const [envoye, setEnvoye] = useState(envoyeInitial);
+  const [erreur, setErreur] = useState(false);
+  const [envoye, setEnvoye] = useState(false);
 
   const nomOk = nom.trim().length > 0 && nom.length <= 200;
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && email.length <= 200;
@@ -39,22 +40,31 @@ export default function Formulaire({ envoyeInitial, erreurInitiale }: { envoyeIn
     <form
       className={s.formSimple}
       noValidate
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
+        if (enCours) return;
         setTente(true);
+        setErreur(false);
         if (!nomOk || !emailOk || !messageOk) {
           requestAnimationFrame(() => document.querySelector<HTMLElement>(`form [aria-invalid="true"]`)?.focus());
           return;
         }
-        if (piege) return;
         setEnCours(true);
-        setTimeout(() => {
-          setEnCours(false);
-          setEnvoye(true);
-        }, 700);
+        try {
+          const res = await fetch("/api/contact", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nom: nom.trim(), email: email.trim(), message: message.trim(), site_web: piege }),
+          });
+          if (res.ok) setEnvoye(true);
+          else setErreur(true);
+        } catch {
+          setErreur(true);
+        }
+        setEnCours(false);
       }}
     >
-      {erreurInitiale && (
+      {erreur && (
         <p className={`${s.alerte} ${s.alerteDanger}`} role="alert" style={{ marginBottom: 0 }}>
           <Icon name="alert" />
           <span>Une erreur est survenue. Ton message n&apos;est pas parti : réessaie, ou écris directement à contact@xwezan.com.</span>
