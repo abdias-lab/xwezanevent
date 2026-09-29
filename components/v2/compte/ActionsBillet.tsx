@@ -2,12 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import s from "../espace.module.css";
-import Icon from "../../Icon";
+import Icon from "../Icon";
 
 type WakeLock = { release: () => Promise<void> };
 
 /**
- * Actions d'un billet : plein écran (QR maximal sur blanc, écran maintenu
+ * Actions d'un billet (V2), reprises de la preview (v2/confirmation/ActionsBillet.tsx) : plein écran (QR maximal sur blanc, écran maintenu
  * allumé si le navigateur le permet) et image à enregistrer pour garder
  * son billet sans réseau. La luminosité ne se règle pas depuis une page web :
  * on le conseille.

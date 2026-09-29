@@ -41,6 +41,16 @@ export function dateCarte(e: Pick<EvenementCarte, "debut" | "fin">) {
   }
   return `${JOURS[a.dow]} ${a.j} ${MOIS[a.m]}`;
 }
+/** Date longue (preview-design/_data.ts) : « samedi 3 oct. 2026 », « Du 13 au 15 nov. 2026 ». */
+export function dateLongue(e: Pick<EvenementCarte, "debut" | "fin">) {
+  const a = parse(e.debut);
+  if (e.fin) {
+    const b = parse(e.fin);
+    if (a.y !== b.y) return `Du ${a.j} ${MOIS[a.m]} ${a.y} au ${b.j} ${MOIS[b.m]} ${b.y}`;
+    return a.m === b.m ? `Du ${a.j} au ${b.j} ${MOIS[b.m]} ${b.y}` : `Du ${a.j} ${MOIS[a.m]} au ${b.j} ${MOIS[b.m]} ${b.y}`;
+  }
+  return `${JOURS[a.dow]} ${a.j} ${MOIS[a.m]} ${a.y}`;
+}
 export function fcfa(n: number) {
   if (n === 0) return "Gratuit";
   return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "\u00A0") + "\u00A0FCFA";
