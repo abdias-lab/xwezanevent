@@ -5,7 +5,10 @@
 /* Haut et bas seulement : les marges latérales viennent de .cont (16 px sur
    mobile, 24 px au-delà). Un `padding: … 0 …` les écrasait, le texte
    touchait les bords de l'écran. */
-.page {
+/* main.page, pas .page : plus spécifique que .cont (v2.module.css), dont le
+   « padding: 0 var(--s4) » remettrait sinon le haut et le bas à zéro selon
+   l'ordre de chargement des feuilles de style, qui change d'une page à l'autre. */
+main.page {
   padding-top: var(--s8);
   padding-bottom: var(--s16);
 }
