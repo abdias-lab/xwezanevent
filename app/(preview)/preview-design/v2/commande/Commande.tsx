@@ -292,9 +292,6 @@ function Rassurance() {
   return (
     <ul className={s.checklist} style={{ fontSize: 13 }}>
       <li>
-        <Icon name="check" size={16} /> Prix affiché = prix payé, aucun frais de service
-      </li>
-      <li>
         <Icon name="shield" size={16} /> Paiement sécurisé par FedaPay
       </li>
       <li>

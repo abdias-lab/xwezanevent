@@ -4,7 +4,7 @@ import { B } from "../Coquille";
 
 export const metadata: Metadata = { title: "CGU & confidentialité — XwézanEvent" };
 
-/** CGU (preview V2). Texte identique à app/(public)/cgu (mise à jour du 29 septembre 2026). */
+/** CGU (preview V2). Texte identique à app/(public)/cgu (mise à jour du 30 septembre 2026). */
 export default function V2Cgu() {
   return (
     <PageContenu
@@ -15,7 +15,7 @@ export default function V2Cgu() {
         </>
       }
       intro="Les règles du jeu, en clair. Ce document décrit comment XwézanEvent fonctionne, ce que ça implique pour toi, et comment tes données personnelles sont utilisées."
-      maj="Ce document est susceptible d'évoluer. Dernière mise à jour : 29 septembre 2026."
+      maj="Ce document est susceptible d'évoluer. Dernière mise à jour : 30 septembre 2026."
       sections={[
         {
           id: "mentions",
@@ -90,8 +90,7 @@ export default function V2Cgu() {
           contenu: (
             <>
               <p>
-                L&apos;acheteur paie le prix affiché du billet, sans frais de service XwézanEvent additionnels (seuls d&apos;éventuels frais Mobile Money
-                appliqués par l&apos;opérateur de paiement peuvent s&apos;ajouter à sa charge, indépendants de XwézanEvent). XwézanEvent prélève une commission
+                XwézanEvent prélève une commission
                 de 8% côté organisateur, au moment du reversement des ventes.
               </p>
               <p>
