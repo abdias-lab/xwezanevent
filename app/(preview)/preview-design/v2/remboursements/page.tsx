@@ -6,8 +6,8 @@ export const metadata: Metadata = { title: "Remboursements — XwézanEvent" };
 
 /**
  * Remboursements (preview V2). Texte repris mot pour mot de
- * app/(public)/remboursements. Le délai « 5 à 10 jours ouvrés » passera à
- * 14 jours avec le chantier « annulation » (design/BUGS_REFONTE.md), pas avant.
+ * app/(public)/remboursements. Délai de 14 jours et gel des fonds : décision
+ * d'Abdias du 2026-09-29, alignée sur les CGU (section 6).
  */
 export default function V2Remboursements() {
   return (
@@ -55,8 +55,9 @@ export default function V2Remboursements() {
           titre: "Délais",
           contenu: (
             <p>
-              À titre indicatif, les remboursements suite à une annulation sont traités sous <strong>5 à 10 jours ouvrés</strong> après la confirmation de
-              l&apos;annulation, le temps de vérifier chaque commande concernée. Ce délai n&apos;est pas garanti contractuellement.
+              Les remboursements suite à une annulation sont effectués dans un délai de <strong>14 jours</strong> suivant la confirmation de
+              l&apos;annulation, le temps de vérifier chaque commande concernée. Ce remboursement ne dépend pas de l&apos;organisateur : les fonds sont
+              gelés dès l&apos;annulation et n&apos;ont jamais quitté la plateforme.
             </p>
           ),
         },

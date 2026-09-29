@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "Conditions générales d'utilisation et politique de confidentialité de XwézanEvent.",
 };
 
-/** CGU (V2), reprises de la preview (v2/cgu). Texte inchangé (mise à jour du 13 juillet 2026). */
+/** CGU (V2), reprises de la preview (v2/cgu). Texte mis à jour le 29 septembre 2026 (modération, délai de remboursement, droits sur les données). */
 export default function Cgu() {
   return (
     <PageContenu
@@ -17,7 +17,7 @@ export default function Cgu() {
         </>
       }
       intro="Les règles du jeu, en clair. Ce document décrit comment XwézanEvent fonctionne, ce que ça implique pour toi, et comment tes données personnelles sont utilisées."
-      maj="Ce document est susceptible d'évoluer. Dernière mise à jour : 13 juillet 2026."
+      maj="Ce document est susceptible d'évoluer. Dernière mise à jour : 29 septembre 2026."
       sections={[
         {
           id: "mentions",
@@ -65,8 +65,19 @@ export default function Cgu() {
           ),
         },
         {
+          id: "moderation",
+          titre: "3. Modération",
+          contenu: (
+            <p>
+              Chaque événement soumis sur XwézanEvent passe par une validation avant publication. Nous nous réservons le droit de refuser ou de retirer un
+              événement, et de suspendre ou supprimer un compte, en cas de non-respect des présentes conditions, d&apos;informations trompeuses ou de contenu
+              illicite — sans que cela ouvre droit à indemnisation.
+            </p>
+          ),
+        },
+        {
           id: "acheteur",
-          titre: "3. Responsabilités de l'acheteur",
+          titre: "4. Responsabilités de l'acheteur",
           contenu: (
             <ul>
               <li>Fournir des informations exactes lors de la création de son compte et de ses achats.</li>
@@ -77,7 +88,7 @@ export default function Cgu() {
         },
         {
           id: "tarification",
-          titre: "4. Tarification et paiement",
+          titre: "5. Tarification et paiement",
           contenu: (
             <>
               <p>
@@ -96,18 +107,19 @@ export default function Cgu() {
         },
         {
           id: "remboursement",
-          titre: "5. Politique de remboursement",
+          titre: "6. Politique de remboursement",
           contenu: (
             <p>
               Les billets ne sont pas remboursables, sauf en cas d&apos;annulation de l&apos;événement. Dans ce cas, les fonds sont sécurisés (gel des
-              reversements en attente de l&apos;organisateur concerné) et XwézanEvent organise le remboursement de chaque acheteur vers son moyen de paiement
-              d&apos;origine, sans frais supplémentaire. Le détail complet est disponible sur notre page <a href="/remboursements">Remboursements</a>.
+              reversements de l&apos;organisateur concerné) et XwézanEvent organise le remboursement de chaque acheteur vers son moyen de paiement
+              d&apos;origine, sans frais supplémentaire, dans un délai de 14 jours suivant la confirmation de l&apos;annulation. Ce remboursement ne dépend
+              pas de l&apos;organisateur : les fonds n&apos;ont jamais quitté la plateforme. Le détail complet est disponible sur notre page <a href="/remboursements">Remboursements</a>.
             </p>
           ),
         },
         {
           id: "donnees",
-          titre: "6. Données personnelles",
+          titre: "7. Données personnelles",
           contenu: (
             <>
               <p>Nous collectons et utilisons les données suivantes :</p>
@@ -129,17 +141,27 @@ export default function Cgu() {
                 Ces données ne sont ni vendues, ni partagées avec des tiers en dehors des prestataires strictement nécessaires au fonctionnement du service
                 (hébergement, paiement, envoi d&apos;emails).
               </p>
+              <p>
+                <strong>Tes droits.</strong> Tu peux à tout moment demander l&apos;accès à tes données, leur rectification ou leur suppression en écrivant à{" "}
+                <a href="mailto:contact@xwezan.com">contact@xwezan.com</a>. Nous traitons ces demandes sous 30 jours. La suppression de ton compte entraîne
+                l&apos;effacement de tes données personnelles, à l&apos;exception de celles que nous devons conserver pour des obligations légales ou comptables
+                (historique de transactions).
+              </p>
+              <p>
+                <strong>Durée de conservation.</strong> Tes données sont conservées tant que ton compte est actif. Après suppression du compte, elles sont
+                effacées sous 12 mois, hors obligations légales.
+              </p>
             </>
           ),
         },
         {
           id: "hebergement",
-          titre: "7. Hébergement",
+          titre: "8. Hébergement",
           contenu: <p>Les données de XwézanEvent sont hébergées au sein de l&apos;Union européenne, sur l&apos;infrastructure Supabase (région Paris, France).</p>,
         },
         {
           id: "droit",
-          titre: "8. Droit applicable",
+          titre: "9. Droit applicable",
           contenu: (
             <p>
               Les présentes conditions sont régies par le droit béninois. Tout litige relève, à défaut de résolution amiable, des juridictions compétentes du

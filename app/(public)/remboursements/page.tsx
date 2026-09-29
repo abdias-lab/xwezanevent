@@ -70,11 +70,12 @@ export default function Remboursements() {
         <div className="bloc">
           <h2>Délais</h2>
           <p>
-            À titre indicatif, les remboursements suite à une annulation sont
-            traités sous <strong>5 à 10 jours ouvrés</strong> après la
-            confirmation de l&apos;annulation, le temps de vérifier chaque
-            commande concernée. Ce délai n&apos;est pas garanti
-            contractuellement.
+            Les remboursements suite à une annulation sont effectués dans un
+            délai de <strong>14 jours</strong> suivant la confirmation de
+            l&apos;annulation, le temps de vérifier chaque commande concernée.
+            Ce remboursement ne dépend pas de l&apos;organisateur : les fonds
+            sont gelés dès l&apos;annulation et n&apos;ont jamais quitté la
+            plateforme.
           </p>
         </div>
 
