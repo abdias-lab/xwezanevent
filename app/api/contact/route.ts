@@ -2,7 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { envoyerEmail } from "@/lib/email";
 import { emailContact } from "@/lib/emails/contact";
 
-const DESTINATAIRE = "gbedoloabdias@gmail.com";
+// Adresse affichée sur /contact et dans les CGU (décision du 2026-09-29).
+// Domaine xwezan.com servi par Cloudflare Email Routing : pas de boîte
+// propre, le message est redirigé vers l'adresse réglée dans Cloudflare.
+const DESTINATAIRE = "contact@xwezan.com";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
