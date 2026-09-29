@@ -88,7 +88,9 @@ export default async function Compte() {
       .select("id, total, statut, created_at, updated_at, event_id, panier, tickets(ticket_type_id)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
-    supabase.from("profiles").select("nom, telephone").eq("id", user.id).maybeSingle(),
+    // Téléphone : plus lisible par le rôle authenticated (20260929120000_audit_n20_droits.sql),
+    // donc lu côté serveur, pour l'utilisateur connecté uniquement.
+    supabaseAdmin.from("profiles").select("nom, telephone").eq("id", user.id).maybeSingle(),
   ]);
   const orders = (ordersData as unknown as OrderRow[] | null) ?? [];
 
