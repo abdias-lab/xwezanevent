@@ -791,6 +791,18 @@
   flex-wrap: wrap;
   gap: var(--s2);
 }
+.pucesDefil {
+  min-width: 0; /* enfant flex : sans ça, la rangée s'étire au lieu de défiler */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin; /* souris : barre fine aux couleurs du thème ; invisible au tactile */
+  scrollbar-color: var(--border) transparent;
+}
+.pucesDefil > * {
+  flex: none;
+  white-space: nowrap;
+}
 .puce {
   height: 40px;
   padding: 0 var(--s4);

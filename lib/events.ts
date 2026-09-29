@@ -13,9 +13,10 @@ interface EventRow {
   lieu: string;
   date_debut: string; // YYYY-MM-DD
   date_fin: string | null;
+  heure: string | null;
   affiche_url: string | null;
   est_demo: boolean;
-  ticket_types: { prix: number }[];
+  ticket_types: { prix: number; quantite_totale: number; quantite_vendue: number }[];
   event_categories: { categorie: string; ordre: number }[];
 }
 
@@ -37,6 +38,32 @@ export interface CarteData {
   plageAffichee: string | null;
   /** Regroupement par date sur /evenements — voir calculerGroupeDate(). */
   groupeDate: { cle: string; libelle: string };
+  /** Champs bruts pour la carte V2 (components/v2/public/Carte.tsx). */
+  dateDebut: string;
+  dateFin: string | null;
+  /** "HH:MM", ou null si non renseignée. */
+  heure: string | null;
+  nomLieu: string;
+  ville: string;
+  /** Toutes les catégories, dans leur ordre d'affichage. */
+  categories: string[];
+  /** Places restantes quand le stock s'épuise (voir placesRestantesAffichees), sinon null. */
+  restantes: number | null;
+}
+
+/**
+ * Badge « Plus que N places » : seulement quand il reste 10 % ou moins du
+ * stock total de l'événement (tous tarifs confondus), et à partir de 5
+ * billets vendus, pour ne pas l'afficher sur un événement qui démarre avec
+ * un tout petit stock. Rien quand c'est complet. Seuils à affiner après le
+ * lancement (design/BUGS_REFONTE.md).
+ */
+function placesRestantesAffichees(tarifs: { quantite_totale: number; quantite_vendue: number }[]): number | null {
+  const total = tarifs.reduce((n, t) => n + t.quantite_totale, 0);
+  const vendus = tarifs.reduce((n, t) => n + t.quantite_vendue, 0);
+  const restantes = total - vendus;
+  if (vendus < 5 || restantes <= 0 || restantes > total * 0.1) return null;
+  return restantes;
 }
 
 function categoriePrincipale(categories: { categorie: string; ordre: number }[]): string {
@@ -83,6 +110,13 @@ function mapRow(ev: EventRow): CarteData {
         ? formatPlageDates(ev.date_debut, ev.date_fin, { avecAnnee: false })
         : null,
     groupeDate: calculerGroupeDate(ev.date_debut, ev.date_fin),
+    dateDebut: ev.date_debut,
+    dateFin: ev.date_fin && ev.date_fin !== ev.date_debut ? ev.date_fin : null,
+    heure: ev.heure ? ev.heure.slice(0, 5) : null,
+    nomLieu: ev.lieu,
+    ville: ev.ville,
+    categories: [...ev.event_categories].sort((a, b) => a.ordre - b.ordre).map((c) => c.categorie),
+    restantes: placesRestantesAffichees(ev.ticket_types),
   };
 }
 
@@ -118,7 +152,7 @@ export function filtreNonTermine(depuis: string): string {
  * peut avoir plusieurs catégories — voir event_categories — il apparaît dans
  * le filtre dès qu'une seule correspond), période ("quand" : aujourdhui,
  * week-end, semaine, mois — voir plagePeriode()), recherche texte (q, sur
- * titre+description) et ville (saisie libre, correspondance partielle).
+ * titre, description, lieu et ville) et ville (saisie libre, correspondance partielle).
  *
  * Exclut les événements dont la date est passée par une comparaison de
  * date directe (pas seulement `statut = 'publie'`) : reste correct même
@@ -133,18 +167,19 @@ export async function getEvenementsPublies(
 ): Promise<CarteData[]> {
   const periode = plagePeriode(opts.quand);
 
-  // event_categories!inner (plutôt que la forme sans !inner) transforme le
-  // filtre .eq ci-dessous en jointure restrictive sur les événements
-  // eux-mêmes, pas seulement sur les lignes embarquées — nécessaire pour
-  // qu'un événement sans la catégorie demandée soit exclu du résultat.
+  // Filtre catégorie : une jointure event_categories!inner distincte (alias
+  // `filtre_categorie`) transforme le .eq ci-dessous en jointure restrictive
+  // sur les événements eux-mêmes. Elle ne renvoie que la ligne filtrée : les
+  // catégories affichées viennent donc d'une seconde jointure, non filtrée,
+  // sinon la carte perdrait ses autres catégories (et sa catégorie principale).
   const relationCategories = opts.categorie
-    ? "event_categories!inner(categorie, ordre)"
+    ? "filtre_categorie:event_categories!inner(categorie), event_categories(categorie, ordre)"
     : "event_categories(categorie, ordre)";
 
   let query = supabase
     .from("events")
     .select(
-      `slug, titre, ville, lieu, date_debut, date_fin, affiche_url, est_demo, ticket_types(prix), ${relationCategories}`
+      `slug, titre, ville, lieu, date_debut, date_fin, heure, affiche_url, est_demo, ticket_types(prix, quantite_totale, quantite_vendue), ${relationCategories}`
     )
     .eq("statut", "publie")
     .eq("est_demo", false)
@@ -156,7 +191,7 @@ export async function getEvenementsPublies(
   }
 
   if (opts.categorie) {
-    query = query.eq("event_categories.categorie", opts.categorie);
+    query = query.eq("filtre_categorie.categorie", opts.categorie);
   }
 
   if (opts.ville?.trim()) {
@@ -166,7 +201,9 @@ export async function getEvenementsPublies(
   const motCle = opts.q?.trim();
   if (motCle) {
     const echappe = echapperPourOr(motCle);
-    query = query.or(`titre.ilike."%${echappe}%",description.ilike."%${echappe}%"`);
+    query = query.or(
+      `titre.ilike."%${echappe}%",description.ilike."%${echappe}%",lieu.ilike."%${echappe}%",ville.ilike."%${echappe}%"`
+    );
   }
 
   const { data, error } = await query.order("date_debut", { ascending: true });

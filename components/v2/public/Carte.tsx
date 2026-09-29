@@ -40,14 +40,15 @@ export default function Carte({ e, s, href, maxTags = 3 }: { e: EvenementCarte; 
           <span className={s.sJour}>{jour(e.debut)}</span>
           <span className={s.sMois}>{mois(e.debut)}</span>
         </div>
-        {e.restantes ? <span className={s.alerte}>Plus que {e.restantes}</span> : null}
+        {e.restantes ? <span className={s.alerte}>Plus que {e.restantes} place{e.restantes > 1 ? "s" : ""}</span> : null}
       </div>
       <div className={s.corps}>
         <h3 className={s.titre}>{e.titre}</h3>
         <p className={`${s.ligne} ${s.quand}`}>
           <Icon name="calendar" className={s.ligneIco} />
           <span>
-            {dateCarte(e)} · {e.heure}
+            {dateCarte(e)}
+            {e.heure && ` · ${e.heure}`}
           </span>
         </p>
         <p className={s.ligne}>

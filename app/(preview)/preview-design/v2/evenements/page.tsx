@@ -213,11 +213,11 @@ export default function V2Catalogue({ searchParams }: { searchParams: Params }) 
 
 function Filtre({ libelle, children }: { libelle: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", gap: 12, alignItems: "baseline" }}>
+    <div style={{ display: "flex", gap: 12, alignItems: "baseline", minWidth: 0 }}>
       <span className={s.note} style={{ flex: "none", width: 72 }}>
         {libelle}
       </span>
-      <div className={s.puces} role="group" aria-label={libelle} style={{ flexWrap: "nowrap", overflowX: "auto", paddingBottom: 4 }}>
+      <div className={`${s.puces} ${s.pucesDefil}`} role="group" aria-label={libelle}>
         {children}
       </div>
     </div>
