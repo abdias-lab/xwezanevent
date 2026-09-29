@@ -77,7 +77,19 @@ export default function Cgu() {
         </div>
 
         <div className="bloc">
-          <h2>3. Responsabilités de l&apos;acheteur</h2>
+          <h2>3. Modération</h2>
+          <p>
+            Chaque événement soumis sur XwézanEvent passe par une validation
+            avant publication. Nous nous réservons le droit de refuser ou de
+            retirer un événement, et de suspendre ou supprimer un compte, en
+            cas de non-respect des présentes conditions, d&apos;informations
+            trompeuses ou de contenu illicite — sans que cela ouvre droit à
+            indemnisation.
+          </p>
+        </div>
+
+        <div className="bloc">
+          <h2>4. Responsabilités de l&apos;acheteur</h2>
           <ul>
             <li>
               Fournir des informations exactes lors de la création de son
@@ -96,7 +108,7 @@ export default function Cgu() {
         </div>
 
         <div className="bloc">
-          <h2>4. Tarification et paiement</h2>
+          <h2>5. Tarification et paiement</h2>
           <p>
             L&apos;acheteur paie le prix affiché du billet, sans frais de
             service XwézanEvent additionnels (seuls d&apos;éventuels frais
@@ -118,21 +130,23 @@ export default function Cgu() {
         </div>
 
         <div className="bloc">
-          <h2>5. Politique de remboursement</h2>
+          <h2>6. Politique de remboursement</h2>
           <p>
             Les billets ne sont pas remboursables, sauf en cas
             d&apos;annulation de l&apos;événement. Dans ce cas, les fonds
-            sont sécurisés (gel des reversements en attente de
-            l&apos;organisateur concerné) et XwézanEvent organise le
-            remboursement de chaque acheteur vers son moyen de paiement
-            d&apos;origine, sans frais supplémentaire. Le détail complet est
-            disponible sur notre page{" "}
+            sont sécurisés (gel des reversements de l&apos;organisateur
+            concerné) et XwézanEvent organise le remboursement de chaque
+            acheteur vers son moyen de paiement d&apos;origine, sans frais
+            supplémentaire, dans un délai de 14 jours suivant la confirmation
+            de l&apos;annulation. Ce remboursement ne dépend pas de
+            l&apos;organisateur : les fonds n&apos;ont jamais quitté la
+            plateforme. Le détail complet est disponible sur notre page{" "}
             <a href="/remboursements">Remboursements</a>.
           </p>
         </div>
 
         <div className="bloc">
-          <h2>6. Données personnelles</h2>
+          <h2>7. Données personnelles</h2>
           <p>Nous collectons et utilisons les données suivantes :</p>
           <ul>
             <li>
@@ -159,10 +173,26 @@ export default function Cgu() {
             fonctionnement du service (hébergement, paiement, envoi
             d&apos;emails).
           </p>
+          <p>
+            <strong>Tes droits.</strong> Tu peux à tout moment demander
+            l&apos;accès à tes données, leur rectification ou leur
+            suppression en écrivant à{" "}
+            <a href="mailto:contact@xwezan.com">contact@xwezan.com</a>. Nous
+            traitons ces demandes sous 30 jours. La suppression de ton compte
+            entraîne l&apos;effacement de tes données personnelles, à
+            l&apos;exception de celles que nous devons conserver pour des
+            obligations légales ou comptables (historique de transactions).
+          </p>
+          <p>
+            <strong>Durée de conservation.</strong> Tes données sont
+            conservées tant que ton compte est actif. Après suppression du
+            compte, elles sont effacées sous 12 mois, hors obligations
+            légales.
+          </p>
         </div>
 
         <div className="bloc">
-          <h2>7. Hébergement</h2>
+          <h2>8. Hébergement</h2>
           <p>
             Les données de XwézanEvent sont hébergées au sein de
             l&apos;Union européenne, sur l&apos;infrastructure Supabase
@@ -171,7 +201,7 @@ export default function Cgu() {
         </div>
 
         <div className="bloc">
-          <h2>8. Droit applicable</h2>
+          <h2>9. Droit applicable</h2>
           <p>
             Les présentes conditions sont régies par le droit béninois. Tout
             litige relève, à défaut de résolution amiable, des juridictions
@@ -181,7 +211,7 @@ export default function Cgu() {
 
         <p className="maj">
           Ce document est susceptible d&apos;évoluer. Dernière mise à jour :
-          13 juillet 2026.
+          29 septembre 2026.
         </p>
       </main>
 
