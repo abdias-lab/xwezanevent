@@ -16,7 +16,9 @@ export const ESPACES: Record<string, Espace> = {
 export const SE_CONNECTER: Espace = { libelle: "Se connecter", href: "/connexion" };
 
 /**
- * Dessin de l'en-tête public V2, repris de la preview (v2/chrome.tsx), sans
+ * Dessin de l'en-tête public V2, repris de la preview (v2/chrome.tsx) : logo,
+ * bouton de l'espace et recherche. « Événements », « Tarifs » et « Publier un
+ * événement » sont dans le pied de page (décision du 2026-09-30). Sans
  * accès à la session : utilisable côté serveur (Chrome.tsx) comme côté client
  * (EnteteClient.tsx, pour app/error.tsx). La recherche envoie sur /evenements?q=.
  */
@@ -27,24 +29,13 @@ export function Entete({ espace }: { espace: Espace }) {
         <Link href="/" className={v.logo} aria-label="XwézanEvent, accueil">
           <span className={v.logoX}>Xwézan</span>
         </Link>
-        <nav className={v.navLiens} aria-label="Navigation principale">
-          <Link href="/evenements">Événements</Link>
-          <Link href="/tarifs">Tarifs</Link>
-        </nav>
-        {/* Action organisateur : bouton distinct des liens de navigation (comme « Publier » en prod). */}
-        <Link href="/creer" aria-label="Publier un événement" className={v.btnPublier}>
-          <Icon name="plus" size={16} />
-          <span>
-            Publier<span className={v.libelleLong}> un événement</span>
-          </span>
-        </Link>
-        <Link href={espace.href} className={v.btnBlanc}>
-          {espace.libelle}
-        </Link>
         <form className={v.pilule} role="search" action="/evenements">
           <Icon name="search" size={20} />
           <input type="search" name="q" placeholder="Artiste, lieu, ville" aria-label="Rechercher un événement" />
         </form>
+        <Link href={espace.href} className={v.btnBlanc}>
+          {espace.libelle}
+        </Link>
       </div>
     </header>
   );
@@ -57,6 +48,9 @@ export function Footer() {
       <div className={`${v.cont} ${v.footerCorps}`}>
         <div className={v.slogan}>{SLOGAN}</div>
         <div className={v.footerLiens}>
+          <Link href="/evenements">Événements</Link>
+          <Link href="/tarifs">Tarifs</Link>
+          <Link href="/creer">Publier un événement</Link>
           <Link href="/faq">FAQ</Link>
           <Link href="/remboursements">Remboursements</Link>
           <Link href="/cgu">CGU</Link>

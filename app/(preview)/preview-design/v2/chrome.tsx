@@ -18,24 +18,13 @@ export function Header({ connecte }: { connecte?: RoleConnecte }) {
         <a href="/preview-design/v2" className={s.logo} aria-label="XwézanEvent, accueil">
           <span className={s.logoX}>Xwézan</span>
         </a>
-        <nav className={s.navLiens} aria-label="Navigation principale">
-          <a href="/preview-design/v2/evenements">Événements</a>
-          <a href="/preview-design/v2/tarifs">Tarifs</a>
-        </nav>
-        {/* Action organisateur : bouton distinct des liens de navigation (comme « Publier » en prod). */}
-        <a href="/preview-design/v2/creer" aria-label="Publier un événement" className={s.btnPublier}>
-          <Icon name="plus" size={16} />
-          <span>
-            Publier<span className={s.libelleLong}> un événement</span>
-          </span>
-        </a>
-        <a href={espace.href} className={s.btnBlanc}>
-          {espace.libelle}
-        </a>
         <form className={s.pilule} role="search" action="/preview-design/v2/evenements">
           <Icon name="search" size={20} />
           <input type="search" name="q" placeholder="Artiste, lieu, ville" aria-label="Rechercher un événement" />
         </form>
+        <a href={espace.href} className={s.btnBlanc}>
+          {espace.libelle}
+        </a>
       </div>
     </header>
   );
@@ -47,6 +36,9 @@ export function Footer() {
       <div className={`${s.cont} ${s.footerCorps}`}>
         <div className={s.slogan}>{SLOGAN}</div>
         <div className={s.footerLiens}>
+          <a href="/preview-design/v2/evenements">Événements</a>
+          <a href="/preview-design/v2/tarifs">Tarifs</a>
+          <a href="/preview-design/v2/creer">Publier un événement</a>
           <a href="/preview-design/v2/faq">FAQ</a>
           <a href="/preview-design/v2/remboursements">Remboursements</a>
           <a href="/preview-design/v2/cgu">CGU</a>
