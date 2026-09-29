@@ -240,6 +240,23 @@
     padding: 0 10px;
   }
 }
+/* Sous 360 px (Android d'entrée de gamme, 320 px) : « Publier » réduit à son
+   icône « + », bouton carré ; le libellé reste lu par les lecteurs d'écran
+   (aria-label sur le lien). Sans cela, « Se connecter » passe à la ligne. */
+@media (max-width: 359px) {
+  .btnPublier {
+    justify-content: center;
+    width: 40px;
+    padding: 0;
+  }
+  .btnPublier > span {
+    display: none;
+  }
+  .btnPublier > svg {
+    width: 20px;
+    height: 20px;
+  }
+}
 @media (min-width: 1024px) {
   .libelleLong {
     display: inline;

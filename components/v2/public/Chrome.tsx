@@ -40,7 +40,7 @@ export async function Header() {
           <Link href="/tarifs">Tarifs</Link>
         </nav>
         {/* Action organisateur : bouton distinct des liens de navigation (comme « Publier » en prod). */}
-        <Link href="/creer" className={v.btnPublier}>
+        <Link href="/creer" aria-label="Publier un événement" className={v.btnPublier}>
           <Icon name="plus" size={16} />
           <span>
             Publier<span className={v.libelleLong}> un événement</span>

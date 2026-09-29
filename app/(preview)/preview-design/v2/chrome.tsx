@@ -23,7 +23,7 @@ export function Header({ connecte }: { connecte?: RoleConnecte }) {
           <a href="/preview-design/v2/tarifs">Tarifs</a>
         </nav>
         {/* Action organisateur : bouton distinct des liens de navigation (comme « Publier » en prod). */}
-        <a href="/preview-design/v2/creer" className={s.btnPublier}>
+        <a href="/preview-design/v2/creer" aria-label="Publier un événement" className={s.btnPublier}>
           <Icon name="plus" size={16} />
           <span>
             Publier<span className={s.libelleLong}> un événement</span>
