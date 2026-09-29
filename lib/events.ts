@@ -472,6 +472,30 @@ function extraitDescription(description: string | null): string | null {
 }
 
 /**
+ * Slugs des événements cochés « mis en avant » par l'admin, dans l'ordre
+ * choisi (ordre_affiche, puis date) — alimente « En ce moment » sur l'accueil
+ * V2, complété ensuite par les prochains événements. Mêmes règles
+ * d'éligibilité que le listing : publié, à venir, hors démo, pays courant.
+ */
+export async function getSlugsMisEnAvant(pays: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("events")
+    .select("slug")
+    .eq("statut", "publie")
+    .eq("mis_en_avant", true)
+    .eq("est_demo", false)
+    .eq("pays_code", pays)
+    .or(filtreNonTermine(aujourdhuiPortoNovo()))
+    .order("ordre_affiche", { ascending: true, nullsFirst: false })
+    .order("date_debut", { ascending: true });
+  if (error) {
+    console.error("[events] échec getSlugsMisEnAvant :", error.message);
+    return [];
+  }
+  return (data as { slug: string }[]).map((e) => e.slug);
+}
+
+/**
  * L'unique événement épinglé pour le grand bloc "à la une" de l'accueil —
  * même colonne de sélection manuelle admin que le ticker (mis_en_avant),
  * mais SANS repli automatique sur les prochains événements publiés :

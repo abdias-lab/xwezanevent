@@ -4,7 +4,7 @@ import Affiche from "../Affiche";
 import Icon from "../Icon";
 import Programme from "../Programme";
 import Reveal from "../Reveal";
-import { CATEGORIES, EVENEMENTS, dateCourte, etatDepuis } from "../_data";
+import { EVENEMENTS, dateCourte, etatDepuis } from "../_data";
 
 const DETAIL = "/preview-design/v2/evenement";
 
@@ -27,7 +27,7 @@ export default function V2Accueil({ searchParams }: { searchParams: { etat?: str
             <a href="#programmation" className={`${s.btnBlanc} ${s.btnGrand}`}>
               Voir la programmation
             </a>
-            <a href="#" className={`${s.btnSec} ${s.btnGrand}`}>
+            <a href="/preview-design/v2/creer" className={`${s.btnSec} ${s.btnGrand}`}>
               Publier un événement <Icon name="arrow" />
             </a>
           </div>
@@ -48,7 +48,7 @@ export default function V2Accueil({ searchParams }: { searchParams: { etat?: str
           <section className={s.section}>
             <div className={s.tete}>
               <h2 className={s.h2}>En ce moment</h2>
-              <a href="#programmation">
+              <a href="/preview-design/v2/evenements">
                 Tout voir <Icon name="chevron-right" />
               </a>
             </div>
@@ -79,7 +79,7 @@ export default function V2Accueil({ searchParams }: { searchParams: { etat?: str
             <div className={s.tete}>
               <h2 className={s.h2}>Programmation</h2>
             </div>
-            <Programme evenements={EVENEMENTS} categories={CATEGORIES} s={s} href={DETAIL} etatInitial={etatDepuis(searchParams.etat)} />
+            <Programme evenements={EVENEMENTS} s={s} href={DETAIL} etatInitial={etatDepuis(searchParams.etat)} />
           </section>
         </Reveal>
 
@@ -87,10 +87,10 @@ export default function V2Accueil({ searchParams }: { searchParams: { etat?: str
           <section className={s.section}>
             <div className={s.promo}>
               <div style={{ display: "grid", gap: 12 }}>
-                <h2 className={s.h1}>Publie ton évènement</h2>
+                <h2 className={s.h1}>Publie ton événement</h2>
                 <p className={s.discret}>5 minutes pour créer, 8 % de commission uniquement sur les billets vendus.</p>
               </div>
-              <a href="#" className={`${s.btnBlanc} ${s.btnGrand}`} style={{ justifySelf: "start" }}>
+              <a href="/preview-design/v2/creer" className={`${s.btnBlanc} ${s.btnGrand}`} style={{ justifySelf: "start" }}>
                 Commencer <Icon name="arrow" />
               </a>
             </div>

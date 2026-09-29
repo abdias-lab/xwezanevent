@@ -14,13 +14,14 @@ type Styles = Record<string, string>;
  */
 export default function Programme({
   evenements,
-  categories,
+  categories: categoriesImposees,
   s,
   href,
   etatInitial = "liste",
 }: {
   evenements: Evenement[];
-  categories: string[];
+  /** Liste imposée (pistes v1/v3). Absente (v2) : seulement les catégories qui ont des événements. */
+  categories?: string[];
   s: Styles;
   href: string;
   etatInitial?: EtatForce;
@@ -38,6 +39,7 @@ export default function Programme({
     minuteur.current = setTimeout(() => setCharge(false), 400);
   }
 
+  const categories = categoriesImposees ?? ["Tout", ...Array.from(new Set(evenements.map((e) => e.categorie))).sort((a, b) => a.localeCompare(b, "fr"))];
   const liste = evenements.filter((e) => cat === "Tout" || e.categorie === cat).sort((a, b) => a.debut.localeCompare(b.debut));
   const compte = (c: string) => (c === "Tout" ? evenements.length : evenements.filter((e) => e.categorie === c).length);
 
@@ -71,7 +73,7 @@ export default function Programme({
         <div className={s.vide}>
           <Icon name="calendar" size={32} className={s.videIco} />
           <h3 className={s.videTitre}>Aucun événement {cat !== "Tout" ? `« ${cat} » ` : ""}pour le moment</h3>
-          <p className={s.videTexte}>Les organisateurs publient chaque semaine. Essayez une autre catégorie ou revenez bientôt.</p>
+          <p className={s.videTexte}>Les organisateurs publient chaque semaine. Essaie une autre catégorie ou reviens bientôt.</p>
           <button type="button" className={s.videBtn} onClick={() => choisir("Tout")}>
             Voir tous les événements
           </button>
