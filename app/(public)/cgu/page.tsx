@@ -110,10 +110,6 @@ export default function Cgu() {
         <div className="bloc">
           <h2>5. Tarification et paiement</h2>
           <p>
-            L&apos;acheteur paie le prix affiché du billet, sans frais de
-            service XwézanEvent additionnels (seuls d&apos;éventuels frais
-            Mobile Money appliqués par l&apos;opérateur de paiement peuvent
-            s&apos;ajouter à sa charge, indépendants de XwézanEvent).
             XwézanEvent prélève une commission de 8% côté organisateur, au
             moment du reversement des ventes.
           </p>
@@ -211,7 +207,7 @@ export default function Cgu() {
 
         <p className="maj">
           Ce document est susceptible d&apos;évoluer. Dernière mise à jour :
-          29 septembre 2026.
+          30 septembre 2026.
         </p>
       </main>
 

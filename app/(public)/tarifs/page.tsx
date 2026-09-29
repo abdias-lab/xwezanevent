@@ -35,13 +35,6 @@ export default async function Tarifs() {
         <div className="bloc">
           <h2>Comment ça marche</h2>
           <p>
-            Ton acheteur paie <strong>exactement le prix affiché</strong> du
-            billet — XwézanEvent n&apos;ajoute aucun frais de service dessus.
-            (Seuls d&apos;éventuels frais Mobile Money appliqués par FedaPay,
-            notre partenaire de paiement, peuvent s&apos;ajouter à sa charge :
-            ils ne dépendent pas de nous.)
-          </p>
-          <p>
             De ton côté, à chaque demande de reversement, XwézanEvent retient
             8% du montant des ventes de l&apos;événement concerné. Le reste
             part directement sur ton compte {operateurs}.
