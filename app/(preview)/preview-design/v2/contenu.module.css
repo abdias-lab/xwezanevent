@@ -21,16 +21,30 @@
 }
 .entete {
   display: grid;
-  /* minmax(0, …) : un mot plus large que l'écran (« REMBOURSEMENTS. » à
-     390 px) ne peut plus élargir la colonne et pousser l'en-tête dans la
-     marge ; le titre se coupe à la place (césure française, html lang="fr"). */
+  /* minmax(0, …) : un mot plus large que l'écran ne peut plus élargir la
+     colonne et pousser l'en-tête dans la marge. */
   grid-template-columns: minmax(0, 1fr);
   gap: var(--s3);
   max-width: 68ch;
+  container-type: inline-size;
 }
 .entete h1 {
+  /* Jamais de césure dans un titre (décision du 2026-09-29) : sous 400 px,
+     la taille baisse juste assez pour que le mot le plus long des titres
+     tienne entier. « REMBOURSEMENTS. » mesure 13,4 fois la taille de la
+     police (Unbounded 900, capitales) : taille ≤ largeur / 13,6 (marge de sécurité).
+     Dernier recours, pour un mot encore plus long : retour à la ligne sans
+     trait d'union plutôt qu'un débordement. */
   overflow-wrap: break-word;
-  hyphens: auto;
+  hyphens: manual;
+}
+@media (max-width: 399px) {
+  .entete h1 {
+    /* Largeur de l'écran moins les deux gouttières de 16 px (navigateurs sans
+       unités de conteneur), puis largeur réelle de la colonne (cqw). */
+    font-size: min(26px, calc((100vw - 32px) / 13.6));
+    font-size: min(26px, calc(100cqw / 13.6));
+  }
 }
 .intro {
   font-size: 17px;
