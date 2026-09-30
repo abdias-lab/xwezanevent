@@ -34,8 +34,9 @@ main.page {
 .entete h1 {
   /* Jamais de césure dans un titre (décision du 2026-09-29) : sous 400 px,
      la taille baisse juste assez pour que le mot le plus long des titres
-     tienne entier. « REMBOURSEMENTS. » mesure 13,4 fois la taille de la
-     police (Unbounded 900, capitales) : taille ≤ largeur / 13,6 (marge de sécurité).
+     tienne entier. « Remboursements. » mesure 11 fois la taille de la police
+     (Unbounded 900, minuscules depuis le 2026-09-30) : taille ≤ largeur / 11,2
+     (marge de sécurité). À 360 px le titre garde ses 26 px ; à 320 px, 25,7 px.
      Dernier recours, pour un mot encore plus long : retour à la ligne sans
      trait d'union plutôt qu'un débordement. */
   overflow-wrap: break-word;
@@ -45,8 +46,8 @@ main.page {
   .entete h1 {
     /* Largeur de l'écran moins les deux gouttières de 16 px (navigateurs sans
        unités de conteneur), puis largeur réelle de la colonne (cqw). */
-    font-size: min(26px, calc((100vw - 32px) / 13.6));
-    font-size: min(26px, calc(100cqw / 13.6));
+    font-size: min(26px, calc((100vw - 32px) / 11.2));
+    font-size: min(26px, calc(100cqw / 11.2));
   }
 }
 .intro {
