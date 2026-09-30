@@ -18,6 +18,8 @@ export default function Programme({
   s,
   href,
   etatInitial = "liste",
+  limite,
+  catalogue,
 }: {
   evenements: Evenement[];
   /** Liste imposée (pistes v1/v3). Absente (v2) : seulement les catégories qui ont des événements. */
@@ -25,6 +27,9 @@ export default function Programme({
   s: Styles;
   href: string;
   etatInitial?: EtatForce;
+  /** v2 : au plus `limite` événements ; au-delà, « Voir plus » mène au catalogue (`catalogue`), filtré sur la catégorie. */
+  limite?: number;
+  catalogue?: string;
 }) {
   const [cat, setCat] = useState(etatInitial === "vide" ? "Sport" : "Tout");
   const [charge, setCharge] = useState(etatInitial === "chargement");
@@ -45,7 +50,7 @@ export default function Programme({
 
   // Un groupe par jour ayant au moins un événement : les jours vides n'apparaissent pas.
   const groupes = Array.from(
-    liste.reduce((m, e) => m.set(e.debut, [...(m.get(e.debut) ?? []), e]), new Map<string, Evenement[]>()).entries(),
+    liste.slice(0, limite).reduce((m, e) => m.set(e.debut, [...(m.get(e.debut) ?? []), e]), new Map<string, Evenement[]>()).entries(),
   );
 
   return (
@@ -94,6 +99,12 @@ export default function Programme({
             </div>
           </div>
         ))
+      )}
+
+      {!charge && limite !== undefined && catalogue && liste.length > limite && (
+        <a href={cat === "Tout" ? catalogue : `${catalogue}?categorie=${encodeURIComponent(cat)}`} className={`${s.btnSec} ${s.btnGrand} ${s.voirPlus}`}>
+          Voir plus <Icon name="chevron-right" />
+        </a>
       )}
     </div>
   );

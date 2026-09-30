@@ -1660,3 +1660,49 @@
     gap: var(--s1);
   }
 }
+
+/* ---------- Accueil : bloc « Épinglé » ---------- */
+/* Affiches 16:9 de taille modérée : trois par ligne au plus sur grand écran
+   (un seul épinglé n'occupe donc qu'un tiers), empilées sur mobile. */
+.epingles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: var(--s8) var(--s6);
+}
+.epingle {
+  display: grid;
+  align-content: start;
+  gap: var(--s3);
+  color: inherit;
+}
+.epingle:focus-visible {
+  outline: 2px solid var(--or);
+  outline-offset: 4px;
+  border-radius: var(--r);
+}
+/* Pas de coupe à l'affichage : l'accroche est déjà limitée à 200 caractères. */
+.epingleTitre {
+  font: 700 14px/20px var(--corps);
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.epingleAccroche {
+  font: 600 16px/24px var(--corps);
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+.epingleQuand {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font: 700 14px/20px var(--corps);
+  color: var(--or);
+}
+.voirPlus {
+  margin-top: var(--s8);
+}
+@media (hover: hover) {
+  .epingle:hover .img {
+    transform: scale(1.03);
+  }
+}

@@ -1,34 +1,29 @@
 import Icon from "@/components/v2/Icon";
 import Reveal from "@/components/v2/Reveal";
 import { Header, Footer } from "@/components/v2/public/Chrome";
-import { Affiche } from "@/components/v2/public/Carte";
+import Epingle from "@/components/v2/public/Epingle";
 import Programme, { type ElementProgramme } from "@/components/v2/public/Programme";
 import { libelleGroupe, versCarte } from "@/components/v2/public/carteData";
-import { dateCarte } from "@/components/v2/public/evenement";
 import { POLICES_V2 } from "@/components/v2/polices";
 import s from "@/components/v2/v2.module.css";
-import { getEvenementsPublies, getSlugsMisEnAvant } from "@/lib/events";
+import { getEvenementsEpingles, getEvenementsPublies } from "@/lib/events";
 import { getPaysActuel } from "@/lib/pays";
 
 // Régénération incrémentale : la page est reconstruite au plus une fois par minute
 export const revalidate = 60;
 
-/** Nombre d'événements du bloc « En ce moment ». */
-const EN_CE_MOMENT = 4;
+/** Programmation de l'accueil : au-delà, « Voir plus » mène au catalogue. */
+const LIMITE_PROGRAMME = 10;
 
 /**
- * Accueil (V2), repris de la preview (v2/page.tsx). « En ce moment » : les
- * événements mis en avant par l'admin, dans l'ordre choisi, complétés par
- * les prochains jusqu'à 4. Puis toute la programmation à venir du pays,
- * filtrable par catégorie.
+ * Accueil (V2), repris de la preview (v2/page.tsx). « Épinglé » : uniquement
+ * les événements cochés « à la une » par l'admin, dans l'ordre choisi ; bloc
+ * absent si aucun. Puis la programmation à venir du pays, filtrable par
+ * catégorie, limitée à LIMITE_PROGRAMME événements.
  */
 export default async function Accueil() {
   const pays = await getPaysActuel();
-  const [evenements, misEnAvant] = await Promise.all([getEvenementsPublies({ pays }), getSlugsMisEnAvant(pays)]);
-
-  const parSlug = new Map(evenements.map((e) => [e.id, e]));
-  const choisis = misEnAvant.map((slug) => parSlug.get(slug)).filter((e): e is NonNullable<typeof e> => !!e);
-  const enCeMoment = [...choisis, ...evenements.filter((e) => !misEnAvant.includes(e.id))].slice(0, EN_CE_MOMENT);
+  const [evenements, epingles] = await Promise.all([getEvenementsPublies({ pays }), getEvenementsEpingles(pays)]);
   const elements: ElementProgramme[] = evenements.map((e) => ({ carte: versCarte(e), href: e.href, groupe: { cle: e.groupeDate.cle, libelle: libelleGroupe(e) } }));
 
   return (
@@ -64,37 +59,22 @@ export default async function Accueil() {
           </ul>
         </section>
 
-        {enCeMoment.length > 0 && (
+        {epingles.length > 0 && (
           <Reveal>
             <section className={s.section}>
               <div className={s.tete}>
-                <h2 className={s.h2}>En ce moment</h2>
-                <a href="/evenements">
-                  Tout voir <Icon name="chevron-right" />
-                </a>
+                <h2 className={s.h2}>Épinglé</h2>
               </div>
-              <ul className={s.pile}>
-                {enCeMoment.map((e) => {
-                  const carte = versCarte(e);
-                  return (
-                    <li key={e.id}>
-                      <a href={e.href} className={s.pileLien}>
-                        <Affiche e={carte} s={s} />
-                        <div>
-                          <h3 className={s.pileTitre}>{e.titre}</h3>
-                          <p className={s.pileMeta}>
-                            <b>{dateCarte(carte)}</b>
-                            <span>·</span>
-                            <span>
-                              {e.nomLieu}, {e.ville}
-                            </span>
-                          </p>
-                        </div>
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
+              <div className={s.epingles}>
+                {epingles.map((e) => (
+                  <Epingle
+                    key={e.id}
+                    e={{ titre: e.titre, accroche: e.accroche, categorie: e.categorie, image: e.image, debut: e.dateDebut, fin: e.dateFin ?? undefined, heure: e.heure }}
+                    s={s}
+                    href={e.href}
+                  />
+                ))}
+              </div>
             </section>
           </Reveal>
         )}
@@ -104,7 +84,7 @@ export default async function Accueil() {
             <div className={s.tete}>
               <h2 className={s.h2}>Programmation</h2>
             </div>
-            <Programme elements={elements} s={s} />
+            <Programme elements={elements} s={s} limite={LIMITE_PROGRAMME} catalogue="/evenements" />
           </section>
         </Reveal>
 

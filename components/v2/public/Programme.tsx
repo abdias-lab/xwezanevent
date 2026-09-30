@@ -14,15 +14,17 @@ export type ElementProgramme = { carte: EvenementCarte; href: string; groupe: { 
  * pas de faux chargement), puces limitées aux catégories qui ont des
  * événements ; un événement à plusieurs catégories apparaît dans chacune.
  * Groupes par jour, un festival formant son propre groupe (comme /evenements).
+ * Au plus `limite` événements : au-delà, « Voir plus » mène au catalogue,
+ * filtré sur la catégorie choisie.
  */
-export default function Programme({ elements, s }: { elements: ElementProgramme[]; s: Styles }) {
+export default function Programme({ elements, s, limite, catalogue }: { elements: ElementProgramme[]; s: Styles; limite: number; catalogue: string }) {
   const [cat, setCat] = useState("Tout");
   const categories = ["Tout", ...Array.from(new Set(elements.flatMap((e) => e.carte.tags))).sort((a, b) => a.localeCompare(b, "fr"))];
   const liste = elements.filter((e) => cat === "Tout" || e.carte.tags.includes(cat));
   const compte = (c: string) => (c === "Tout" ? elements.length : elements.filter((e) => e.carte.tags.includes(c)).length);
 
   const groupes: { cle: string; libelle: string; elements: ElementProgramme[] }[] = [];
-  for (const e of liste) {
+  for (const e of liste.slice(0, limite)) {
     const dernier = groupes[groupes.length - 1];
     if (dernier && dernier.cle === e.groupe.cle) dernier.elements.push(e);
     else groupes.push({ ...e.groupe, elements: [e] });
@@ -72,6 +74,12 @@ export default function Programme({ elements, s }: { elements: ElementProgramme[
             </div>
           </div>
         ))
+      )}
+
+      {liste.length > limite && (
+        <a href={cat === "Tout" ? catalogue : `${catalogue}?categorie=${encodeURIComponent(cat)}`} className={`${s.btnSec} ${s.btnGrand} ${s.voirPlus}`}>
+          Voir plus <Icon name="chevron-right" />
+        </a>
       )}
     </div>
   );

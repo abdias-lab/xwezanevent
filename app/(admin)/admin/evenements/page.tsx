@@ -5,6 +5,7 @@ import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { emailUtilisateur } from "@/lib/email";
 import { aujourdhuiPortoNovo } from "@/lib/date";
+import { accrocheOuRepli } from "@/lib/events";
 import Coquille from "@/components/v2/Coquille";
 import Icon from "@/components/v2/Icon";
 import { NAV_ADMIN } from "@/components/v2/navAdmin";
@@ -42,6 +43,7 @@ interface EventLigne {
   soumis_le: string | null;
   affiche_url: string | null;
   mis_en_avant: boolean;
+  accroche: string | null;
   est_demo: boolean;
   motif_refus: string | null;
   organisateur_id: string;
@@ -91,7 +93,7 @@ export default async function AdminEvenements({ searchParams }: { searchParams: 
   const { data } = await supabase
     .from("events")
     .select(
-      "id, titre, date_debut, date_fin, heure, lieu, ville, description, statut, soumis_le, affiche_url, mis_en_avant, est_demo, motif_refus, organisateur_id, organisateur:profiles(nom, nom_public, created_at), ticket_types(nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale)"
+      "id, titre, date_debut, date_fin, heure, lieu, ville, description, statut, soumis_le, affiche_url, mis_en_avant, accroche, est_demo, motif_refus, organisateur_id, organisateur:profiles(nom, nom_public, created_at), ticket_types(nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale)"
     )
     .order("soumis_le", { ascending: true, nullsFirst: false });
 
@@ -142,6 +144,16 @@ export default async function AdminEvenements({ searchParams }: { searchParams: 
       capacite: e.ticket_types.reduce((n, t) => n + t.quantite_totale, 0),
       brut: e.ticket_types.reduce((n, t) => n + t.prix * t.quantite_vendue, 0),
       aLaUne: e.mis_en_avant,
+      accroche: e.accroche,
+      accrocheRepli: accrocheOuRepli(null, e.description),
+      apercu: {
+        titre: e.titre,
+        categorie: [...e.event_categories].sort((a, b) => a.ordre - b.ordre)[0]?.categorie ?? "Événement",
+        image: e.affiche_url,
+        debut: e.date_debut,
+        fin: e.date_fin && e.date_fin !== e.date_debut ? e.date_fin : undefined,
+        heure: e.heure ? e.heure.slice(0, 5) : null,
+      },
     }));
   }
 

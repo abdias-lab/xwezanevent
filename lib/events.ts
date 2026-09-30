@@ -438,54 +438,65 @@ export async function getEvenementsTicker(pays: string): Promise<TickerItem[]> {
   return (repli as TickerRow[]).map(mapTicker);
 }
 
-export interface VedetteData {
+/** Événement du bloc « Épinglé » de l'accueil — voir getEvenementsEpingles(). */
+export interface EpingleData {
+  id: string;
   titre: string;
-  /** Extrait tronqué de la description, null si l'événement n'en a pas. */
-  extrait: string | null;
-  ville: string;
-  lieu: string;
+  /** Accroche saisie par l'admin, sinon début de la description ; null si ni l'une ni l'autre. */
+  accroche: string | null;
+  categorie: string;
   image: string | null;
   href: string;
-  /** "10 – 12 janvier 2027" ou "10 janvier 2027" — voir formatPlageDates(). */
-  plage: string;
+  dateDebut: string;
+  dateFin: string | null;
+  /** "HH:MM", ou null si non renseignée. */
+  heure: string | null;
 }
 
-interface VedetteRow {
+interface EpingleRow {
   slug: string;
   titre: string;
+  accroche: string | null;
   description: string | null;
-  ville: string;
-  lieu: string;
   date_debut: string;
   date_fin: string | null;
+  heure: string | null;
   affiche_url: string | null;
+  event_categories: { categorie: string; ordre: number }[];
 }
 
-/** Longueur cible de l'extrait affiché dans le bloc "à la une" de l'accueil. */
-const LONGUEUR_EXTRAIT_VEDETTE = 160;
+/** Longueur du repli sur la description quand l'admin n'a pas saisi d'accroche. */
+const LONGUEUR_REPLI_ACCROCHE = 160;
 
-/** Tronque au dernier mot entier avant LONGUEUR_EXTRAIT_VEDETTE caractères, ajoute "…" si coupé. */
+/** Tronque au dernier mot entier avant LONGUEUR_REPLI_ACCROCHE caractères, ajoute "…" si coupé. */
 function extraitDescription(description: string | null): string | null {
   if (!description) return null;
-  const texte = description.trim();
+  const texte = description.trim().replace(/\s+/g, " ");
   if (!texte) return null;
-  if (texte.length <= LONGUEUR_EXTRAIT_VEDETTE) return texte;
+  if (texte.length <= LONGUEUR_REPLI_ACCROCHE) return texte;
 
-  const tronque = texte.slice(0, LONGUEUR_EXTRAIT_VEDETTE);
+  const tronque = texte.slice(0, LONGUEUR_REPLI_ACCROCHE);
   const dernierEspace = tronque.lastIndexOf(" ");
-  return `${tronque.slice(0, dernierEspace > 0 ? dernierEspace : LONGUEUR_EXTRAIT_VEDETTE)}…`;
+  return `${tronque.slice(0, dernierEspace > 0 ? dernierEspace : LONGUEUR_REPLI_ACCROCHE)}…`;
+}
+
+/** Texte affiché sous l'affiche épinglée : l'accroche, sinon le début de la description. */
+export function accrocheOuRepli(accroche: string | null, description: string | null): string | null {
+  return accroche?.trim() || extraitDescription(description);
 }
 
 /**
- * Slugs des événements cochés « mis en avant » par l'admin, dans l'ordre
- * choisi (ordre_affiche, puis date) — alimente « En ce moment » sur l'accueil
- * V2, complété ensuite par les prochains événements. Mêmes règles
- * d'éligibilité que le listing : publié, à venir, hors démo, pays courant.
+ * Événements du bloc « Épinglé » de l'accueil : uniquement ceux cochés « à la
+ * une » par l'admin (mis_en_avant), dans l'ordre choisi (ordre_affiche, puis
+ * date). AUCUN repli automatique : si rien n'est coché, le bloc reste absent
+ * plutôt que de mettre en avant un événement non choisi. Mêmes règles
+ * d'éligibilité que le listing : publié, à venir, hors démo, pays courant —
+ * un événement coché puis passé, annulé ou dépublié disparaît seul.
  */
-export async function getSlugsMisEnAvant(pays: string): Promise<string[]> {
+export async function getEvenementsEpingles(pays: string): Promise<EpingleData[]> {
   const { data, error } = await supabase
     .from("events")
-    .select("slug")
+    .select("slug, titre, accroche, description, date_debut, date_fin, heure, affiche_url, event_categories(categorie, ordre)")
     .eq("statut", "publie")
     .eq("mis_en_avant", true)
     .eq("est_demo", false)
@@ -493,54 +504,22 @@ export async function getSlugsMisEnAvant(pays: string): Promise<string[]> {
     .or(filtreNonTermine(aujourdhuiPortoNovo()))
     .order("ordre_affiche", { ascending: true, nullsFirst: false })
     .order("date_debut", { ascending: true });
+
   if (error) {
-    console.error("[events] échec getSlugsMisEnAvant :", error.message);
+    console.error("[events] échec getEvenementsEpingles :", error.message);
     return [];
   }
-  return (data as { slug: string }[]).map((e) => e.slug);
-}
-
-/**
- * L'unique événement épinglé pour le grand bloc "à la une" de l'accueil —
- * même colonne de sélection manuelle admin que le ticker (mis_en_avant),
- * mais SANS repli automatique sur les prochains événements publiés :
- * si rien n'est coché, le bloc doit rester absent plutôt que de mettre
- * en avant un événement non choisi éditorialement (voir page.tsx, qui
- * n'affiche la section que si cette fonction retourne non-null).
- * Le premier par ordre_affiche (puis date) si plusieurs sont cochés.
- */
-export async function getEvenementVedette(pays: string): Promise<VedetteData | null> {
-  const aujourdhui = aujourdhuiPortoNovo();
-
-  const { data, error } = await supabase
-    .from("events")
-    .select("slug, titre, description, ville, lieu, date_debut, date_fin, affiche_url")
-    .eq("statut", "publie")
-    .eq("mis_en_avant", true)
-    .eq("est_demo", false)
-    .eq("pays_code", pays)
-    .or(filtreNonTermine(aujourdhui))
-    .order("ordre_affiche", { ascending: true, nullsFirst: false })
-    .order("date_debut", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[events] échec getEvenementVedette :", error.message);
-    return null;
-  }
-  if (!data) return null;
-
-  const row = data as unknown as VedetteRow;
-  return {
+  return (data as unknown as EpingleRow[]).map((row) => ({
+    id: row.slug,
     titre: row.titre,
-    extrait: extraitDescription(row.description),
-    ville: row.ville,
-    lieu: row.lieu,
+    accroche: accrocheOuRepli(row.accroche, row.description),
+    categorie: categoriePrincipale(row.event_categories),
     image: row.affiche_url,
     href: `/evenement/${row.slug}`,
-    plage: formatPlageDates(row.date_debut, row.date_fin, { avecAnnee: true }),
-  };
+    dateDebut: row.date_debut,
+    dateFin: row.date_fin && row.date_fin !== row.date_debut ? row.date_fin : null,
+    heure: row.heure ? row.heure.slice(0, 5) : null,
+  }));
 }
 
 /**

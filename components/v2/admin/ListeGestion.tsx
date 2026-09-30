@@ -3,7 +3,9 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import s from "../espace.module.css";
+import v from "../v2.module.css";
 import Icon from "../Icon";
+import Epingle, { type EpingleCarte } from "../public/Epingle";
 import { montant, nombre } from "../format";
 import { StatutEvt, type Statut } from "../statuts";
 
@@ -18,7 +20,16 @@ export type EvenementGere = {
   capacite: number;
   brut: number;
   aLaUne: boolean;
+  /** Texte d'accroche du bloc « Épinglé » (null : repli sur la description). */
+  accroche: string | null;
+  /** Début de la description, affiché quand l'accroche est vide (lib/events.ts, accrocheOuRepli). */
+  accrocheRepli: string | null;
+  /** Données de l'aperçu de la carte épinglée. */
+  apercu: Omit<EpingleCarte, "accroche">;
 };
+
+/** Longueur maximale de l'accroche, revérifiée par la route et la base. */
+const ACCROCHE_MAX = 200;
 
 const COLS = { "--cols": "minmax(0, 1.8fr) minmax(0, 1fr) 100px 130px 110px minmax(0, 1.7fr)" } as CSSProperties;
 
@@ -122,6 +133,8 @@ function Gestion({
 }) {
   const etat = etatGarde ?? e.statut;
   const [aLaUne, setALaUne] = useState(e.aLaUne);
+  const [accroche, setAccroche] = useState(e.accroche);
+  const [editionAccroche, setEditionAccroche] = useState(false);
   const [modale, setModale] = useState<Action | null>(null);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -151,11 +164,29 @@ function Gestion({
   }
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, position: "relative", zIndex: 1 }}>
+    // Une feuille ouverte (position fixed) reste prise dans ce contexte d'empilement :
+    // il passe alors au-dessus des lignes suivantes et de la barre de navigation mobile.
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, position: "relative", zIndex: modale || editionAccroche ? 60 : 1 }}>
       {etat === "publie" && (
         <button type="button" className={`${s.btn} ${aLaUne ? s.btnOr : s.btnGris}`} aria-pressed={aLaUne} disabled={enCours} onClick={basculerUne}>
           <Icon name={aLaUne ? "check" : "plus"} size={16} /> {aLaUne ? "À la une" : "Mettre à la une"}
         </button>
+      )}
+      {etat === "publie" && (
+        <button type="button" className={`${s.btn} ${s.btnGris}`} onClick={() => setEditionAccroche(true)}>
+          <Icon name="edit" size={16} /> Accroche
+        </button>
+      )}
+      {editionAccroche && (
+        <FeuilleAccroche
+          e={e}
+          valeur={accroche}
+          onFermer={() => setEditionAccroche(false)}
+          onEnregistre={(x) => {
+            setAccroche(x);
+            setEditionAccroche(false);
+          }}
+        />
       )}
       {etat !== "annule" && (
         <button
@@ -242,6 +273,87 @@ function Gestion({
         </div>
       )}
       {etat === "annule" && e.statut !== "annule" && <span className={`${s.statut} ${s.stBarre}`}>Annulé</span>}
+    </div>
+  );
+}
+
+/**
+ * Saisie du texte d'accroche (POST /api/admin/events/[id]/accroche), avec
+ * l'aperçu de la carte telle qu'elle apparaîtra dans « Épinglé » sur
+ * l'accueil. Vide : l'aperçu montre le repli sur la description.
+ */
+function FeuilleAccroche({
+  e,
+  valeur,
+  onFermer,
+  onEnregistre,
+}: {
+  e: EvenementGere;
+  valeur: string | null;
+  onFermer: () => void;
+  onEnregistre: (accroche: string | null) => void;
+}) {
+  const [texte, setTexte] = useState(valeur ?? "");
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const propre = texte.trim().replace(/\s+/g, " ");
+
+  async function enregistrer() {
+    setEnCours(true);
+    setErreur(null);
+    const err = await appeler(`/api/admin/events/${e.id}/accroche`, { accroche: propre });
+    setEnCours(false);
+    if (err) return setErreur(err);
+    onEnregistre(propre || null);
+  }
+
+  return (
+    <div className={s.fond} onClick={() => !enCours && onFermer()}>
+      <div className={s.feuille} role="dialog" aria-modal="true" aria-labelledby={`titre-accroche-${e.id}`} onClick={(ev) => ev.stopPropagation()}>
+        <h2 id={`titre-accroche-${e.id}`} className={s.feuilleTitre}>
+          Texte d&apos;accroche
+        </h2>
+        <div className={s.champ}>
+          <label htmlFor={`accroche-${e.id}`}>
+            Accroche <small>(optionnel)</small>
+          </label>
+          <textarea
+            id={`accroche-${e.id}`}
+            value={texte}
+            maxLength={ACCROCHE_MAX}
+            onChange={(ev) => setTexte(ev.target.value)}
+            placeholder={e.accrocheRepli ?? "Une phrase qui donne envie de venir"}
+            aria-describedby={`aide-accroche-${e.id}`}
+            autoFocus
+          />
+          <p id={`aide-accroche-${e.id}`} className={s.aide} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+            <span>Affichée sous l&apos;affiche dans « Épinglé ». Vide : début de la description.</span>
+            <span style={{ flex: "none", fontVariantNumeric: "tabular-nums" }}>
+              {texte.length}/{ACCROCHE_MAX}
+            </span>
+          </p>
+        </div>
+        <div style={{ display: "grid", gap: 8 }}>
+          <p className={s.etiquette}>Aperçu</p>
+          <div style={{ maxWidth: 320 }}>
+            <Epingle e={{ ...e.apercu, accroche: propre || e.accrocheRepli }} s={v} />
+          </div>
+        </div>
+        {erreur && (
+          <p className={`${s.alerte} ${s.alerteDanger}`} role="alert">
+            <Icon name="alert" />
+            <span>{erreur}</span>
+          </p>
+        )}
+        <div className={s.feuilleActions}>
+          <button type="button" className={`${s.btn} ${s.btnGris} ${s.btnGrand}`} disabled={enCours} onClick={onFermer}>
+            Retour
+          </button>
+          <button type="button" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} disabled={enCours} onClick={enregistrer}>
+            {enCours ? "Enregistrement…" : "Enregistrer"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
