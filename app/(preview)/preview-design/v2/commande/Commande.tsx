@@ -27,6 +27,7 @@ export default function Commande({
   initial,
   compte,
   erreurStock,
+  erreurDejaPaye,
 }: {
   titre: string;
   quand: string;
@@ -35,6 +36,8 @@ export default function Commande({
   initial: Record<string, number>;
   compte: Compte;
   erreurStock: boolean;
+  /** Refus « déjà payé » de /api/orders (fenêtre anti-doublon de 5 min), avec le temps restant. */
+  erreurDejaPaye: boolean;
 }) {
   const [q, setQ] = useState<Record<string, number>>(initial);
   const [mode, setMode] = useState<"compte" | "invite" | null>(compte ? "compte" : null);
@@ -89,6 +92,18 @@ export default function Commande({
   return (
     <div className={s.form}>
       <div className={s.formCorps}>
+        {erreurDejaPaye && (
+          <p className={s.alerte} role="status" style={{ marginBottom: 8 }}>
+            <Icon name="info" />
+            <span>
+              Tu as déjà payé cette sélection il y a quelques minutes, rien n&apos;a été débité en plus. Si tu veux un billet supplémentaire, réessaie dans 3
+              minutes.{" "}
+              <a href={compte ? `${B}/compte` : `${B}/billet`} style={{ textDecoration: "underline" }}>
+                {compte ? "Voir mes billets" : "Retrouver mes billets"}
+              </a>
+            </span>
+          </p>
+        )}
         {erreurStock && (
           <p className={`${s.alerte} ${s.alerteDanger}`} role="alert" style={{ marginBottom: 8 }}>
             <Icon name="alert" />

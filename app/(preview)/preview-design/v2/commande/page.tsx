@@ -15,7 +15,8 @@ const DISPONIBLES: Record<string, number> = { std: 180, vip: 12, table: 3 };
 /**
  * Commande (preview V2). Panier dans l'URL (?std=2&vip=1). États :
  * ?etat=connecte (coordonnées préremplies), gratuit (événement gratuit),
- * stock (refus serveur « stock insuffisant », comme /api/orders).
+ * stock (refus serveur « stock insuffisant », comme /api/orders), deja-paye
+ * (même panier payé il y a moins de 5 min : refus avec le temps restant).
  */
 export default function V2Commande({ searchParams }: { searchParams: Record<string, string | undefined> }) {
   const etat = searchParams.etat;
@@ -50,8 +51,9 @@ export default function V2Commande({ searchParams }: { searchParams: Record<stri
           initial={initial}
           compte={etat === "connecte" ? { nom: "Aïcha Houngbédji", email: "aicha.houngbedji@exemple.bj", tel: "01 97 42 18 63" } : null}
           erreurStock={etat === "stock"}
+          erreurDejaPaye={etat === "deja-paye"}
         />
-        <RubanEtats chemin={`${B}/commande`} etats={["normal", "connecte", "gratuit", "stock"]} />
+        <RubanEtats chemin={`${B}/commande`} etats={["normal", "connecte", "gratuit", "stock", "deja-paye"]} />
       </main>
     </div>
   );

@@ -44,6 +44,13 @@ const FENETRE_REUTILISATION_MS = 30 * 60 * 1000;
 // reprendre le même type/quantité de billet plus tard dans la journée, ou
 // le lendemain, sans se faire renvoyer vers une commande déjà payée.
 const FENETRE_DEJA_PAYEE_MS = 5 * 60 * 1000;
+// Minutes restantes avant qu'un rachat du même panier passe, affichées à
+// l'acheteur (« réessaie dans N minutes ») : la fenêtre court depuis la
+// CRÉATION de la commande payée (clic sur « Payer »), pas depuis le paiement.
+function minutesAvantRachat(creeeLe: string): number {
+  const restantMs = FENETRE_DEJA_PAYEE_MS - (Date.now() - new Date(creeeLe).getTime());
+  return Math.max(1, Math.ceil(restantMs / 60000));
+}
 
 // L'INSERT ci-dessous peut entrer en conflit avec l'index unique partiel
 // créé par supabase/migrations/20260720120000_dedoublonnage_commandes_en_attente.sql —
@@ -220,6 +227,7 @@ export async function POST(req: NextRequest) {
         error: "Tu as déjà une commande payée pour cette sélection.",
         orderId: dejaPayee.id,
         dejaPayee: true,
+        reessayerDansMin: minutesAvantRachat(dejaPayee.created_at),
       },
       { status: 409 }
     );
@@ -298,6 +306,7 @@ export async function POST(req: NextRequest) {
           error: "Tu as déjà une commande payée pour cette sélection.",
           orderId: existante.id,
           dejaPayee: true,
+          reessayerDansMin: minutesAvantRachat(existante.created_at),
         },
         { status: 409 }
       );
