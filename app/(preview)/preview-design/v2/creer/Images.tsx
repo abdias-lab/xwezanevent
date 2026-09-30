@@ -13,7 +13,7 @@ export type ImageLocale = { cle: string; nom: string; url: string };
 
 /**
  * Bloc Images (preview V2) : jusqu'à 4 images, une principale, aperçus des
- * recadrages V2 (16:9 carte + page, carré « En ce moment »). Les fichiers
+ * recadrage V2 (16:9 : cartes, page, « Épinglé »). Les fichiers
  * restent dans le navigateur (URL blob), aucun envoi.
  */
 export default function Images({
@@ -76,7 +76,7 @@ export default function Images({
   return (
     <>
       <p className={s.aide} style={{ fontSize: 13, lineHeight: "18px" }}>
-        Format paysage <b>16:9</b> recommandé (1600 × 900 px). Garde le sujet au centre : l&apos;image est recadrée en carré dans « En ce moment ».
+        Format paysage <b>16:9</b> recommandé (1600 × 900 px). Garde le sujet au centre : l&apos;image est recadrée en 16:9 si elle a un autre format.
         JPG, PNG ou WebP, 5 Mo maximum.
       </p>
 
@@ -153,14 +153,7 @@ export default function Images({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={principal.url} alt="" />
                 </div>
-                <figcaption>Carte et page de l&apos;événement</figcaption>
-              </figure>
-              <figure>
-                <div className={s.recadrageCarre}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={principal.url} alt="" />
-                </div>
-                <figcaption>« En ce moment »</figcaption>
+                <figcaption>Cartes, page de l&apos;événement et « Épinglé »</figcaption>
               </figure>
             </div>
           )}

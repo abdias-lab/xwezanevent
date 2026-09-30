@@ -13,7 +13,7 @@ export type ImageLocale = { cle: string; nom: string; url: string; fichier: File
 
 /**
  * Bloc Images (V2), repris de la preview (v2/creer/Images.tsx) : jusqu'à 4
- * images, une principale, aperçus des recadrages V2. Chaque fichier est
+ * images, une principale, aperçu du recadrage V2 (16:9). Chaque fichier est
  * compressé dans le navigateur avant d'être gardé (lib/compression-image.ts :
  * Vercel refuse les requêtes de plus de 4,5 Mo) ; le formulaire l'envoie
  * ensuite à l'action serveur (images_nouvelles). En modification, les images
@@ -96,7 +96,7 @@ export default function Images({
   return (
     <>
       <p className={s.aide} style={{ fontSize: 13, lineHeight: "18px" }}>
-        Format paysage <b>16:9</b> recommandé (1600 × 900 px). Garde le sujet au centre : l&apos;image est recadrée en carré dans « En ce moment ».
+        Format paysage <b>16:9</b> recommandé (1600 × 900 px). Garde le sujet au centre : l&apos;image est recadrée en 16:9 si elle a un autre format.
         JPG, PNG ou WebP, allégées automatiquement avant l&apos;envoi.
       </p>
 
@@ -175,14 +175,7 @@ export default function Images({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={principal.url} alt="" />
                 </div>
-                <figcaption>Carte et page de l&apos;événement</figcaption>
-              </figure>
-              <figure>
-                <div className={s.recadrageCarre}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={principal.url} alt="" />
-                </div>
-                <figcaption>« En ce moment »</figcaption>
+                <figcaption>Cartes, page de l&apos;événement et « Épinglé »</figcaption>
               </figure>
             </div>
           )}

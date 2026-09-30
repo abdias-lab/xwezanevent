@@ -908,12 +908,9 @@
 .vignetteRetirer:hover {
   background: var(--danger);
 }
-/* Aperçus de recadrage : 16:9 (carte, page) et carré (« En ce moment »). */
+/* Aperçu de recadrage : 16:9 (cartes, page, « Épinglé »). */
 .recadrages {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: var(--s3);
-  align-items: end;
+  max-width: 400px;
 }
 .recadrages figcaption {
   margin-top: 6px;
@@ -921,20 +918,13 @@
   line-height: 16px;
   color: var(--muted);
 }
-.recadrage169,
-.recadrageCarre {
+.recadrage169 {
+  aspect-ratio: 16 / 9;
   border-radius: var(--r);
   overflow: hidden;
   background: var(--raised);
 }
-.recadrage169 {
-  aspect-ratio: 16 / 9;
-}
-.recadrageCarre {
-  aspect-ratio: 1;
-}
-.recadrage169 img,
-.recadrageCarre img {
+.recadrage169 img {
   width: 100%;
   height: 100%;
   object-fit: cover;
