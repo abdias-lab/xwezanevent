@@ -179,7 +179,7 @@ export default function Commande({
           ) : (
             <>
               {mode === "compte" && (
-                <p className={s.note}>
+                <p className={s.note} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <Icon name="check" size={16} /> Connecté : tes billets seront aussi dans ton compte.
                 </p>
               )}
@@ -291,9 +291,6 @@ function Recap({ titre, quand, lieu, lignes, q, total }: { titre: string; quand:
 function Rassurance() {
   return (
     <ul className={s.checklist} style={{ fontSize: 13 }}>
-      <li>
-        <Icon name="check" size={16} /> Prix affiché = prix payé, aucun frais de service
-      </li>
       <li>
         <Icon name="shield" size={16} /> Paiement sécurisé par FedaPay
       </li>

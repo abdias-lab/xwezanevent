@@ -53,7 +53,7 @@ export function dateLongue(e: Evenement) {
 }
 export function fcfa(n: number) {
   if (n === 0) return "Gratuit";
-  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " FCFA";
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + "\u00A0FCFA";
 }
 export function prixDes(e: Evenement) {
   if (e.prixLibelle) return e.prixLibelle;
@@ -62,6 +62,7 @@ export function prixDes(e: Evenement) {
 export function initiales(titre: string) {
   return titre
     .split(/\s+/)
+    .map((m) => m.replace(/^[^0-9A-Za-zÀ-ÖØ-öø-ÿ]+/, "")) // « [TEST] », « (Re)découverte » : jamais de ponctuation en initiale
     .filter((m) => m.length > 2)
     .slice(0, 2)
     .map((m) => m[0].toUpperCase())

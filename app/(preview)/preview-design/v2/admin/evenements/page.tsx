@@ -18,7 +18,18 @@ const FILTRES: { cle: string; libelle: string; statut: Statut }[] = [
   { cle: "termine", libelle: "Terminés", statut: "termine" },
   { cle: "refuse", libelle: "Refusés", statut: "refuse" },
   { cle: "annule", libelle: "Annulés", statut: "annule" },
+  // Ajout du 2026-09-28 (intégration) : sans cette puce, les brouillons n'étaient visibles nulle part côté admin.
+  { cle: "brouillon", libelle: "Brouillons", statut: "brouillon" },
 ];
+
+/** Repli de l'accroche : début de la description, coupé au dernier mot avant 160 caractères (prod : lib/events.ts). */
+function repliAccroche(description: string): string | null {
+  const texte = description.trim().replace(/\s+/g, " ");
+  if (!texte) return null;
+  if (texte.length <= 160) return texte;
+  const coupe = texte.slice(0, 160);
+  return `${coupe.slice(0, coupe.lastIndexOf(" ") > 0 ? coupe.lastIndexOf(" ") : 160)}…`;
+}
 
 const COLS = { "--cols": "minmax(0, 1.8fr) minmax(0, 1fr) 100px 130px 110px minmax(0, 1.7fr)" } as CSSProperties;
 
@@ -148,7 +159,28 @@ export default function V2AdminEvenements({ searchParams }: { searchParams: { st
                 <span className={s.cellule}>
                   <StatutEvt statut={e.statut} />
                 </span>
-                <Gestion titre={e.titre} statut={e.statut} vendus={c.vendus} brut={c.brut} aLaUneInitial={!!e.aLaUne} />
+                <Gestion
+                  titre={e.titre}
+                  statut={e.statut}
+                  vendus={c.vendus}
+                  brut={c.brut}
+                  aLaUneInitial={!!e.aLaUne}
+                  apercu={{
+                    slug: e.id,
+                    titre: e.titre,
+                    categorie: e.categories[0] ?? "Événement",
+                    lieu: e.lieu,
+                    ville: e.ville,
+                    debut: e.debut,
+                    fin: e.fin,
+                    heure: e.heure,
+                    prixMin: 0,
+                    organisateur: "",
+                    tags: e.categories,
+                    image: e.image ? IMAGES[e.image] : null,
+                  }}
+                  repli={repliAccroche(e.description)}
+                />
               </li>
             );
           })}

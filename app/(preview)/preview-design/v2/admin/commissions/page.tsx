@@ -12,7 +12,7 @@ const VUES = [
 ] as const;
 
 const COLS = { "--cols": "minmax(0, 2fr) minmax(0, 1.3fr) 150px 90px 150px" } as CSSProperties;
-const pct = (x: number) => `${Math.round(x * 1000) / 10} %`.replace(".", ",");
+const pct = (x: number) => `${Math.round(x * 1000) / 10}\u00A0%`.replace(".", ",");
 
 /**
  * Commissions (preview V2). En prod : app/(admin)/admin/commissions (revenu,
@@ -117,7 +117,7 @@ export default function V2AdminCommissions({ searchParams }: { searchParams: { v
                     <dt>Ventes</dt>
                     <dd className={s.chiffre}>{montant(c.brut)}</dd>
                     <dt>Taux</dt>
-                    <dd className={s.chiffre}>{e.commission === 0 ? "0 % (accord)" : pct(e.commission)}</dd>
+                    <dd className={s.chiffre}>{e.commission === 0 ? "0\u00A0% (accord)" : pct(e.commission)}</dd>
                     <dt>Commission</dt>
                     <dd className={`${s.montant} ${s.chiffre}`}>{c.commission ? montant(c.commission) : "offerte"}</dd>
                   </dl>

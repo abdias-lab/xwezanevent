@@ -42,7 +42,11 @@ export default function Formulaire({ envoyeInitial, erreurInitiale }: { envoyeIn
       onSubmit={(e) => {
         e.preventDefault();
         setTente(true);
-        if (!nomOk || !emailOk || !messageOk || piege) return;
+        if (!nomOk || !emailOk || !messageOk) {
+          requestAnimationFrame(() => document.querySelector<HTMLElement>(`form [aria-invalid="true"]`)?.focus());
+          return;
+        }
+        if (piege) return;
         setEnCours(true);
         setTimeout(() => {
           setEnCours(false);

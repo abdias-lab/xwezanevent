@@ -1,69 +1,32 @@
-import Link from "next/link";
-import RetrouverBilletForm from "@/components/RetrouverBilletForm";
-import PanneauMarketing from "@/components/PanneauMarketing";
-import { creerClientServeur } from "@/lib/supabase-server";
-import Logo from "@/components/Logo";
 import type { Metadata } from "next";
+import { POLICES_V2 } from "@/components/v2/polices";
+import { Header, Footer } from "@/components/v2/public/Chrome";
+import Retrouver from "@/components/v2/compte/Retrouver";
+import v from "@/components/v2/v2.module.css";
+import s from "@/components/v2/espace.module.css";
 
 export const metadata: Metadata = {
   title: "Retrouver mon billet — XwézanEvent",
   description: "Retrouve rapidement ton billet pour entrer à ton événement.",
 };
 
-export default async function RetrouverBillet() {
-  const supabase = creerClientServeur();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+/** Retrouver mon billet (V2), repris de la preview (v2/billet). */
+export default function RetrouverBillet() {
   return (
-    <div className="split">
-      <PanneauMarketing
-        titre={
-          <>
-            Ton billet <span className="fete">t&apos;attend.</span>
-          </>
-        }
-        description="Pas de panique — deux façons rapides de le retrouver avant d'entrer."
-      />
-
-      <div className="cote-form">
-        <div className="boite">
-          <Logo />
-
-          <h2>Retrouver mon billet</h2>
-          <p className="sous">
-            Choisis l&apos;option qui te correspond, c&apos;est rapide.
+    <div className={`${POLICES_V2} ${v.racine} ${s.racineEspace}`}>
+      <Header />
+      <main className={v.cont}>
+        <div className={s.colonneEcran}>
+          <h1 className={v.h1}>
+            Retrouver <em>mon billet.</em>
+          </h1>
+          <p className={v.sous} style={{ margin: "12px 0 24px" }}>
+            Billet perdu, e-mail supprimé ? Indique l&apos;adresse utilisée pour l&apos;achat : on te renvoie tous tes billets payés, avec ou sans compte.
           </p>
-
-          <div className="bloc-retrouver">
-            <h3>🔑 J&apos;ai un compte</h3>
-            <p>
-              Connecte-toi : tous tes billets t&apos;attendent dans
-              « Mes billets ».
-            </p>
-            <Link
-              className="btn btn-or btn-large"
-              href={user ? "/compte" : "/connexion?redirect=/compte"}
-            >
-              {user ? "Voir mes billets" : "Me connecter"}
-            </Link>
-          </div>
-
-          <div className="separateur-ou" role="separator">
-            <span>ou</span>
-          </div>
-
-          <div className="bloc-retrouver">
-            <h3>📧 Je ne retrouve plus mon email de billets</h3>
-            <p>
-              Indique ton adresse : si des billets y sont associés, on te
-              les renvoie tout de suite.
-            </p>
-            <RetrouverBilletForm />
-          </div>
+          <Retrouver />
         </div>
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 }

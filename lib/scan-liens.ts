@@ -38,7 +38,7 @@ export interface CompteurScan {
 
 /**
  * Billets scannés / vendus pour UN événement — repère non financier affiché
- * à la personne qui scanne (voir ScannerClient), jamais de montant ni de
+ * à la personne qui scanne (voir components/v2/scan/Scanner.tsx), jamais de montant ni de
  * revenu. `total` = somme de quantite_vendue (billets réellement vendus,
  * pas la capacité totale) ; `scannes` = tickets déjà passés en 'utilise'.
  */

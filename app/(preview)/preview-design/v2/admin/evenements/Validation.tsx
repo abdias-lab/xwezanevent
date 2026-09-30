@@ -79,7 +79,7 @@ export default function Validation({ evenements }: { evenements: EvenementAValid
               ) : (
                 <>
                   <div className={s.colonnesValidation}>
-                    <div className={s.vignette} style={{ aspectRatio: "16 / 9" }}>
+                    <div className={s.afficheValidation}>
                       {e.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={e.image} alt={`Affiche : ${e.titre}`} />

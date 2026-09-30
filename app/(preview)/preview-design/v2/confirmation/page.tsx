@@ -15,7 +15,10 @@ export const metadata: Metadata = { title: "Tes billets — XwézanEvent", robot
 // abîmé ou mal éclairé). En prod : margin 1, correction par défaut, 150 px.
 const OPTIONS_QR = { errorCorrectionLevel: "Q" as const, margin: 4, color: { dark: "#000000", light: "#ffffff" } };
 
-// Billets de démonstration (code_qr = UUID comme en prod, référence = début du code).
+// Billets de démonstration (code_qr = UUID comme en prod). Référence affichée
+// sous chaque QR : celle de la COMMANDE, la seule que la recherche manuelle du
+// scanner sait retrouver (décision du 2026-09-29).
+const COMMANDE = "3CA2DF9D";
 const BILLETS = [
   { code: "7c1f5a0e-3b9d-4e2a-9f61-2d8b0c4e7a13", tarif: "Pass Standard" },
   { code: "b84e2d16-90c3-4f7b-a5e8-61d2c7f09b3e", tarif: "Pass Standard" },
@@ -33,7 +36,7 @@ export default async function V2Confirmation({ searchParams }: { searchParams: {
   const billets = await Promise.all(
     (etat === "un" ? BILLETS.slice(0, 1) : BILLETS).map(async (b) => ({
       ...b,
-      reference: `XWZ-${b.code.slice(0, 8).toUpperCase()}`,
+      reference: `XWZ-${COMMANDE}`,
       svg: await QRCode.toString(b.code, { ...OPTIONS_QR, type: "svg" }),
       png: await QRCode.toDataURL(b.code, { ...OPTIONS_QR, width: 800 }),
     })),
@@ -87,7 +90,7 @@ export default async function V2Confirmation({ searchParams }: { searchParams: {
                       </span>
                       <h2 className={s.billetTitre}>{ev.titre}</h2>
                       <p className={s.carteMeta}>
-                        {dateLongue(ev)} · portes {ev.heure}
+                        {dateLongue(ev)} · {ev.heure}
                         <br />
                         {ev.lieuAdresse}
                       </p>
@@ -95,7 +98,7 @@ export default async function V2Confirmation({ searchParams }: { searchParams: {
                         <dt>Titulaire</dt>
                         <dd>Aïcha Houngbédji</dd>
                         <dt>Commande</dt>
-                        <dd className={s.chiffre}>N° 3CA2DF9D</dd>
+                        <dd className={s.chiffre}>N° {COMMANDE}</dd>
                       </dl>
                     </div>
                     <div className={s.qrBloc}>
@@ -103,7 +106,7 @@ export default async function V2Confirmation({ searchParams }: { searchParams: {
                       <p className={s.qrRef}>{b.reference}</p>
                       <p className={s.qrAide}>Un billet = une entrée. Ne partage pas ce code.</p>
                     </div>
-                    <ActionsBillet svg={b.svg} png={b.png} reference={b.reference} titre={ev.titre} tarif={b.tarif} />
+                    <ActionsBillet svg={b.svg} png={b.png} reference={b.reference} fichier={`billet-${b.reference}-${i + 1}.png`} titre={ev.titre} tarif={b.tarif} />
                   </li>
                 ))}
               </ul>

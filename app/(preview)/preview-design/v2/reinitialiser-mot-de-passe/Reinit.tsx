@@ -47,7 +47,10 @@ export default function Reinit({ etatInitial }: { etatInitial: "formulaire" | "t
       onSubmit={(e) => {
         e.preventDefault();
         setTente(true);
-        if (!longOk || !pareil) return;
+        if (!longOk || !pareil) {
+          requestAnimationFrame(() => document.querySelector<HTMLElement>(`form [aria-invalid="true"]`)?.focus());
+          return;
+        }
         setEtat("envoi");
         setTimeout(() => setEtat("termine"), 700);
       }}

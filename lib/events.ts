@@ -13,9 +13,10 @@ interface EventRow {
   lieu: string;
   date_debut: string; // YYYY-MM-DD
   date_fin: string | null;
+  heure: string | null;
   affiche_url: string | null;
   est_demo: boolean;
-  ticket_types: { prix: number }[];
+  ticket_types: { prix: number; quantite_totale: number; quantite_vendue: number }[];
   event_categories: { categorie: string; ordre: number }[];
 }
 
@@ -37,6 +38,32 @@ export interface CarteData {
   plageAffichee: string | null;
   /** Regroupement par date sur /evenements — voir calculerGroupeDate(). */
   groupeDate: { cle: string; libelle: string };
+  /** Champs bruts pour la carte V2 (components/v2/public/Carte.tsx). */
+  dateDebut: string;
+  dateFin: string | null;
+  /** "HH:MM", ou null si non renseignée. */
+  heure: string | null;
+  nomLieu: string;
+  ville: string;
+  /** Toutes les catégories, dans leur ordre d'affichage. */
+  categories: string[];
+  /** Places restantes quand le stock s'épuise (voir placesRestantesAffichees), sinon null. */
+  restantes: number | null;
+}
+
+/**
+ * Badge « Plus que N places » : seulement quand il reste 10 % ou moins du
+ * stock total de l'événement (tous tarifs confondus), et à partir de 5
+ * billets vendus, pour ne pas l'afficher sur un événement qui démarre avec
+ * un tout petit stock. Rien quand c'est complet. Seuils à affiner après le
+ * lancement (design/BUGS_REFONTE.md).
+ */
+function placesRestantesAffichees(tarifs: { quantite_totale: number; quantite_vendue: number }[]): number | null {
+  const total = tarifs.reduce((n, t) => n + t.quantite_totale, 0);
+  const vendus = tarifs.reduce((n, t) => n + t.quantite_vendue, 0);
+  const restantes = total - vendus;
+  if (vendus < 5 || restantes <= 0 || restantes > total * 0.1) return null;
+  return restantes;
 }
 
 function categoriePrincipale(categories: { categorie: string; ordre: number }[]): string {
@@ -83,6 +110,13 @@ function mapRow(ev: EventRow): CarteData {
         ? formatPlageDates(ev.date_debut, ev.date_fin, { avecAnnee: false })
         : null,
     groupeDate: calculerGroupeDate(ev.date_debut, ev.date_fin),
+    dateDebut: ev.date_debut,
+    dateFin: ev.date_fin && ev.date_fin !== ev.date_debut ? ev.date_fin : null,
+    heure: ev.heure ? ev.heure.slice(0, 5) : null,
+    nomLieu: ev.lieu,
+    ville: ev.ville,
+    categories: [...ev.event_categories].sort((a, b) => a.ordre - b.ordre).map((c) => c.categorie),
+    restantes: placesRestantesAffichees(ev.ticket_types),
   };
 }
 
@@ -117,8 +151,10 @@ export function filtreNonTermine(depuis: string): string {
  * triés par date croissante. Filtres optionnels : catégorie (un événement
  * peut avoir plusieurs catégories — voir event_categories — il apparaît dans
  * le filtre dès qu'une seule correspond), période ("quand" : aujourdhui,
- * week-end, semaine, mois — voir plagePeriode()), recherche texte (q, sur
- * titre+description) et ville (saisie libre, correspondance partielle).
+ * week-end, semaine, mois — voir plagePeriode()) ou jour précis (date,
+ * AAAA-MM-JJ, choisi dans le calendrier du catalogue : prioritaire sur
+ * « quand » ; un festival en cours ce jour-là est inclus), recherche texte (q, sur
+ * titre, description, lieu et ville) et ville (saisie libre, correspondance partielle).
  *
  * Exclut les événements dont la date est passée par une comparaison de
  * date directe (pas seulement `statut = 'publie'`) : reste correct même
@@ -129,22 +165,26 @@ export function filtreNonTermine(depuis: string): string {
  * apparaître dans aucun listing public.
  */
 export async function getEvenementsPublies(
-  opts: { categorie?: string; quand?: string; q?: string; ville?: string; pays: string }
+  opts: { categorie?: string; quand?: string; date?: string; q?: string; ville?: string; pays: string }
 ): Promise<CarteData[]> {
-  const periode = plagePeriode(opts.quand);
+  // Un jour passé est ignoré : filtreNonTermine(depuis) avec un « depuis »
+  // antérieur à aujourd'hui ferait remonter des événements terminés.
+  const jourValide = opts.date && /^\d{4}-\d{2}-\d{2}$/.test(opts.date) && opts.date >= aujourdhuiPortoNovo() ? opts.date : null;
+  const periode = jourValide ? { debut: jourValide, fin: jourValide } : plagePeriode(opts.quand);
 
-  // event_categories!inner (plutôt que la forme sans !inner) transforme le
-  // filtre .eq ci-dessous en jointure restrictive sur les événements
-  // eux-mêmes, pas seulement sur les lignes embarquées — nécessaire pour
-  // qu'un événement sans la catégorie demandée soit exclu du résultat.
+  // Filtre catégorie : une jointure event_categories!inner distincte (alias
+  // `filtre_categorie`) transforme le .eq ci-dessous en jointure restrictive
+  // sur les événements eux-mêmes. Elle ne renvoie que la ligne filtrée : les
+  // catégories affichées viennent donc d'une seconde jointure, non filtrée,
+  // sinon la carte perdrait ses autres catégories (et sa catégorie principale).
   const relationCategories = opts.categorie
-    ? "event_categories!inner(categorie, ordre)"
+    ? "filtre_categorie:event_categories!inner(categorie), event_categories(categorie, ordre)"
     : "event_categories(categorie, ordre)";
 
   let query = supabase
     .from("events")
     .select(
-      `slug, titre, ville, lieu, date_debut, date_fin, affiche_url, est_demo, ticket_types(prix), ${relationCategories}`
+      `slug, titre, ville, lieu, date_debut, date_fin, heure, affiche_url, est_demo, ticket_types(prix, quantite_totale, quantite_vendue), ${relationCategories}`
     )
     .eq("statut", "publie")
     .eq("est_demo", false)
@@ -156,7 +196,7 @@ export async function getEvenementsPublies(
   }
 
   if (opts.categorie) {
-    query = query.eq("event_categories.categorie", opts.categorie);
+    query = query.eq("filtre_categorie.categorie", opts.categorie);
   }
 
   if (opts.ville?.trim()) {
@@ -166,7 +206,9 @@ export async function getEvenementsPublies(
   const motCle = opts.q?.trim();
   if (motCle) {
     const echappe = echapperPourOr(motCle);
-    query = query.or(`titre.ilike."%${echappe}%",description.ilike."%${echappe}%"`);
+    query = query.or(
+      `titre.ilike."%${echappe}%",description.ilike."%${echappe}%",lieu.ilike."%${echappe}%",ville.ilike."%${echappe}%"`
+    );
   }
 
   const { data, error } = await query.order("date_debut", { ascending: true });
@@ -396,85 +438,88 @@ export async function getEvenementsTicker(pays: string): Promise<TickerItem[]> {
   return (repli as TickerRow[]).map(mapTicker);
 }
 
-export interface VedetteData {
+/** Événement du bloc « Épinglé » de l'accueil — voir getEvenementsEpingles(). */
+export interface EpingleData {
+  id: string;
   titre: string;
-  /** Extrait tronqué de la description, null si l'événement n'en a pas. */
-  extrait: string | null;
-  ville: string;
-  lieu: string;
+  /** Accroche saisie par l'admin, sinon début de la description ; null si ni l'une ni l'autre. */
+  accroche: string | null;
+  categorie: string;
   image: string | null;
   href: string;
-  /** "10 – 12 janvier 2027" ou "10 janvier 2027" — voir formatPlageDates(). */
-  plage: string;
+  dateDebut: string;
+  dateFin: string | null;
+  /** "HH:MM", ou null si non renseignée. */
+  heure: string | null;
 }
 
-interface VedetteRow {
+interface EpingleRow {
   slug: string;
   titre: string;
+  accroche: string | null;
   description: string | null;
-  ville: string;
-  lieu: string;
   date_debut: string;
   date_fin: string | null;
+  heure: string | null;
   affiche_url: string | null;
+  event_categories: { categorie: string; ordre: number }[];
 }
 
-/** Longueur cible de l'extrait affiché dans le bloc "à la une" de l'accueil. */
-const LONGUEUR_EXTRAIT_VEDETTE = 160;
+/** Longueur du repli sur la description quand l'admin n'a pas saisi d'accroche. */
+const LONGUEUR_REPLI_ACCROCHE = 160;
 
-/** Tronque au dernier mot entier avant LONGUEUR_EXTRAIT_VEDETTE caractères, ajoute "…" si coupé. */
+/** Tronque au dernier mot entier avant LONGUEUR_REPLI_ACCROCHE caractères, ajoute "…" si coupé. */
 function extraitDescription(description: string | null): string | null {
   if (!description) return null;
-  const texte = description.trim();
+  const texte = description.trim().replace(/\s+/g, " ");
   if (!texte) return null;
-  if (texte.length <= LONGUEUR_EXTRAIT_VEDETTE) return texte;
+  if (texte.length <= LONGUEUR_REPLI_ACCROCHE) return texte;
 
-  const tronque = texte.slice(0, LONGUEUR_EXTRAIT_VEDETTE);
+  const tronque = texte.slice(0, LONGUEUR_REPLI_ACCROCHE);
   const dernierEspace = tronque.lastIndexOf(" ");
-  return `${tronque.slice(0, dernierEspace > 0 ? dernierEspace : LONGUEUR_EXTRAIT_VEDETTE)}…`;
+  return `${tronque.slice(0, dernierEspace > 0 ? dernierEspace : LONGUEUR_REPLI_ACCROCHE)}…`;
+}
+
+/** Texte affiché sous l'affiche épinglée : l'accroche, sinon le début de la description. */
+export function accrocheOuRepli(accroche: string | null, description: string | null): string | null {
+  return accroche?.trim() || extraitDescription(description);
 }
 
 /**
- * L'unique événement épinglé pour le grand bloc "à la une" de l'accueil —
- * même colonne de sélection manuelle admin que le ticker (mis_en_avant),
- * mais SANS repli automatique sur les prochains événements publiés :
- * si rien n'est coché, le bloc doit rester absent plutôt que de mettre
- * en avant un événement non choisi éditorialement (voir page.tsx, qui
- * n'affiche la section que si cette fonction retourne non-null).
- * Le premier par ordre_affiche (puis date) si plusieurs sont cochés.
+ * Événements du bloc « Épinglé » de l'accueil : uniquement ceux cochés « à la
+ * une » par l'admin (mis_en_avant), dans l'ordre choisi (ordre_affiche, puis
+ * date). AUCUN repli automatique : si rien n'est coché, le bloc reste absent
+ * plutôt que de mettre en avant un événement non choisi. Mêmes règles
+ * d'éligibilité que le listing : publié, à venir, hors démo, pays courant —
+ * un événement coché puis passé, annulé ou dépublié disparaît seul.
  */
-export async function getEvenementVedette(pays: string): Promise<VedetteData | null> {
-  const aujourdhui = aujourdhuiPortoNovo();
-
+export async function getEvenementsEpingles(pays: string): Promise<EpingleData[]> {
   const { data, error } = await supabase
     .from("events")
-    .select("slug, titre, description, ville, lieu, date_debut, date_fin, affiche_url")
+    .select("slug, titre, accroche, description, date_debut, date_fin, heure, affiche_url, event_categories(categorie, ordre)")
     .eq("statut", "publie")
     .eq("mis_en_avant", true)
     .eq("est_demo", false)
     .eq("pays_code", pays)
-    .or(filtreNonTermine(aujourdhui))
+    .or(filtreNonTermine(aujourdhuiPortoNovo()))
     .order("ordre_affiche", { ascending: true, nullsFirst: false })
-    .order("date_debut", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order("date_debut", { ascending: true });
 
   if (error) {
-    console.error("[events] échec getEvenementVedette :", error.message);
-    return null;
+    console.error("[events] échec getEvenementsEpingles :", error.message);
+    return [];
   }
-  if (!data) return null;
-
-  const row = data as unknown as VedetteRow;
-  return {
+  return (data as unknown as EpingleRow[]).map((row) => ({
+    id: row.slug,
     titre: row.titre,
-    extrait: extraitDescription(row.description),
-    ville: row.ville,
-    lieu: row.lieu,
+    accroche: accrocheOuRepli(row.accroche, row.description),
+    categorie: categoriePrincipale(row.event_categories),
     image: row.affiche_url,
     href: `/evenement/${row.slug}`,
-    plage: formatPlageDates(row.date_debut, row.date_fin, { avecAnnee: true }),
-  };
+    dateDebut: row.date_debut,
+    dateFin: row.date_fin && row.date_fin !== row.date_debut ? row.date_fin : null,
+    heure: row.heure ? row.heure.slice(0, 5) : null,
+  }));
 }
 
 /**

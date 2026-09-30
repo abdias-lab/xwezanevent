@@ -1,32 +1,42 @@
+import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { recupererTransaction } from "@/lib/fedapay";
 import { finaliserCommande } from "@/lib/commandes";
-import { redirect } from "next/navigation";
 import { issueTransaction } from "@/lib/statut-paiement";
+import { POLICES_V2 } from "@/components/v2/polices";
+import { Header } from "@/components/v2/public/Chrome";
+import Verification from "@/components/v2/compte/Verification";
+import { fcfa } from "@/components/v2/public/evenement";
+import v from "@/components/v2/v2.module.css";
+import s from "@/components/v2/espace.module.css";
+
+export const metadata: Metadata = { title: "Vérification du paiement — XwézanEvent", robots: { index: false } };
+
+// Chaque visite (et chaque revérification de l'écran d'attente) réinterroge FedaPay.
+export const dynamic = "force-dynamic";
 
 /**
- * Retour navigateur depuis le checkout FedaPay. Comme il n'y a pas de signature
- * ici, on vérifie l'état RÉEL de la transaction via l'API avant de finaliser
- * (le webhook reste la source de vérité ; finaliserCommande est idempotent).
+ * Retour navigateur depuis le checkout FedaPay (V2). Comme il n'y a pas de
+ * signature ici, on vérifie l'état RÉEL de la transaction via l'API avant de
+ * finaliser (le webhook reste la source de vérité ; finaliserCommande est
+ * idempotent). Seuls « approved »/« transferred » valent succès
+ * (lib/statut-paiement.ts).
  *
- * Le sandbox FedaPay s'est montré incohérent sur l'annulation (audit : un même
- * clic "Annuler" a été observé tantôt en "declined", tantôt en "pending" selon
- * l'appelant). On ne fait donc confiance qu'à "approved" pour un succès : tout
- * le reste (declined, canceled, pending, expired, statut inconnu, échec de
- * vérification) est traité comme un non-succès et ne redirige jamais vers
- * /confirmation avec un visuel de succès.
+ * Issues : payée → /confirmation ; refusée ou annulée → /paiement/echec avec
+ * le motif ; expirée → /paiement/echec (motif générique, relance possible).
+ * Tout le reste (pending, statut inconnu, vérification impossible) : écran
+ * d'attente qui revérifie, sans jamais proposer de repayer (BUGS_REFONTE n°12,
+ * maquetté dans la preview v2/paiement/retour). Avant la V2, ces cas
+ * partaient sur /paiement/echec?raison=en_attente.
  */
-export default async function RetourPaiement({
-  searchParams,
-}: {
-  searchParams: { order?: string };
-}) {
+export default async function RetourPaiement({ searchParams }: { searchParams: { order?: string } }) {
   const orderId = searchParams.order;
   if (!orderId) redirect("/compte");
 
   const { data: order } = await supabaseAdmin
     .from("orders")
-    .select("id, statut, fedapay_transaction_id")
+    .select("id, statut, total, user_id, fedapay_transaction_id")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -40,31 +50,46 @@ export default async function RetourPaiement({
   // redirect() lève une exception spéciale (NEXT_REDIRECT) : on calcule la
   // destination dans le try, mais on ne l'appelle qu'APRÈS le try/catch,
   // pour ne jamais la laisser se faire avaler par notre propre catch.
-  // Par défaut (pas de transaction, statut inconnu, etc.) : non-succès.
-  let destination = `/paiement/echec?order=${orderId}&raison=en_attente`;
+  // null = issue inconnue : écran d'attente.
+  let destination: string | null = null;
 
-  if (order.fedapay_transaction_id) {
+  if (!order.fedapay_transaction_id) {
+    // Aucune transaction (FedaPay indisponible à la création) : rien ne peut
+    // être en cours, la relance est la seule issue.
+    destination = `/paiement/echec?order=${orderId}`;
+  } else {
     try {
       const trx = await recupererTransaction(Number(order.fedapay_transaction_id));
       console.info(`[fedapay retour] commande ${orderId} → statut reçu : ${trx.status}`);
 
-      // « transferred » compte aussi comme payée (voir lib/statut-paiement.ts).
-      if (issueTransaction(trx.status) === "payee") {
+      const issue = issueTransaction(trx.status);
+      if (issue === "payee") {
         await finaliserCommande(orderId, trx.amount);
         destination = `/confirmation?order=${orderId}`;
       } else if (trx.status === "declined") {
         destination = `/paiement/echec?order=${orderId}&raison=refuse`;
       } else if (trx.status === "canceled") {
         destination = `/paiement/echec?order=${orderId}&raison=annule`;
+      } else if (issue === "echec_definitif") {
+        // expired : la demande n'a jamais été validée, rien n'a été débité.
+        destination = `/paiement/echec?order=${orderId}`;
       }
-      // pending, expired, ou tout autre statut : non-succès (destination par
-      // défaut ci-dessus). Le webhook reste la source de vérité et finalisera
-      // la commande dès qu'il recevra "approved".
+      // pending ou tout autre statut : écran d'attente. Le webhook finalisera
+      // la commande dès qu'il recevra « approved ».
     } catch (e) {
       console.error("[fedapay] vérification au retour échouée :", e);
       // Vérification impossible = on ne peut pas confirmer le succès.
     }
   }
 
-  redirect(destination);
+  if (destination) redirect(destination);
+
+  return (
+    <div className={`${POLICES_V2} ${v.racine} ${s.racineEspace}`}>
+      <Header />
+      <main className={v.cont} style={{ paddingTop: 48 }}>
+        <Verification total={fcfa(order.total)} compte={!!order.user_id} />
+      </main>
+    </div>
+  );
 }

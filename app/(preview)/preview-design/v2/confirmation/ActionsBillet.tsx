@@ -12,7 +12,21 @@ type WakeLock = { release: () => Promise<void> };
  * son billet sans réseau. La luminosité ne se règle pas depuis une page web :
  * on le conseille.
  */
-export default function ActionsBillet({ svg, png, reference, titre, tarif }: { svg: string; png: string; reference: string; titre: string; tarif: string }) {
+export default function ActionsBillet({
+  svg,
+  png,
+  reference,
+  fichier,
+  titre,
+  tarif,
+}: {
+  svg: string;
+  png: string;
+  reference: string;
+  fichier: string;
+  titre: string;
+  tarif: string;
+}) {
   const [ouvert, setOuvert] = useState(false);
   const fermer = useRef<HTMLButtonElement>(null);
   const declencheur = useRef<HTMLButtonElement>(null);
@@ -45,7 +59,7 @@ export default function ActionsBillet({ svg, png, reference, titre, tarif }: { s
         <button ref={declencheur} type="button" className={`${s.btn} ${s.btnGrand}`} onClick={() => setOuvert(true)}>
           <Icon name="qr" /> Plein écran
         </button>
-        <a className={`${s.btn} ${s.btnGris} ${s.btnGrand}`} href={png} download={`billet-${reference}.png`}>
+        <a className={`${s.btn} ${s.btnGris} ${s.btnGrand}`} href={png} download={fichier}>
           <Icon name="download" /> Enregistrer
         </a>
       </div>

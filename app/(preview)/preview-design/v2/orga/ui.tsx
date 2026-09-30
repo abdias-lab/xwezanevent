@@ -1,5 +1,5 @@
 import s from "../espace.module.css";
-import { STATUTS, STATUTS_BILLET, STATUTS_VIREMENT, nombre, type Statut, type StatutBillet, type StatutVirement } from "./_orga";
+import { STATUTS, STATUTS_BILLET, STATUTS_VIREMENT, nombre, pourcent, type Statut, type StatutBillet, type StatutVirement } from "./_orga";
 
 // Statuts : forme + libellé, jamais la couleur seule (plein / contour / barré).
 const CLS_EVT: Record<Statut, string> = {
@@ -33,7 +33,7 @@ export function Jauge({ vendus, total, libelle = "vendus", neutre = false }: { v
         <span>
           <b>{nombre(vendus)}</b> / {nombre(total)} {libelle}
         </span>
-        <span>{pct} %</span>
+        <span>{pourcent(vendus, total)}</span>
       </div>
       <div className={s.piste} role="meter" aria-valuemin={0} aria-valuemax={total} aria-valuenow={vendus} aria-label={`${nombre(vendus)} sur ${nombre(total)} ${libelle}`}>
         <div className={s.rempli} style={{ width: `${pct}%` }} />

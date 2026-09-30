@@ -1,406 +1,108 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import CarteEvenement from "@/components/CarteEvenement";
-import AfficheEvenement from "@/components/AfficheEvenement";
-import BoutonOr from "@/components/BoutonOr";
-import {
-  getEvenementsPublies,
-  getVillesPubliees,
-  getEvenementsTicker,
-  getCompteursCategories,
-  getCompteursVilles,
-  getEvenementVedette,
-} from "@/lib/events";
-import { getPaysActuelDetail } from "@/lib/pays";
-import { listeOperateursCourt, operateursPays } from "@/lib/telephone";
-import Link from "next/link";
-import type { ReactNode } from "react";
+import Icon from "@/components/v2/Icon";
+import Reveal from "@/components/v2/Reveal";
+import { Header, Footer } from "@/components/v2/public/Chrome";
+import Epingle from "@/components/v2/public/Epingle";
+import Programme, { type ElementProgramme } from "@/components/v2/public/Programme";
+import { libelleGroupe, versCarte } from "@/components/v2/public/carteData";
+import { POLICES_V2 } from "@/components/v2/polices";
+import s from "@/components/v2/v2.module.css";
+import { getEvenementsEpingles, getEvenementsPublies } from "@/lib/events";
+import { getPaysActuel } from "@/lib/pays";
 
 // Régénération incrémentale : la page est reconstruite au plus une fois par minute
 export const revalidate = 60;
 
-// `valeur` doit correspondre EXACTEMENT à events.categorie en base (voir la
-// liste des catégories créables dans components/FormulaireCreation.tsx :
-// Concert, Festival, Culture & Vodun, Sport, Humour, Soirée — au singulier).
-const CATEGORIES: { nom: ReactNode; valeur: string; glyphe: ReactNode }[] = [
-  {
-    nom: "Concerts",
-    valeur: "Concert",
-    glyphe: (
-      <>
-        <path d="M9 18V5l12-2v13" />
-        <circle cx="6" cy="18" r="3" />
-        <circle cx="18" cy="16" r="3" />
-      </>
-    ),
-  },
-  {
-    nom: "Festivals",
-    valeur: "Festival",
-    glyphe: (
-      <>
-        <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" />
-        <path d="M12 22V12M3 7l9 5 9-5" />
-      </>
-    ),
-  },
-  {
-    nom: "Culture & Vodun",
-    valeur: "Culture & Vodun",
-    glyphe: (
-      <>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 3v18M3 12h18M6 6c4 3 8 3 12 0M6 18c4-3 8-3 12 0" />
-      </>
-    ),
-  },
-  {
-    nom: "Soirées",
-    valeur: "Soirée",
-    glyphe: (
-      <>
-        <path d="M8 21h8M12 17v4M6 3h12v5a6 6 0 0 1-12 0V3Z" />
-        <path d="M6 5H3v2a4 4 0 0 0 3 3.87M18 5h3v2a4 4 0 0 1-3 3.87" />
-      </>
-    ),
-  },
-  {
-    nom: "Sport",
-    valeur: "Sport",
-    glyphe: (
-      <>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18M3 12h18" />
-      </>
-    ),
-  },
-  {
-    // "Conférences" n'existe pas parmi les catégories créables — remplacé
-    // par "Humour", la 6ᵉ catégorie réelle du formulaire de création.
-    nom: "Humour",
-    valeur: "Humour",
-    glyphe: (
-      <>
-        <path d="M3 21v-2a6 6 0 0 1 6-6h0a6 6 0 0 1 6 6v2" />
-        <circle cx="9" cy="8" r="4" />
-        <path d="M17 11h5M19.5 8.5v5" />
-      </>
-    ),
-  },
-];
+/** Programmation de l'accueil : au-delà, « Voir plus » mène au catalogue. */
+const LIMITE_PROGRAMME = 10;
 
-// Sélection éditoriale de villes mises en avant (section "Que faire ce soir
-// à…"), PAR PAYS — une simple requête de villes distinctes ne conviendrait
-// pas ici : ce sont des villes choisies pour leur attrait, pas juste les
-// premières trouvées. Seul 'bj' est peuplé pour l'instant ; un pays sans
-// entrée ici voit simplement la section masquée (voir plus bas) plutôt que
-// d'afficher les villes béninoises hors contexte — pas de nom de ville
-// togolaise inventé tant que ce n'est pas une vraie décision produit.
-const VILLES_PAR_PAYS: Record<string, { rang: string; nom: string }[]> = {
-  bj: [
-    { rang: "01", nom: "Cotonou" },
-    { rang: "02", nom: "Porto-Novo" },
-    { rang: "03", nom: "Ouidah" },
-    { rang: "04", nom: "Abomey" },
-    { rang: "05", nom: "Parakou" },
-    { rang: "06", nom: "Grand-Popo" },
-  ],
-};
-
+/**
+ * Accueil (V2), repris de la preview (v2/page.tsx). « Épinglé » : uniquement
+ * les événements cochés « à la une » par l'admin, dans l'ordre choisi ; bloc
+ * absent si aucun. Puis la programmation à venir du pays, filtrable par
+ * catégorie, limitée à LIMITE_PROGRAMME événements.
+ */
 export default async function Accueil() {
-  const paysDetail = await getPaysActuelDetail();
-  const pays = paysDetail.code;
-  const operateurs = listeOperateursCourt(pays);
-  const [evenements, villes, ticker, compteursCategories, compteursVilles, vedette] = await Promise.all([
-    getEvenementsPublies({ pays }),
-    getVillesPubliees(pays),
-    getEvenementsTicker(pays),
-    getCompteursCategories(pays),
-    getCompteursVilles(pays),
-    getEvenementVedette(pays),
-  ]);
-  const villesVedettes = VILLES_PAR_PAYS[pays] ?? [];
+  const pays = await getPaysActuel();
+  const [evenements, epingles] = await Promise.all([getEvenementsPublies({ pays }), getEvenementsEpingles(pays)]);
+  const elements: ElementProgramme[] = evenements.map((e) => ({ carte: versCarte(e), href: e.href, groupe: { cle: e.groupeDate.cle, libelle: libelleGroupe(e) } }));
 
   return (
-    <>
+    <div className={`${POLICES_V2} ${s.racine}`}>
       <Header />
-
-      {/* ======================= HERO ======================= */}
-      <div className="hero">
-        <div className="applique" aria-hidden="true" />
-        <div className="hero-inner">
-          <span className="eyebrow">La billetterie du {paysDetail.nom}</span>
-          <h1>
-            Chope ta place,
-            <br />
-            vis <span className="fete">la fête.</span>
+      <main className={s.cont}>
+        <section className={s.hero}>
+          <h1 className={s.h1}>
+            Chope ta place, <em>vis la fête.</em>
           </h1>
-          <p className="lede">
-            Concerts, festivals, soirées, culture — découvrez tout ce qui se
-            passe près de chez vous et réservez en quelques secondes.{" "}
-            <strong>Paiement Mobile Money, billet QR instantané.</strong>
+          <p className={s.sous}>
+            Concerts, festivals, soirées, culture — découvre tout ce qui se passe près de chez toi et réserve en quelques secondes. Paiement Mobile Money,
+            billet QR instantané.
           </p>
-
-          <form
-            className="recherche"
-            role="search"
-            aria-label="Rechercher un événement"
-            action="/evenements"
-            method="GET"
-          >
-            <div className="champ">
-              <label htmlFor="q">Quoi</label>
-              <input id="q" name="q" type="text" placeholder="Concert, festival, soirée…" />
-            </div>
-            <div className="champ">
-              <label htmlFor="ville">Où</label>
-              <input
-                id="ville"
-                name="ville"
-                type="text"
-                list="villes-recherche"
-                placeholder={`Tout le ${paysDetail.nom}`}
-                autoComplete="off"
-              />
-              <datalist id="villes-recherche">
-                {villes.map((v) => (
-                  <option key={v} value={v} />
-                ))}
-              </datalist>
-            </div>
-            <div className="champ">
-              <label htmlFor="quand">Quand</label>
-              <select id="quand" name="quand" defaultValue="">
-                <option value="">N&apos;importe quand</option>
-                <option value="aujourdhui">Aujourd&apos;hui</option>
-                <option value="week-end">Ce week-end</option>
-                <option value="semaine">Cette semaine</option>
-                <option value="mois">Ce mois-ci</option>
-              </select>
-            </div>
-            <BoutonOr type="submit">Rechercher</BoutonOr>
-          </form>
-
-          <div className="confiance">
-            {operateursPays(pays).map((o) => (
-              <span className="pastille" key={o.code}>
-                <span className={`dot-${o.code}`} aria-hidden="true" />
-                {o.nom}
-              </span>
-            ))}
-            <span className="pastille">
-              <span className="dot-qr" aria-hidden="true" />
-              E-billet QR code immédiat
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ======================= VEDETTE ======================= */}
-      {vedette && (
-        <section className="section sec-vedette" aria-labelledby="titre-vedette">
-          <div className="contenu">
-            <article className="vedette">
-              <AfficheEvenement
-                className="photo"
-                src={vedette.image}
-                alt={vedette.titre}
-                fill
-                sizes="(max-width: 900px) 100vw, 1240px"
-              />
-              <span className="voile" aria-hidden="true" />
-              <span className="vedette-badge">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" />
-                </svg>
-                À la une
-              </span>
-              <div className="vedette-corps">
-                <p className="vedette-date">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <rect x="3" y="5" width="18" height="16" rx="2" />
-                    <path d="M16 3v4M8 3v4M3 11h18" />
-                  </svg>
-                  {vedette.plage}
-                </p>
-                <h2 id="titre-vedette">{vedette.titre}</h2>
-                {vedette.extrait && <p className="vedette-extrait">{vedette.extrait}</p>}
-                <div className="vedette-actions">
-                  <BoutonOr href={vedette.href}>Voir l&apos;événement →</BoutonOr>
-                  <span className="vedette-lieu">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    {vedette.lieu}, {vedette.ville}
-                  </span>
-                </div>
-              </div>
-            </article>
-          </div>
-        </section>
-      )}
-
-      {/* ======================= TICKER ======================= */}
-      {ticker.length > 0 && (
-        <div className="ticker" aria-hidden="true">
-          <div className="ticker-piste">
-            {[...ticker, ...ticker].map((item, i) => (
-              <span key={i}>
-                <b>{item.date}</b> — {item.texte}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ======================= À L'AFFICHE ======================= */}
-      <section className="section" id="evenements">
-        <div className="contenu">
-          <div className="entete-section">
-            <h2 className="titre-section">À l&apos;affiche cette semaine</h2>
-            <a className="tout" href="/evenements">
-              Tous les événements →
+          <div className={s.actions}>
+            <a href="#programmation" className={`${s.btnBlanc} ${s.btnGrand}`}>
+              Voir la programmation
+            </a>
+            <a href="/creer" className={`${s.btnSec} ${s.btnGrand}`}>
+              Publier un événement <Icon name="arrow" />
             </a>
           </div>
-
-          {evenements.length > 0 ? (
-            <div className="grille-events">
-              {evenements.map((ev) => (
-                <CarteEvenement key={ev.id} {...ev} />
-              ))}
-            </div>
-          ) : (
-            <div className="etat-vide">
-              <div className="etat-vide-glyphe" aria-hidden="true">
-                <svg
-                  width="40"
-                  height="40"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                >
-                  <rect x="3" y="5" width="18" height="16" rx="2" />
-                  <path d="M16 3v4M8 3v4M3 11h18" />
-                </svg>
-              </div>
-              <h3>Aucun événement à l&apos;affiche pour l&apos;instant</h3>
-              <p>
-                Les prochaines dates arrivent très bientôt. Revenez vite —
-                ou publiez le vôtre dès maintenant.
-              </p>
-              <BoutonOr href="/creer">Publier un événement</BoutonOr>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ======================= CATÉGORIES ======================= */}
-      <section className="section sec-cat" id="categories">
-        <div className="applique" aria-hidden="true" />
-        <div className="contenu" style={{ position: "relative" }}>
-          <div className="entete-section">
-            <h2 className="titre-section">Explorez par envie</h2>
-          </div>
-          <div className="grille-cat">
-            {CATEGORIES.map((cat) => {
-              const nb = compteursCategories[cat.valeur] ?? 0;
-              return (
-                <Link
-                  className="tuile"
-                  href={`/evenements?categorie=${encodeURIComponent(cat.valeur)}`}
-                  key={cat.valeur}
-                >
-                  <span className="glyphe" aria-hidden="true">
-                    <svg
-                      width="34"
-                      height="34"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      strokeWidth="1.6"
-                    >
-                      {cat.glyphe}
-                    </svg>
-                  </span>
-                  <span className="nom">{cat.nom}</span>
-                  {nb > 0 && (
-                    <span className="nb">
-                      {nb} événement{nb > 1 ? "s" : ""}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ======================= VILLES ======================= */}
-      {villesVedettes.length > 0 && (
-        <section className="section" id="villes">
-          <div className="contenu">
-            <div className="entete-section">
-              <h2 className="titre-section">Que faire ce soir à…</h2>
-            </div>
-            <div className="liste-villes">
-              {villesVedettes.map((v) => {
-                const nb = compteursVilles[v.nom.toLowerCase()] ?? 0;
-                return (
-                  <Link
-                    className="ville"
-                    href={`/evenements?ville=${encodeURIComponent(v.nom)}`}
-                    key={v.rang}
-                  >
-                    <span className="rang">{v.rang}</span>
-                    <span className="nom-ville">{v.nom}</span>
-                    <span className="infos-droite">
-                      {nb > 0 && (
-                        <span className="detail">
-                          {nb} événement{nb > 1 ? "s" : ""} à venir
-                        </span>
-                      )}
-                      <span className="fleche" aria-hidden="true">
-                        →
-                      </span>
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+          <ul className={s.garanties}>
+            <li>
+              <Icon name="phone" /> Mobile Money
+            </li>
+            <li>
+              <Icon name="qr" /> Billet QR instantané
+            </li>
+            <li>
+              <Icon name="shield" /> Entrée contrôlée
+            </li>
+          </ul>
         </section>
-      )}
 
-      {/* ======================= ORGANISATEURS ======================= */}
-      <section className="section organisateur" id="organisateur">
-        <div className="applique" aria-hidden="true" />
-        <div className="orga-inner">
-          <div>
-            <h2>Vous organisez ? Vendez vos billets ici.</h2>
-            <p>
-              Publiez votre événement en 10 minutes, encaissez par Mobile Money,
-              suivez vos ventes en temps réel et contrôlez les entrées avec le
-              scan QR. Vos revenus sont reversés directement sur votre compte
-              {" "}
-              {operateurs}.
-            </p>
-            <BoutonOr href="/creer">Créer mon événement</BoutonOr>
-          </div>
-          <div className="huit">
-            <div className="chiffre">
-              8<sup>%</sup>
+        {epingles.length > 0 && (
+          <Reveal>
+            <section className={s.section}>
+              <div className={s.tete}>
+                <h2 className={s.h2}>Épinglé</h2>
+              </div>
+              <div className={s.epingles}>
+                {epingles.map((e) => (
+                  <Epingle
+                    key={e.id}
+                    e={{ titre: e.titre, accroche: e.accroche, categorie: e.categorie, image: e.image, debut: e.dateDebut, fin: e.dateFin ?? undefined, heure: e.heure }}
+                    s={s}
+                    href={e.href}
+                  />
+                ))}
+              </div>
+            </section>
+          </Reveal>
+        )}
+
+        <Reveal delay={100}>
+          <section className={s.section} id="programmation">
+            <div className={s.tete}>
+              <h2 className={s.h2}>Programmation</h2>
             </div>
-            <div className="legende">de commission, c&apos;est tout</div>
-            <p className="note">
-              Pas d&apos;abonnement, pas de frais cachés. Vous ne payez que si
-              vous vendez.
-            </p>
-          </div>
-        </div>
-      </section>
+            <Programme elements={elements} s={s} limite={LIMITE_PROGRAMME} catalogue="/evenements" />
+          </section>
+        </Reveal>
 
+        <Reveal>
+          <section className={s.section}>
+            <div className={s.promo}>
+              <div style={{ display: "grid", gap: 12 }}>
+                <h2 className={s.h1}>Publie ton événement</h2>
+                <p className={s.discret}>5 minutes pour créer, 8 % de commission uniquement sur les billets vendus.</p>
+              </div>
+              <a href="/creer" className={`${s.btnBlanc} ${s.btnGrand}`} style={{ justifySelf: "start" }}>
+                Commencer <Icon name="arrow" />
+              </a>
+            </div>
+          </section>
+        </Reveal>
+      </main>
       <Footer />
-    </>
+    </div>
   );
 }

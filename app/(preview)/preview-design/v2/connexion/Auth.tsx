@@ -44,7 +44,10 @@ export default function Auth({ vueInitiale, erreurInitiale, creeInitial }: { vue
     setTente(true);
     setErreur(null);
     const valide = vue === "connexion" ? emailOk && mdp.length > 0 : emailOk && mdpOk && nomOk && telOk;
-    if (!valide) return;
+    if (!valide) {
+      requestAnimationFrame(() => document.querySelector<HTMLElement>(`form [aria-invalid="true"]`)?.focus());
+      return;
+    }
     setEnCours(true);
     setTimeout(() => {
       setEnCours(false);

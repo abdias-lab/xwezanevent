@@ -5,7 +5,7 @@ import Icon from "../../Icon";
 import Compteur from "./Compteur";
 import DemandeVirement from "./DemandeVirement";
 import { Jauge, SqueletteListe, StatutEvt } from "./ui";
-import { COMMISSION, EVENEMENTS_ORGA, ORGA, chiffres, dateAnnee, dateCourteOrga, etatPage, montant, nombre, totaux } from "./_orga";
+import { COMMISSION, EVENEMENTS_ORGA, ORGA, chiffres, dateAnnee, dateCourteOrga, etatPage, montant, nombre, pourcent, totaux } from "./_orga";
 
 const COLS = { "--cols": "minmax(0, 2fr) minmax(0, 1.4fr) 128px 132px 200px" } as CSSProperties;
 
@@ -66,12 +66,12 @@ export default function V2Orga({ searchParams }: { searchParams: { etat?: string
                 aria-valuemin={0}
                 aria-valuemax={t.capacite}
                 aria-valuenow={t.vendus}
-                aria-label={`Taux de remplissage : ${remplissage} %`}
+                aria-label={`Taux de remplissage : ${pourcent(t.vendus, t.capacite)}`}
               >
                 <span style={{ width: `${remplissage}%` }} />
               </span>
               <span className={s.kpiContexte}>
-                {remplissage} % des {nombre(t.capacite)} places
+                {pourcent(t.vendus, t.capacite)} des {nombre(t.capacite)} places
               </span>
             </div>
             <div className={s.kpi}>

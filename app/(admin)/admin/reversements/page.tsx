@@ -1,35 +1,29 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import BoutonDeconnexion from "@/components/BoutonDeconnexion";
-import FiltreStatutPayouts from "@/components/admin/FiltreStatutPayouts";
-import Logo from "@/components/Logo";
-import { formaterNumero } from "@/lib/telephone";
+import { dateDisponibilitePayout, payoutDisponible } from "@/lib/payouts";
+import Coquille from "@/components/v2/Coquille";
+import Icon from "@/components/v2/Icon";
+import { NAV_ADMIN } from "@/components/v2/navAdmin";
+import { dateAnnee, dateCourte, dateHeure, depuis, montant, nombre } from "@/components/v2/format";
+import { formaterNumero, nomMoyen } from "@/components/v2/admin/moyens";
+import Virements, { type VirementVue } from "@/components/v2/admin/Virements";
+import s from "@/components/v2/espace.module.css";
 
 export const metadata: Metadata = {
   title: "Reversements — Administration — XwézanEvent",
 };
 
-function fmt(n: number): string {
-  return n.toLocaleString("fr-FR");
-}
+const ONGLETS = [
+  { cle: "attente", libelle: "À traiter", statut: "demande" },
+  { cle: "traites", libelle: "Traités", statut: "traite" },
+  { cle: "geles", libelle: "Gelés", statut: "bloque" },
+] as const;
 
-function formatDateHeure(iso: string): string {
-  const d = new Date(iso);
-  return (
-    d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) +
-    " · " +
-    d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
-  );
-}
-
-const BADGE: Record<string, { cls: string; txt: string }> = {
-  demande: { cls: "st-attente", txt: "En attente" },
-  traite: { cls: "st-ok", txt: "Traité" },
-  bloque: { cls: "st-annule", txt: "Gelé" },
-};
+const COLS = { "--cols": "minmax(0, 1.6fr) minmax(0, 1.4fr) 140px 160px 150px" } as CSSProperties;
 
 interface PayoutLigne {
   id: string;
@@ -39,142 +33,166 @@ interface PayoutLigne {
   statut: string;
   created_at: string;
   traite_le: string | null;
-  organisateur: { nom: string } | null;
-  events: { titre: string } | null;
+  organisateur: { nom: string; nom_public: string | null; telephone: string | null } | null;
+  events: { titre: string; date_debut: string; date_fin: string | null; date_reference_virement: string } | null;
 }
 
-export default async function AdminReversements({
-  searchParams,
-}: {
-  searchParams: { statut?: string; tri?: string };
-}) {
+/**
+ * Virements (V2). Onglets À traiter / Traités / Gelés ; les demandes prêtes
+ * passent avant les prématurées (J+3 non atteint, traitement refusé par la
+ * route). Les virements traités et gelés restent consultables : ce sont des
+ * mouvements d'argent réels.
+ */
+export default async function AdminReversements({ searchParams }: { searchParams: { onglet?: string } }) {
   const supabase = creerClientServeur();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/connexion?redirect=/admin/reversements");
 
-  const { data: profil } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  const { data: profil } = await supabase.from("profiles").select("role, nom").eq("id", user.id).single();
   if (!profil || profil.role !== "admin") redirect("/");
 
-  const statutFiltre = searchParams.statut ?? "";
-  const tri = searchParams.tri === "ancien" ? "ancien" : "recent";
+  const onglet = ONGLETS.find((o) => o.cle === searchParams.onglet) ?? ONGLETS[0];
 
   // supabaseAdmin : numero_destination et le téléphone de l'organisateur ne
   // sont plus lisibles via le rôle Postgres `authenticated` — le contrôle
   // de rôle applicatif reste assuré par la vérification `profil.role`
-  // ci-dessus, faite via le client de session. Les payouts traités/gelés
-  // ne sont volontairement jamais exclus de cette page : ce sont des
-  // mouvements d'argent réels, contrairement au widget de /admin qui ne
-  // montre que ce qui reste à traiter aujourd'hui.
-  let query = supabaseAdmin
+  // ci-dessus, faite via le client de session.
+  const { data } = await supabaseAdmin
     .from("payouts")
     .select(
-      "id, montant, moyen, numero_destination, statut, created_at, traite_le, organisateur:profiles(nom), events(titre)"
+      "id, montant, moyen, numero_destination, statut, created_at, traite_le, organisateur:profiles(nom, nom_public, telephone), events(titre, date_debut, date_fin, date_reference_virement)"
     )
-    .order("created_at", { ascending: tri === "ancien" });
-  if (statutFiltre) query = query.eq("statut", statutFiltre);
+    .order("created_at", { ascending: false });
 
-  const [{ data }, { data: totalTraiteData }] = await Promise.all([
-    query,
-    supabaseAdmin.from("payouts").select("montant").eq("statut", "traite"),
-  ]);
+  const tous = (data as unknown as PayoutLigne[]) ?? [];
+  const liste = tous.filter((p) => p.statut === onglet.statut);
+  const compte = (st: string) => tous.filter((p) => p.statut === st).length;
+  // Sans événement lié (cas historique), la demande reste traitable, comme avant.
+  const eligible = (p: PayoutLigne) => (p.events ? payoutDisponible(p.events) : true);
+  const orgaAffiche = (p: PayoutLigne) => p.organisateur?.nom_public || p.organisateur?.nom || "—";
 
-  const payouts = (data as unknown as PayoutLigne[]) ?? [];
-  const totalVerse = (totalTraiteData ?? []).reduce((s, p) => s + p.montant, 0);
-  const nbVerses = (totalTraiteData ?? []).length;
+  const vues: VirementVue[] = liste
+    .map((p) => ({
+      id: p.id,
+      montant: p.montant,
+      moyen: nomMoyen(p.moyen),
+      numero: formaterNumero(p.numero_destination),
+      orgaAffiche: orgaAffiche(p),
+      orgaPerso: p.organisateur?.nom ?? "—",
+      orgaTel: p.organisateur?.telephone ? formaterNumero(p.organisateur.telephone) : null,
+      evenement: p.events?.titre ?? "—",
+      dateEvenement: p.events ? dateCourte(p.events.date_debut, p.events.date_fin) : "—",
+      eligible: eligible(p),
+      eligibleLe: p.events ? dateAnnee(dateDisponibilitePayout(p.events)) : "—",
+      demande: depuis(p.created_at),
+    }))
+    .sort((a, b) => Number(b.eligible) - Number(a.eligible));
+
+  const aVerser = tous.filter((p) => p.statut === "demande" && eligible(p)).reduce((n, p) => n + p.montant, 0);
+  const verse = tous.filter((p) => p.statut === "traite").reduce((n, p) => n + p.montant, 0);
 
   return (
-    <div className="app">
-      <aside className="lateral">
-        <Logo />
-        <p className="role">Administration</p>
-
-        <p className="groupe">Principal</p>
-        <Link className="item" href="/admin">📊 Vue d&apos;ensemble</Link>
-        <Link className="item" href="/admin/evenements">🗓️ Événements</Link>
-        <Link className="item" href="/admin/billets">🎟️ Billets</Link>
-        <Link className="item" href="/admin/commissions">💰 Commissions</Link>
-        <Link className="item actif" href="/admin/reversements">🏦 Reversements</Link>
-        <Link className="item" href="/admin/organisateurs">👥 Organisateurs</Link>
-        <Link className="item" href="/admin/evenements?statut=termine">🏁 Terminés</Link>
-
-        <div className="bas">
-          <BoutonDeconnexion />
+    <Coquille nav={NAV_ADMIN} actif="virements" compte={{ nom: profil.nom || user.email || "Admin", email: user.email ?? "" }}>
+      <div className={s.entete}>
+        <div>
+          <h1 className={s.titre}>Virements</h1>
+          <p className={s.sousTitre}>Envoie l&apos;argent par Mobile Money, puis marque la demande comme versée.</p>
         </div>
-      </aside>
+      </div>
 
-      <main className="principal">
-        <div className="entete-app">
-          <div>
-            <h1>Reversements</h1>
-            <p className="sous">
-              {fmt(totalVerse)} FCFA versés au total ({fmt(nbVerses)} virement(s) traité(s))
+      <section className={`${s.kpis} ${s.kpis3}`} aria-label="Montants" style={{ marginBottom: 24 }}>
+        <div className={`${s.kpi} ${s.kpiHeros}`}>
+          <span className={s.kpiLabel}>À verser</span>
+          <span className={s.kpiValeur}>
+            {nombre(aVerser)} <small>FCFA</small>
+          </span>
+          <span className={s.kpiContexte}>demandes prêtes</span>
+        </div>
+        <div className={s.kpi}>
+          <span className={s.kpiLabel}>Déjà versé</span>
+          <span className={s.kpiValeur}>
+            {nombre(verse)} <small>FCFA</small>
+          </span>
+          <span className={s.kpiContexte}>au total</span>
+        </div>
+        <div className={s.kpi}>
+          <span className={s.kpiLabel}>Gelés</span>
+          <span className={s.kpiValeur}>{compte("bloque")}</span>
+          <span className={s.kpiContexte}>événements annulés</span>
+        </div>
+      </section>
+
+      <div className={s.puces} role="group" aria-label="Filtrer les virements" style={{ marginBottom: 16 }}>
+        {ONGLETS.map((o) => (
+          <Link
+            key={o.cle}
+            href={o.cle === "attente" ? "/admin/reversements" : `/admin/reversements?onglet=${o.cle}`}
+            className={`${s.puce} ${o.cle === onglet.cle ? s.puceOn : ""}`}
+            aria-current={o.cle === onglet.cle ? "page" : undefined}
+          >
+            {o.libelle}
+            <span style={{ opacity: 0.55, fontWeight: 500 }}>{compte(o.statut)}</span>
+          </Link>
+        ))}
+      </div>
+
+      {liste.length === 0 ? (
+        <div className={s.vide}>
+          <Icon name="wallet" size={32} />
+          <p className={s.videTitre}>{onglet.cle === "attente" ? "Aucune demande en attente" : `Aucun virement « ${onglet.libelle.toLowerCase()} »`}</p>
+          <p className={s.videTexte}>
+            {onglet.cle === "attente" ? "Les organisateurs demandent leur virement 3 jours après leur événement." : "Rien à afficher ici pour l'instant."}
+          </p>
+        </div>
+      ) : onglet.cle === "attente" ? (
+        <Virements virements={vues} />
+      ) : (
+        <>
+          {onglet.cle === "geles" && (
+            <p className={`${s.alerte} ${s.alerteDanger}`}>
+              <Icon name="alert" />
+              <span>Un virement est gelé quand son événement est annulé : il n&apos;est pas versé et ne compte plus dans le solde de l&apos;organisateur.</span>
             </p>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Link className="btn btn-ghost" href="/admin">
-              ← Vue d&apos;ensemble
-            </Link>
-          </div>
-        </div>
-
-        <FiltreStatutPayouts statut={statutFiltre} tri={tri} />
-
-        <div className="tableau-panneau">
-          {payouts.length === 0 ? (
-            <div className="etat-vide" style={{ margin: "10px auto 4px" }}>
-              <div className="etat-vide-glyphe" aria-hidden="true">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                  <path d="M3 10h18M6 6h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />
-                </svg>
-              </div>
-              <h3>Aucun reversement</h3>
-              <p>Aucune demande de virement ne correspond à ce filtre.</p>
-            </div>
-          ) : (
-            <table className="donnees">
-              <thead>
-                <tr>
-                  <th>Organisateur</th>
-                  <th>Événement</th>
-                  <th>Montant</th>
-                  <th>Moyen</th>
-                  <th>Numéro de destination</th>
-                  <th>Demandé le</th>
-                  <th>Traité le</th>
-                  <th>Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payouts.map((p) => {
-                  const badge = BADGE[p.statut] ?? { cls: "st-fini", txt: p.statut };
-                  return (
-                    <tr key={p.id}>
-                      <td className="ev-nom">{p.organisateur?.nom ?? "—"}</td>
-                      <td>{p.events?.titre ?? "—"}</td>
-                      <td className="rev">{fmt(p.montant)} F</td>
-                      <td>{p.moyen.toUpperCase()}</td>
-                      <td style={{ fontFamily: "var(--space)", fontWeight: 700 }}>
-                        {formaterNumero(p.numero_destination)}
-                      </td>
-                      <td>{formatDateHeure(p.created_at)}</td>
-                      <td>{p.traite_le ? formatDateHeure(p.traite_le) : "—"}</td>
-                      <td>
-                        <span className={`statut ${badge.cls}`}>{badge.txt}</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
           )}
-        </div>
-      </main>
-    </div>
+          <ul className={s.liste}>
+            <li className={s.enteteListe} style={COLS} aria-hidden="true">
+              <span>Organisateur</span>
+              <span>Événement</span>
+              <span>Montant</span>
+              <span>Vers</span>
+              <span>{onglet.cle === "traites" ? "Traité le" : "Demandé le"}</span>
+            </li>
+            {liste.map((p) => (
+              <li key={p.id} className={s.carte} style={COLS}>
+                <div className={s.carteHaut}>
+                  <div>
+                    <p className={s.carteTitre} style={{ fontSize: 15 }}>
+                      {orgaAffiche(p)}
+                    </p>
+                  </div>
+                </div>
+                <dl className={s.paires}>
+                  <dt>Événement</dt>
+                  <dd>{p.events?.titre ?? "—"}</dd>
+                  <dt>Montant</dt>
+                  <dd className={`${s.montant} ${s.chiffre}`}>{montant(p.montant)}</dd>
+                  <dt>Vers</dt>
+                  <dd>
+                    {nomMoyen(p.moyen)}
+                    <span className={`${s.note} ${s.chiffre}`} style={{ display: "block" }}>
+                      {formaterNumero(p.numero_destination)}
+                    </span>
+                  </dd>
+                  <dt>{onglet.cle === "traites" ? "Traité le" : "Demandé le"}</dt>
+                  <dd>{dateHeure(onglet.cle === "traites" && p.traite_le ? p.traite_le : p.created_at)}</dd>
+                </dl>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </Coquille>
   );
 }

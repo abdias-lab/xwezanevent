@@ -27,7 +27,7 @@ Système "Doré", figé :
 - Polices : Bricolage Grotesque / Instrument Sans / Space Grotesk
 - Logo typographique "XwézanEvent" collé (aucune icône) : "Xwézan" en Playfair Display
   italique gras doré + "Event" en Instrument Sans ivoire
-- Slogan : « Mì wá dó djawá ! »
+- Slogan : « Mì wá djawá ! » (sans « dó » : c'est la forme correcte, celle de la production)
 - `maquettes/` = archives HTML de référence, ne pas modifier
 
 ## Règles de sécurité

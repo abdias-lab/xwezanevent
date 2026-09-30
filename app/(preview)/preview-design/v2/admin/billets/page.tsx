@@ -105,7 +105,7 @@ export default function V2AdminBillets({ searchParams }: { searchParams: { event
       {evt && statut.cle !== "rembourser" && (
         <p style={{ marginBottom: 12 }}>
           <a href="#" className={`${s.btn} ${s.btnGris}`}>
-            <Icon name="download" /> Exporter les billets de cet événement (CSV)
+            <Icon name="download" /> Exporter en CSV
           </a>
         </p>
       )}

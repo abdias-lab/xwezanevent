@@ -1,104 +1,112 @@
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import BoutonOr from "@/components/BoutonOr";
+import type { Metadata } from "next";
+import s from "@/components/v2/espace.module.css";
+import c from "@/components/v2/contenu.module.css";
+import Icon from "@/components/v2/Icon";
+import PageContenu from "@/components/v2/public/PageContenu";
 import { getPaysActuel } from "@/lib/pays";
 import { listeOperateursCourt } from "@/lib/telephone";
-import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Tarifs — 8% tout compris — XwézanEvent",
-  description:
-    "Une seule commission de 8%, prélevée uniquement sur les billets vendus. Pas d'abonnement, pas de frais cachés.",
+  description: "Une seule commission de 8%, prélevée uniquement sur les billets vendus. Pas d'abonnement, pas de frais cachés.",
 };
 
+/**
+ * Tarifs (V2), reprise de la preview (v2/tarifs). Texte repris mot pour mot de app/(public)/tarifs ; les
+ * opérateurs viennent de lib/telephone.ts comme en prod (pays : Bénin).
+ * Emojis de la prod remplacés par les icônes SVG de la V2.
+ */
 export default async function Tarifs() {
-  const pays = await getPaysActuel();
-  const operateurs = listeOperateursCourt(pays);
+  // Opérateurs Mobile Money du pays du visiteur (Bénin/Togo), comme avant la V2.
+  const operateurs = listeOperateursCourt(await getPaysActuel());
   return (
-    <>
-      <Header />
-
-      <main className="page-info">
-        <span className="eyebrow">Pour les organisateurs</span>
-        <h1>8% tout compris, c&apos;est tout.</h1>
-        <p className="intro">
-          Pas d&apos;abonnement, pas de frais d&apos;inscription, pas de coûts
-          cachés. Tu ne payes que si tu vends — une seule commission,
-          prélevée uniquement sur les billets réellement vendus.
-        </p>
-
-        <div className="gros-chiffre">
-          <div className="n">8%</div>
-          <div className="l">de commission sur chaque billet vendu, rien d&apos;autre</div>
+    <PageContenu
+      surtitre="Pour les organisateurs"
+      titre={
+        <>
+          8% tout compris, <em>c&apos;est tout.</em>
+        </>
+      }
+      intro="Pas d'abonnement, pas de frais d'inscription, pas de coûts cachés. Tu ne payes que si tu vends — une seule commission, prélevée uniquement sur les billets réellement vendus."
+      avant={
+        <div className={c.chiffreCle}>
+          <b>8%</b>
+          <span>de commission sur chaque billet vendu, rien d&apos;autre</span>
         </div>
-
-        <div className="bloc">
-          <h2>Comment ça marche</h2>
-          <p>
-            De ton côté, à chaque demande de reversement, XwézanEvent retient
-            8% du montant des ventes de l&apos;événement concerné. Le reste
-            part directement sur ton compte {operateurs}.
-          </p>
-
-          <div className="encadre">
-            <h3>Exemple concret</h3>
-            <div className="calc-tarif">
-              <span>Prix du billet</span>
-              <span className="valeur">10 000 FCFA</span>
-            </div>
-            <div className="calc-tarif">
-              <span>Payé par l&apos;acheteur</span>
-              <span className="valeur">10 000 FCFA</span>
-            </div>
-            <div className="calc-tarif">
-              <span>Commission XwézanEvent (8%)</span>
-              <span className="valeur">− 800 FCFA</span>
-            </div>
-            <div className="calc-tarif final">
-              <span>Reversé à l&apos;organisateur</span>
-              <span className="valeur">9 200 FCFA</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bloc">
-          <h2>Ce qui est inclus</h2>
-          <div className="inclus-grille">
-            <div className="inclus-item">
-              <span className="ic">📱</span>
-              Paiement Mobile Money ({operateurs}) intégré, prêt à
-              l&apos;emploi
-            </div>
-            <div className="inclus-item">
-              <span className="ic">🎫</span>
-              Billets électroniques avec QR code, générés automatiquement
-            </div>
-            <div className="inclus-item">
-              <span className="ic">📷</span>
-              Scan de contrôle d&apos;accès à l&apos;entrée, en temps réel
-            </div>
-            <div className="inclus-item">
-              <span className="ic">📊</span>
-              Dashboard organisateur : ventes, revenus, demandes de
-              reversement
-            </div>
-          </div>
-        </div>
-
-        <div className="bloc">
-          <h2>Événements gratuits</h2>
-          <p>
-            Billet à 0 FCFA = 0 FCFA de commission. Publie et gère tes
-            événements gratuits sans rien débourser.
-          </p>
-        </div>
-
-        <div className="bloc" style={{ textAlign: "center" }}>
-          <BoutonOr href="/creer">Publier un événement</BoutonOr>
-        </div>
-      </main>
-
-      <Footer />
-    </>
+      }
+      sections={[
+        {
+          id: "fonctionnement",
+          titre: "Comment ça marche",
+          contenu: (
+            <>
+              <p>
+                De ton côté, à chaque demande de reversement, XwézanEvent retient 8% du montant des ventes de l&apos;événement concerné. Le reste part
+                directement sur ton compte {operateurs}.
+              </p>
+              <div className={c.encadre}>
+                <h3>Exemple concret</h3>
+                <dl className={c.calcul}>
+                  <div>
+                    <dt>Prix du billet</dt>
+                    <dd>10 000 FCFA</dd>
+                  </div>
+                  <div>
+                    <dt>Payé par l&apos;acheteur</dt>
+                    <dd>10 000 FCFA</dd>
+                  </div>
+                  <div>
+                    <dt>Commission XwézanEvent (8%)</dt>
+                    <dd>− 800 FCFA</dd>
+                  </div>
+                  <div className={c.total}>
+                    <dt>Reversé à l&apos;organisateur</dt>
+                    <dd>9 200 FCFA</dd>
+                  </div>
+                </dl>
+              </div>
+            </>
+          ),
+        },
+        {
+          id: "inclus",
+          titre: "Ce qui est inclus",
+          contenu: (
+            <ul className={c.inclus}>
+              <li>
+                <Icon name="phone" size={20} />
+                <span>Paiement Mobile Money ({operateurs}) intégré, prêt à l&apos;emploi</span>
+              </li>
+              <li>
+                <Icon name="ticket" size={20} />
+                <span>Billets électroniques avec QR code, générés automatiquement</span>
+              </li>
+              <li>
+                <Icon name="qr" size={20} />
+                <span>Scan de contrôle d&apos;accès à l&apos;entrée, en temps réel</span>
+              </li>
+              <li>
+                <Icon name="wallet" size={20} />
+                <span>Dashboard organisateur : ventes, revenus, demandes de reversement</span>
+              </li>
+            </ul>
+          ),
+        },
+        {
+          id: "gratuits",
+          titre: "Événements gratuits",
+          contenu: (
+            <>
+              <p>Billet à 0 FCFA = 0 FCFA de commission. Publie et gère tes événements gratuits sans rien débourser.</p>
+              <p>
+                <a href="/creer" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} style={{ textDecoration: "none", color: "var(--inverse)" }}>
+                  <Icon name="plus" /> Publier un événement
+                </a>
+              </p>
+            </>
+          ),
+        },
+      ]}
+    />
   );
 }

@@ -118,7 +118,13 @@ export default function FormulaireModif({
         if (etat === "envoi" || !modifie) return;
         setTente(true);
         if (!valide) {
-          requestAnimationFrame(() => document.querySelector<HTMLElement>(`form [aria-invalid="true"]`)?.focus());
+          // Amène sur le premier problème : champ invalide ou, pour les
+          // catégories (boutons), la première puce disponible.
+          requestAnimationFrame(() => {
+            const champ = document.querySelector<HTMLElement>(`form [aria-invalid="true"], form [data-invalide] button:not(:disabled)`);
+            champ?.focus();
+            champ?.scrollIntoView({ block: "center", behavior: "smooth" });
+          });
           return;
         }
         setEtat("envoi");
@@ -194,7 +200,13 @@ export default function FormulaireModif({
             <span className={s.etiquette} id="cat-label">
               Catégories <small>(jusqu&apos;à {MAX_CATEGORIES})</small>
             </span>
-            <div className={s.puces} role="group" aria-labelledby="cat-label">
+            <div
+              className={s.puces}
+              role="group"
+              aria-labelledby="cat-label"
+              aria-describedby={tente && erreurCategories ? "cat-msg" : undefined}
+              data-invalide={erreurCategories ? "" : undefined}
+            >
               {CATEGORIES_ORGA.map((c) => {
                 const on = categories.includes(c);
                 return (
@@ -212,7 +224,11 @@ export default function FormulaireModif({
                 );
               })}
             </div>
-            {tente && erreurCategories && <span className={s.erreur}>{erreurCategories}</span>}
+            {tente && erreurCategories && (
+              <span id="cat-msg" className={s.erreur}>
+                {erreurCategories}
+              </span>
+            )}
           </div>
         </section>
 

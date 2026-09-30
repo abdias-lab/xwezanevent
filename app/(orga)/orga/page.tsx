@@ -1,56 +1,31 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
-import BoutonDeconnexion from "@/components/BoutonDeconnexion";
-import ActionsEvenementOrga from "@/components/orga/ActionsEvenementOrga";
-import DemandeVirement from "@/components/orga/DemandeVirement";
-import LienScan from "@/components/orga/LienScan";
-import Logo from "@/components/Logo";
-import { creerClientServeur } from "@/lib/supabase-server";
-import { dateDisponibilitePayout, payoutDisponible } from "@/lib/payouts";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
+import { creerClientServeur } from "@/lib/supabase-server";
+import { chiffresOrganisateur, type LigneOrga } from "@/lib/orga-chiffres";
+import Coquille from "@/components/v2/Coquille";
+import Icon from "@/components/v2/Icon";
+import Compteur from "@/components/v2/Compteur";
+import Jauge from "@/components/v2/Jauge";
+import DemandeVirement from "@/components/v2/orga/DemandeVirement";
+import { NAV_ORGA } from "@/components/v2/navOrga";
+import { dateAnnee, dateCourte, montant, nombre, pourcent } from "@/components/v2/format";
+import { StatutEvt } from "@/components/v2/statuts";
+import s from "@/components/v2/espace.module.css";
 
 export const metadata: Metadata = {
   title: "Espace organisateur — XwézanEvent",
 };
 
-const MOIS_COURTS = [
-  "jan", "fév", "mar", "avr", "mai", "juin",
-  "juil", "août", "sep", "oct", "nov", "déc",
-];
+const COLS = { "--cols": "minmax(0, 2fr) minmax(0, 1.4fr) 128px 132px 200px" } as CSSProperties;
 
-function formatDate(dateISO: string): string {
-  const [a, m, j] = dateISO.split("-");
-  return `${parseInt(j, 10)} ${MOIS_COURTS[parseInt(m, 10) - 1]} ${a}`;
-}
-function fmt(n: number): string {
-  return n.toLocaleString("fr-FR").replace(/\s/g, " ");
-}
-
-interface EventOrga {
-  id: string;
-  titre: string;
-  slug: string;
-  date_debut: string;
-  date_fin: string | null;
-  date_reference_virement: string;
-  statut: string;
-  taux_commission: number;
-  pays_code: string;
-  lien_scan_token: string | null;
-  ticket_types: { prix: number; quantite_totale: number; quantite_vendue: number }[];
-}
-
-const BADGE: Record<string, { cls: string; txt: string }> = {
-  publie: { cls: "st-ok", txt: "En vente" },
-  en_validation: { cls: "st-attente", txt: "En validation" },
-  brouillon: { cls: "st-fini", txt: "Brouillon" },
-  termine: { cls: "st-fini", txt: "Terminé" },
-  refuse: { cls: "st-fini", txt: "Refusé" },
-  annule: { cls: "st-annule", txt: "Annulé" },
-};
-
-const STATUTS_ANNULABLES = new Set(["brouillon", "en_validation", "publie"]);
-
+/**
+ * Tableau de bord organisateur (V2), repris de la preview. Une seule action
+ * par événement (la plus utile) ; le reste (modifier, annuler, export, lien
+ * de scan, billets) est dans la fiche /orga/evenements/[id]. Calculs de la
+ * prod, partagés avec Mes reversements : lib/orga-chiffres.ts.
+ */
 export default async function Orga() {
   const supabase = creerClientServeur();
   const {
@@ -58,227 +33,218 @@ export default async function Orga() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/connexion?redirect=/orga");
 
-  const [{ data }, { data: payoutsData }, { data: profil }] = await Promise.all([
-    supabase
-      .from("events")
-      .select(
-        "id, titre, slug, date_debut, date_fin, date_reference_virement, statut, taux_commission, pays_code, lien_scan_token, ticket_types(prix, quantite_totale, quantite_vendue)"
-      )
-      .eq("organisateur_id", user.id)
-      .order("date_debut", { ascending: false }),
-    supabase
-      .from("payouts")
-      .select("event_id, montant, statut")
-      .eq("organisateur_id", user.id)
-      .in("statut", ["demande", "traite"]),
-    supabase.from("profiles").select("nom_public").eq("id", user.id).maybeSingle(),
+  const [{ events, lignes, totaux: t }, { data: profil }] = await Promise.all([
+    chiffresOrganisateur(supabase, user.id),
+    supabase.from("profiles").select("nom, nom_public").eq("id", user.id).maybeSingle(),
   ]);
+  // Taux effectif : peut différer de 8 % si un événement a une commission négociée.
+  const taux = t.brut > 0 ? Math.round((1 - t.net / t.brut) * 100) : 8;
+  const remplissage = t.capacite > 0 ? Math.round((t.vendus / t.capacite) * 100) : 0;
+  const aVirer = lignes.filter((l) => l.peutDemander && l.disponible > 0);
+  const enValidation = events.filter((e) => e.statut === "en_validation");
 
-  const events = (data as unknown as EventOrga[]) ?? [];
-
-  const dejaDemandeParEvenement = new Map<string, number>();
-  for (const p of (payoutsData ?? []) as { event_id: string; montant: number }[]) {
-    dejaDemandeParEvenement.set(p.event_id, (dejaDemandeParEvenement.get(p.event_id) ?? 0) + p.montant);
-  }
-
-  const STATUTS_SANS_VIREMENT = new Set(["annule", "refuse"]);
-
-  // Agrégats par événement + totaux
-  const lignes = events.map((ev) => {
-    const vendus = ev.ticket_types.reduce((s, t) => s + t.quantite_vendue, 0);
-    const capacite = ev.ticket_types.reduce((s, t) => s + t.quantite_totale, 0);
-    const revenu = ev.ticket_types.reduce((s, t) => s + t.prix * t.quantite_vendue, 0);
-    const revenuNetEvenement = Math.round(revenu * (1 - ev.taux_commission));
-    const dejaDemande = dejaDemandeParEvenement.get(ev.id) ?? 0;
-    const disponible = STATUTS_SANS_VIREMENT.has(ev.statut)
-      ? 0
-      : Math.max(0, revenuNetEvenement - dejaDemande);
-    const peutDemander = payoutDisponible(ev);
-    const disponibleLe = formatDate(dateDisponibilitePayout(ev));
-    return { ev, vendus, capacite, revenu, revenuNetEvenement, disponible, peutDemander, disponibleLe };
-  });
-
-  const nbPublies = events.filter((e) => e.statut === "publie").length;
-  const totalVendus = lignes.reduce((s, l) => s + l.vendus, 0);
-  const totalCapacite = lignes.reduce((s, l) => s + l.capacite, 0);
-  const revenuBrut = lignes.reduce((s, l) => s + l.revenu, 0);
-  const revenuNet = lignes.reduce((s, l) => s + l.revenuNetEvenement, 0);
-  // Taux effectif affiché au KPI global : peut différer de 8% si un ou
-  // plusieurs événements ont une commission négociée (voir events.taux_commission).
-  const tauxEffectifGlobal = revenuBrut > 0 ? Math.round((1 - revenuNet / revenuBrut) * 100) : 8;
-
-  const nom = (user.user_metadata?.nom as string | undefined) ?? user.email ?? "organisateur";
-  const initiale = nom.charAt(0).toUpperCase();
+  const nomPerso = profil?.nom || (user.user_metadata?.nom as string | undefined) || user.email || "organisateur";
+  const nom = profil?.nom_public || nomPerso;
+  const alerteNomPublic = !profil?.nom_public && (
+    <p className={s.alerte}>
+      <Icon name="info" />
+      <span>
+        Le nom affiché sur tes événements est ton nom personnel. <Link href="/orga/parametres">Personnalise-le dans les Paramètres</Link>.
+      </span>
+    </p>
+  );
 
   return (
-    <div className="app">
-      <aside className="lateral">
-        <Logo />
-        <p className="role">Organisateur</p>
-
-        <p className="groupe">Principal</p>
-        <Link className="item actif" href="/orga">📊 Vue d&apos;ensemble</Link>
-        <Link className="item" href="/evenements">🎟️ Le catalogue</Link>
-        <Link className="btn btn-or" href="/creer" style={{ marginTop: 22 }}>
-          + Créer un événement
-        </Link>
-        <Link className="item" href="/scan" style={{ marginTop: 8 }}>📷 Scanner les billets</Link>
-        <Link className="item" href="/orga/reversements" style={{ marginTop: 8 }}>🏦 Mes reversements</Link>
-        <Link className="item" href="/orga/parametres" style={{ marginTop: 8 }}>⚙️ Paramètres</Link>
-
-        <div className="bas">
-          <div className="avatar">{initiale}</div>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: "0.92rem" }}>{nom}</div>
-            <BoutonDeconnexion />
-          </div>
+    <Coquille nav={NAV_ORGA} actif="accueil" compte={{ nom, email: user.email ?? "" }}>
+      <div className={s.entete}>
+        <div>
+          <h1 className={s.titre}>Bonjour, {nom}</h1>
+          <p className={s.sousTitre}>Voici comment se portent tes événements.</p>
         </div>
-      </aside>
+      </div>
 
-      <main className="principal">
-        <div className="entete-app">
-          <div>
-            <h1>Bonjour, {nom} 👋</h1>
-            <p className="sous">Voici comment se portent tes événements</p>
-          </div>
-          <Link className="btn btn-ghost" href="/">
-            Voir le site →
-          </Link>
-        </div>
-
-        {!profil?.nom_public && (
-          <p className="alerte-info">
-            Le nom affiché publiquement sur tes événements est actuellement ton
-            nom personnel —{" "}
-            <Link href="/orga/parametres" style={{ color: "var(--texte)", textDecoration: "underline", fontWeight: 600 }}>
-              personnalise-le dans les Paramètres
+      {events.length === 0 ? (
+        <>
+          {alerteNomPublic}
+          <div className={s.vide}>
+            <Icon name="calendar" size={32} />
+            <p className={s.videTitre}>Aucun événement</p>
+            <p className={s.videTexte}>Publie ton premier événement pour commencer à vendre des billets. 8 % de commission, uniquement sur les billets vendus.</p>
+            <Link href="/creer" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`}>
+              <Icon name="plus" /> Créer un événement
             </Link>
-            .
-          </p>
-        )}
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Écart assumé : la preview ne montre l'alerte que sans événement ; la prod l'affiche tant qu'il n'y a pas de nom public. */}
+          {alerteNomPublic}
+          <section className={s.kpis} aria-label="Chiffres clés">
+            <div className={`${s.kpi} ${s.kpiHeros}`}>
+              <span className={s.kpiLabel}>Revenu net</span>
+              <span className={s.kpiValeur}>
+                <Compteur valeur={t.net} /> <small>FCFA</small>
+              </span>
+              <span className={s.kpiContexte}>après {taux}&nbsp;% de frais, tous événements</span>
+            </div>
+            <div className={s.kpi}>
+              <span className={s.kpiLabel}>Billets vendus</span>
+              <span className={s.kpiValeur}>
+                <Compteur valeur={t.vendus} />
+              </span>
+              <span
+                className={s.kpiBarre}
+                role="meter"
+                aria-valuemin={0}
+                aria-valuemax={t.capacite}
+                aria-valuenow={t.vendus}
+                aria-label={`Taux de remplissage : ${pourcent(t.vendus, t.capacite)}`}
+              >
+                <span style={{ width: `${remplissage}%` }} />
+              </span>
+              <span className={s.kpiContexte}>
+                {pourcent(t.vendus, t.capacite)} des {nombre(t.capacite)} places
+              </span>
+            </div>
+            <div className={s.kpi}>
+              <span className={s.kpiLabel}>En vente</span>
+              <span className={s.kpiValeur}>
+                <Compteur valeur={t.publies} />
+              </span>
+              <span className={s.kpiContexte}>{events.length} événement{events.length > 1 ? "s" : ""} au total</span>
+            </div>
+            <div className={s.kpi}>
+              <span className={s.kpiLabel}>Revenu brut</span>
+              <span className={s.kpiValeur}>
+                <Compteur valeur={t.brut} /> <small>FCFA</small>
+              </span>
+              <span className={s.kpiContexte}>avant frais</span>
+            </div>
+            {/* Doré seulement s'il y a une action à faire (montant à récupérer). */}
+            <div className={`${s.kpi} ${t.disponible > 0 ? s.kpiAction : ""}`}>
+              <span className={s.kpiLabel}>À virer</span>
+              <span className={s.kpiValeur}>
+                <Compteur valeur={t.disponible} /> <small>FCFA</small>
+              </span>
+              <span className={s.kpiContexte}>disponible maintenant</span>
+            </div>
+          </section>
 
-        <div className="kpis">
-          <div className="kpi">
-            <div className="libelle">Revenu net</div>
-            <div className="valeur">
-              {fmt(revenuNet)} <small>FCFA</small>
-            </div>
-            <div className="delta neutre">après {tauxEffectifGlobal}% de frais</div>
-          </div>
-          <div className="kpi">
-            <div className="libelle">Billets vendus</div>
-            <div className="valeur">{fmt(totalVendus)}</div>
-            <div className="delta neutre">
-              {totalCapacite > 0 ? `sur ${fmt(totalCapacite)} places` : "aucune place en vente"}
-            </div>
-          </div>
-          <div className="kpi">
-            <div className="libelle">Événements publiés</div>
-            <div className="valeur">{nbPublies}</div>
-            <div className="delta neutre">{events.length} au total</div>
-          </div>
-          <div className="kpi">
-            <div className="libelle">Revenu brut</div>
-            <div className="valeur">
-              {fmt(revenuBrut)} <small>FCFA</small>
-            </div>
-            <div className="delta neutre">avant frais</div>
-          </div>
-        </div>
-
-        <div className="tableau-panneau">
-          <h3>
-            Mes événements
-            <Link href="/creer">+ Nouveau →</Link>
-          </h3>
-
-          {lignes.length === 0 ? (
-            <div className="etat-vide" style={{ margin: "10px auto 4px" }}>
-              <div className="etat-vide-glyphe" aria-hidden="true">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                  <rect x="3" y="4" width="18" height="17" rx="2" />
-                  <path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4" />
-                </svg>
-              </div>
-              <h3>Aucun événement</h3>
-              <p>Publie ton premier événement pour commencer à vendre des billets.</p>
-              <Link className="btn btn-or" href="/creer">Créer un événement</Link>
-            </div>
-          ) : (
-            <table className="donnees">
-              <thead>
-                <tr>
-                  <th>Événement</th>
-                  <th>Date</th>
-                  <th>Ventes</th>
-                  <th>Revenu</th>
-                  <th>Statut</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lignes.map(({ ev, vendus, capacite, revenu, disponible, peutDemander, disponibleLe }) => {
-                  const badge = BADGE[ev.statut] ?? { cls: "st-fini", txt: ev.statut };
-                  return (
-                    <tr key={ev.id}>
-                      <td className="ev-nom">
-                        {ev.statut === "publie" ? (
-                          <Link href={`/evenement/${ev.slug}`}>{ev.titre}</Link>
-                        ) : (
-                          ev.titre
-                        )}
-                      </td>
-                      <td>{formatDate(ev.date_debut)}</td>
-                      <td>{capacite > 0 ? `${fmt(vendus)} / ${fmt(capacite)}` : "—"}</td>
-                      <td className="rev">{revenu > 0 ? `${fmt(revenu)} F` : "—"}</td>
-                      <td>
-                        <span className={`statut ${badge.cls}`}>{badge.txt}</span>
-                      </td>
-                      <td>
-                        <div className="act">
-                          {disponible > 0 && (
-                            <DemandeVirement
-                              eventId={ev.id}
-                              titre={ev.titre}
-                              disponible={disponible}
-                              tauxCommission={ev.taux_commission}
-                              paysCode={ev.pays_code}
-                              peutDemander={peutDemander}
-                              disponibleLe={disponibleLe}
-                            />
-                          )}
-                          {ev.statut === "publie" && (
-                            <LienScan eventId={ev.id} lienInitial={ev.lien_scan_token} />
-                          )}
-                          <a
-                            className="btn btn-ghost"
-                            style={{ padding: "7px 14px", fontSize: "0.8rem" }}
-                            href={`/api/orga/events/${ev.id}/billets/export`}
-                          >
-                            Exporter CSV
-                          </a>
-                          {STATUTS_ANNULABLES.has(ev.statut) && (
-                            <Link
-                              className="btn btn-ghost"
-                              style={{ padding: "7px 14px", fontSize: "0.8rem" }}
-                              href={`/orga/evenements/${ev.id}/modifier`}
-                            >
-                              Modifier
-                            </Link>
-                          )}
-                          {STATUTS_ANNULABLES.has(ev.statut) && (
-                            <ActionsEvenementOrga eventId={ev.id} titre={ev.titre} />
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          {(aVirer.length > 0 || enValidation.length > 0) && (
+            <>
+              <h2 className={s.intertitre}>À faire</h2>
+              <ul className={s.pile} style={{ gap: 8 }}>
+                {aVirer.map((l) => (
+                  <li key={l.e.id} className={`${s.carte} ${s.carteRangee}`}>
+                    <div className={s.carteHaut}>
+                      <div>
+                        <p className={s.carteTitre}>{montant(l.disponible)} à récupérer</p>
+                        <p className={s.carteMeta}>
+                          {l.e.titre} · terminé le {dateAnnee(l.e.date_fin ?? l.e.date_debut)}
+                        </p>
+                      </div>
+                    </div>
+                    <DemandeVirement
+                      eventId={l.e.id}
+                      titre={l.e.titre}
+                      disponible={l.disponible}
+                      tauxCommission={l.e.taux_commission}
+                      paysCode={l.e.pays_code}
+                      peutDemander
+                      grand
+                    />
+                  </li>
+                ))}
+                {enValidation.map((e) => (
+                  <li key={e.id} className={`${s.carte} ${s.carteLien}`}>
+                    <div className={s.carteHaut}>
+                      <div>
+                        <p className={s.carteTitre}>
+                          <Link href={`/orga/evenements/${e.id}`}>{e.titre}</Link>
+                        </p>
+                        <p className={s.carteMeta}>En cours de validation par l&apos;équipe Xwézan. Il sera visible dès son approbation.</p>
+                      </div>
+                      <StatutEvt statut={e.statut} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
-        </div>
-      </main>
-    </div>
+
+          <h2 className={s.intertitre}>
+            Mes événements
+            <Link href="/creer">
+              <Icon name="plus" /> Nouveau
+            </Link>
+          </h2>
+          <ul className={s.liste}>
+            <li className={s.enteteListe} style={COLS} aria-hidden="true">
+              <span>Événement</span>
+              <span>Ventes</span>
+              <span>Revenu brut</span>
+              <span>Statut</span>
+              <span>Action</span>
+            </li>
+            {lignes.map((l) => (
+              <li key={l.e.id} className={`${s.carte} ${s.carteLien}`} style={COLS}>
+                <div className={s.carteHaut}>
+                  <div>
+                    <p className={s.carteTitre}>
+                      <Link href={`/orga/evenements/${l.e.id}`}>{l.e.titre}</Link>
+                    </p>
+                    <p className={s.carteMeta}>
+                      {dateCourte(l.e.date_debut, l.e.date_fin)} · {l.e.ville}
+                    </p>
+                  </div>
+                  <span className={s.masqueDesktop}>
+                    <StatutEvt statut={l.e.statut} />
+                  </span>
+                </div>
+                <div className={s.carteCorps}>
+                  <Jauge vendus={l.vendus} total={l.capacite} neutre={l.e.statut === "annule" || l.e.statut === "termine"} />
+                </div>
+                <span className={`${s.cellule} ${s.montant} ${s.chiffre}`}>{l.brut > 0 ? montant(l.brut) : "—"}</span>
+                <span className={s.cellule}>
+                  <StatutEvt statut={l.e.statut} />
+                </span>
+                <div className={s.carteBas}>
+                  <span className={`${s.montant} ${s.masqueDesktop}`}>{l.brut > 0 ? montant(l.brut) : "Aucune vente"}</span>
+                  <ActionLigne l={l} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </Coquille>
+  );
+}
+
+/** Une seule action par ligne, la plus utile selon l'état ; le reste est dans la fiche. */
+function ActionLigne({ l }: { l: LigneOrga }) {
+  if (l.disponible > 0 && l.peutDemander)
+    return (
+      <DemandeVirement
+        eventId={l.e.id}
+        titre={l.e.titre}
+        disponible={l.disponible}
+        tauxCommission={l.e.taux_commission}
+        paysCode={l.e.pays_code}
+        peutDemander
+        libelle="Virement"
+      />
+    );
+  if (l.e.statut === "publie")
+    return (
+      <Link href="/scan" className={`${s.btn} ${s.btnGris}`}>
+        <Icon name="qr" /> Scanner
+      </Link>
+    );
+  if (l.disponible > 0) return <span className={s.note}>Virement dès le {dateAnnee(l.disponibleLe)}</span>;
+  return (
+    <span className={s.note} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+      Gérer <Icon name="chevron-right" />
+    </span>
   );
 }

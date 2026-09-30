@@ -1,27 +1,42 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseServiceRoleKey) {
-  throw new Error("Missing Supabase service role environment variables");
+function creerClientAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error("Missing Supabase service role environment variables");
+  }
+  return createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    // Jamais de cache de données Next : Next 14 met en cache les fetch GET des
+    // Server Components (ici avec une validité d'un an), même sous
+    // `dynamic = "force-dynamic"`, dès que la page ne lit pas les cookies.
+    // Une page qui ne passe que par ce client lisait alors une copie figée de
+    // la base (ex. /paiement/retour : commande vue « en_attente » après son
+    // paiement). BUGS_REFONTE n°22.
+    global: {
+      fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+    },
+  });
 }
 
-// Client serveur (côté serveur uniquement) - avec clé service_role
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-  },
-  // Jamais de cache de données Next : Next 14 met en cache les fetch GET des
-  // Server Components (ici avec une validité d'un an), même sous
-  // `dynamic = "force-dynamic"`, dès que la page ne lit pas les cookies.
-  // Une page qui ne passe que par ce client lisait alors une copie figée de
-  // la base (ex. /paiement/retour : commande vue « en_attente » après son
-  // paiement). BUGS_REFONTE n°22.
-  global: {
-    fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+let client: ReturnType<typeof creerClientAdmin> | null = null;
+
+// Client serveur (côté serveur uniquement) - avec clé service_role.
+// Créé au premier usage, pas au chargement du module : sans la clé, le build
+// passe et seule une requête qui en a réellement besoin échoue. C'est ce qui
+// permet les déploiements Preview de Vercel sans clé service_role (previews
+// de la refonte, données fictives). En production, la clé est présente :
+// comportement inchangé.
+export const supabaseAdmin = new Proxy({} as ReturnType<typeof creerClientAdmin>, {
+  get(_, prop) {
+    client ??= creerClientAdmin();
+    const valeur = Reflect.get(client, prop, client);
+    return typeof valeur === "function" ? valeur.bind(client) : valeur;
   },
 });
 
