@@ -150,6 +150,24 @@ const CHEMINS: Record<string, ReactNode> = {
       <circle cx="17" cy="17" r="2.5" />
     </>
   ),
+  // Réseaux (pied de page) : pictogrammes au trait, pas de logos de marque.
+  instagram: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none" />
+    </>
+  ),
+  whatsapp: (
+    <>
+      <path d="M3 21l1.6-4.8A8.5 8.5 0 1 1 8.4 19.6L3 21Z" />
+      <path
+        d="M8.5 9.5c0 3.5 3 6.5 6.5 6.5.4 0 .8-.3.9-.7l.3-1.2c.1-.4-.1-.8-.5-1l-1.7-.8c-.3-.2-.7-.1-1 .2l-.5.6c-1.1-.5-2-1.4-2.5-2.5l.6-.5c.3-.3.3-.7.2-1l-.8-1.7c-.2-.4-.6-.6-1-.5l-1.2.3c-.4.1-.7.5-.7.9Z"
+        fill="currentColor"
+        stroke="none"
+      />
+    </>
+  ),
   users: (
     <>
       <circle cx="9" cy="8.5" r="3.5" />

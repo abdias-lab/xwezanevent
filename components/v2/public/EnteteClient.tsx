@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { creerClientNavigateur } from "@/lib/supabase-browser";
-import { Entete, ESPACES, SE_CONNECTER, type Espace } from "./Entete";
+import { Entete, ESPACES, PiedDePage, SE_CONNECTER, estOrganisateur, type Espace, type RolePied } from "./Entete";
 
 /**
  * En-tête public V2 pour les composants client (app/error.tsx, qui ne peut
@@ -11,13 +11,29 @@ import { Entete, ESPACES, SE_CONNECTER, type Espace } from "./Entete";
  */
 export function HeaderClient() {
   const [espace, setEspace] = useState<Espace>(SE_CONNECTER);
+  const [publier, setPublier] = useState(false);
   useEffect(() => {
     const supabase = creerClientNavigateur();
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return;
       const { data: profil } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
       setEspace(ESPACES[profil?.role ?? "visiteur"] ?? ESPACES.visiteur);
+      setPublier(estOrganisateur((profil?.role as RolePied) ?? "visiteur"));
     });
   }, []);
-  return <Entete espace={espace} />;
+  return <Entete espace={espace} publier={publier} />;
+}
+
+/** Pied de page public V2 pour les composants client (pages d'erreur), rôle lu dans le navigateur. */
+export function FooterClient() {
+  const [role, setRole] = useState<RolePied>(null);
+  useEffect(() => {
+    const supabase = creerClientNavigateur();
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const { data: profil } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+      setRole((profil?.role as RolePied) ?? "visiteur");
+    });
+  }, []);
+  return <PiedDePage role={role} />;
 }

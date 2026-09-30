@@ -90,7 +90,7 @@ export default async function Compte() {
       .order("created_at", { ascending: false }),
     // Téléphone : plus lisible par le rôle authenticated (20260929120000_audit_n20_droits.sql),
     // donc lu côté serveur, pour l'utilisateur connecté uniquement.
-    supabaseAdmin.from("profiles").select("nom, telephone").eq("id", user.id).maybeSingle(),
+    supabaseAdmin.from("profiles").select("nom, telephone, role").eq("id", user.id).maybeSingle(),
   ]);
   const orders = (ordersData as unknown as OrderRow[] | null) ?? [];
 
@@ -136,6 +136,11 @@ export default async function Compte() {
     });
   }
 
+  // Organisateur ou admin : bascule vers l'espace organisateur et « Publier ».
+  // Un simple acheteur ne voit ni l'un ni l'autre (lien « Devenir
+  // organisateur » dans le pied de page uniquement).
+  const organisateur = profil?.role === "organisateur" || profil?.role === "admin";
+
   const aujourdhui = aujourdhuiPortoNovo();
   const maintenant = Date.now();
   const fin = (c: Commande) => c.fin ?? c.debut;
@@ -163,6 +168,16 @@ export default async function Compte() {
       <Header />
       <main className={v.cont} style={{ paddingTop: 32 }}>
         <div style={{ maxWidth: 640, margin: "0 auto" }}>
+          {organisateur && (
+            <nav className={v.onglets} aria-label="Mes espaces">
+              <Link href="/compte" aria-current="page">
+                <Icon name="ticket" /> Mes billets
+              </Link>
+              <Link href="/orga">
+                <Icon name="home" /> Mon espace orga
+              </Link>
+            </nav>
+          )}
           <h1 className={v.h1}>
             Mes <em>billets.</em>
           </h1>
@@ -287,12 +302,16 @@ export default async function Compte() {
               <dt>Téléphone</dt>
               <dd>{profil?.telephone ? formaterNumero(profil.telephone) : "—"}</dd>
             </dl>
-            <div className={s.deux}>
-              <Link href="/creer" className={`${s.btn} ${s.btnGris} ${s.btnGrand}`}>
-                <Icon name="plus" /> Publier un événement
-              </Link>
+            {organisateur ? (
+              <div className={s.deux}>
+                <Link href="/creer" className={`${s.btn} ${s.btnGris} ${s.btnGrand}`}>
+                  <Icon name="plus" /> Publier un événement
+                </Link>
+                <Deconnexion className={`${s.btn} ${s.btnGris} ${s.btnGrand}`} />
+              </div>
+            ) : (
               <Deconnexion className={`${s.btn} ${s.btnGris} ${s.btnGrand}`} />
-            </div>
+            )}
           </section>
         </div>
       </main>

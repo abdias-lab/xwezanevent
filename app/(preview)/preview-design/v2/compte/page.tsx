@@ -71,6 +71,16 @@ export default function V2Compte({ searchParams }: { searchParams: { etat?: stri
       <Header connecte={role} />
       <main className={v.cont} style={{ paddingTop: 32 }}>
         <div style={{ maxWidth: 640, margin: "0 auto" }}>
+          {role !== "visiteur" && (
+            <nav className={v.onglets} aria-label="Mes espaces">
+              <a href={`${B}/compte`} aria-current="page">
+                <Icon name="ticket" /> Mes billets
+              </a>
+              <a href={`${B}/orga`}>
+                <Icon name="home" /> Mon espace orga
+              </a>
+            </nav>
+          )}
           <h1 className={v.h1}>
             Mes <em>billets.</em>
           </h1>
@@ -189,10 +199,13 @@ export default function V2Compte({ searchParams }: { searchParams: { etat?: stri
               <dt>Téléphone</dt>
               <dd>01 97 42 18 63</dd>
             </dl>
-            <div className={s.deux}>
-              <a href={`${B}/creer`} className={`${s.btn} ${s.btnGris} ${s.btnGrand}`}>
-                <Icon name="plus" /> Publier un événement
-              </a>
+            {/* « Publier » seulement pour un organisateur ou un admin ; un acheteur a « Devenir organisateur » dans le pied de page. */}
+            <div className={role !== "visiteur" ? s.deux : undefined}>
+              {role !== "visiteur" && (
+                <a href={`${B}/creer`} className={`${s.btn} ${s.btnGris} ${s.btnGrand}`}>
+                  <Icon name="plus" /> Publier un événement
+                </a>
+              )}
               <a href="#" className={`${s.btn} ${s.btnGris} ${s.btnGrand}`}>
                 <Icon name="logout" /> Se déconnecter
               </a>
@@ -201,7 +214,7 @@ export default function V2Compte({ searchParams }: { searchParams: { etat?: stri
         </div>
         <RubanEtats chemin={`${B}/compte`} etats={["normal", "vide"]} />
       </main>
-      <Footer />
+      <Footer connecte={role} />
     </div>
   );
 }

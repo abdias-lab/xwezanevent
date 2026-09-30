@@ -17,13 +17,13 @@ export const SE_CONNECTER: Espace = { libelle: "Se connecter", href: "/connexion
 
 /**
  * Dessin de l'en-tête public V2, repris de la preview (v2/chrome.tsx) : logo,
- * recherche, « Publier un événement » (connecté seulement) et bouton de
- * l'espace. « Événements », « Tarifs » et « Publier un événement » sont aussi
- * dans le pied de page, pour tous (décisions du 2026-09-30). Sans
- * accès à la session : utilisable côté serveur (Chrome.tsx) comme côté client
- * (EnteteClient.tsx, pour app/error.tsx). La recherche envoie sur /evenements?q=.
+ * recherche, « Publier un événement » (organisateur ou admin seulement :
+ * un acheteur est venu acheter, pas gérer une billetterie) et bouton de
+ * l'espace. Sans accès à la session : utilisable côté serveur (Chrome.tsx)
+ * comme côté client (EnteteClient.tsx, pour app/error.tsx). La recherche
+ * envoie sur /evenements?q=.
  */
-export function Entete({ espace }: { espace: Espace }) {
+export function Entete({ espace, publier }: { espace: Espace; publier: boolean }) {
   return (
     <header className={v.header}>
       <div className={`${v.cont} ${v.nav}`}>
@@ -34,7 +34,7 @@ export function Entete({ espace }: { espace: Espace }) {
           <Icon name="search" size={20} />
           <input type="search" name="q" placeholder="Artiste, lieu, ville" aria-label="Rechercher un événement" />
         </form>
-        {espace !== SE_CONNECTER && (
+        {publier && (
           <Link href="/creer" aria-label="Publier un événement" className={v.btnPublier}>
             <Icon name="plus" size={16} />
             <span>
@@ -50,22 +50,85 @@ export function Entete({ espace }: { espace: Espace }) {
   );
 }
 
-/** Pied de page public V2, repris de la preview (v2/chrome.tsx). */
-export function Footer() {
+/** Rôle lu dans profiles.role ; null pour un visiteur non connecté. */
+export type RolePied = "visiteur" | "organisateur" | "admin" | null;
+
+/** Organisateur ou admin : « Publier », scanner, espace organisateur. */
+export const estOrganisateur = (role: RolePied) => role === "organisateur" || role === "admin";
+
+/** Réseaux de XwézanEvent (repris de l'ancien pied de page). */
+export const RESEAUX: { libelle: string; href: string; icone: "instagram" | "whatsapp" }[] = [
+  { libelle: "XwézanEvent sur Instagram", href: "https://instagram.com/xwezan_event", icone: "instagram" },
+  { libelle: "XwézanEvent sur WhatsApp", href: "https://wa.me/22953064872", icone: "whatsapp" },
+];
+
+/**
+ * Pied de page public V2, repris de la preview (v2/chrome.tsx) : trois
+ * colonnes avec intitulés (Découvrir, Organisateurs, Aide), empilées sur
+ * mobile, puis le slogan, les réseaux et le copyright. Colonne
+ * Organisateurs selon le rôle : « Publier un événement » pour un visiteur
+ * non connecté, « Devenir organisateur » pour un acheteur, « Publier » et
+ * « Scanner un billet » pour un organisateur ou un admin (/scan leur est
+ * réservé). Sans accès à la session : le rôle est lu par Footer (Chrome.tsx,
+ * serveur) ou FooterClient (EnteteClient.tsx, pages d'erreur client).
+ */
+export function PiedDePage({ role }: { role: RolePied }) {
+  const colonnes: { titre: string; liens: { libelle: string; href: string }[] }[] = [
+    {
+      titre: "Découvrir",
+      liens: [
+        { libelle: "Événements", href: "/evenements" },
+        { libelle: "FAQ", href: "/faq" },
+      ],
+    },
+    {
+      titre: "Organisateurs",
+      liens: [
+        { libelle: role === "visiteur" ? "Devenir organisateur" : "Publier un événement", href: "/creer" },
+        { libelle: "Tarifs", href: "/tarifs" },
+        { libelle: "Reversements", href: "/reversements" },
+        ...(estOrganisateur(role) ? [{ libelle: "Scanner un billet", href: "/scan" }] : []),
+      ],
+    },
+    {
+      titre: "Aide",
+      liens: [
+        { libelle: "Contact", href: "/contact" },
+        { libelle: "Remboursements", href: "/remboursements" },
+        { libelle: "CGU", href: "/cgu" },
+      ],
+    },
+  ];
   return (
     <footer className={v.footer}>
       <div className={`${v.cont} ${v.footerCorps}`}>
-        <div className={v.slogan}>{SLOGAN}</div>
-        <div className={v.footerLiens}>
-          <Link href="/evenements">Événements</Link>
-          <Link href="/tarifs">Tarifs</Link>
-          <Link href="/creer">Publier un événement</Link>
-          <Link href="/faq">FAQ</Link>
-          <Link href="/remboursements">Remboursements</Link>
-          <Link href="/cgu">CGU</Link>
-          <a href="mailto:contact@xwezan.com">Contact</a>
+        <nav className={v.footerColonnes} aria-label="Pied de page">
+          {colonnes.map((c) => (
+            <div key={c.titre} className={v.footerColonne}>
+              <h2 className={v.footerTitre}>{c.titre}</h2>
+              <ul>
+                {c.liens.map((l) => (
+                  <li key={l.href}>
+                    <Link href={l.href}>{l.libelle}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </nav>
+        <div className={v.footerBas}>
+          <div className={v.footerSignature}>
+            <div className={v.slogan}>{SLOGAN}</div>
+            <div className={v.footerReseaux}>
+              {RESEAUX.map((r) => (
+                <a key={r.href} href={r.href} target="_blank" rel="noopener noreferrer" aria-label={r.libelle} title={r.libelle}>
+                  <Icon name={r.icone} size={20} />
+                </a>
+              ))}
+            </div>
+          </div>
+          <div>© Xwézan · Billetterie du Bénin</div>
         </div>
-        <div>© Xwézan · Billetterie du Bénin</div>
       </div>
     </footer>
   );
