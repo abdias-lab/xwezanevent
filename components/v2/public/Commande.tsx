@@ -9,7 +9,8 @@ import { aidePays, exemplePays, normaliserNumero } from "@/lib/telephone";
 export type TarifCommande = { id: string; nom: string; prix: number; disponibles: number };
 type Compte = { nom: string; email: string } | null;
 type Phase = "saisie" | "envoi" | "redirection";
-type Erreur = { texte: string; lien?: { href: string; libelle: string } } | null;
+// info : message rassurant (rien n'a été débité), encadré neutre plutôt que rouge.
+type Erreur = { texte: string; lien?: { href: string; libelle: string }; info?: boolean } | null;
 
 /**
  * Commande (V2), reprise de la preview (v2/commande/Commande.tsx) :
@@ -98,7 +99,14 @@ export default function Commande({
         return;
       }
       if (data.dejaPayee) {
-        setErreur({ texte: "Tu as déjà payé cette sélection il y a quelques minutes : rien n'a été payé en plus.", lien: compte ? { href: "/compte", libelle: "Voir mes billets" } : { href: "/billet", libelle: "Retrouver mes billets" } });
+        // Fenêtre anti-doublon de 5 min (/api/orders) : dire quand un rachat passera, pas laisser croire à un blocage.
+        const n = Number(data.reessayerDansMin);
+        const delai = n >= 1 ? `dans ${n} minute${n > 1 ? "s" : ""}` : "dans quelques minutes";
+        setErreur({
+          texte: `Tu as déjà payé cette sélection il y a quelques minutes, rien n'a été débité en plus. Si tu veux un billet supplémentaire, réessaie ${delai}.`,
+          lien: compte ? { href: "/compte", libelle: "Voir mes billets" } : { href: "/billet", libelle: "Retrouver mes billets" },
+          info: true,
+        });
         setPhase("saisie");
         return;
       }
@@ -133,8 +141,8 @@ export default function Commande({
     <div className={s.form}>
       <div className={s.formCorps}>
         {erreur && (
-          <p className={`${s.alerte} ${s.alerteDanger}`} role="alert" style={{ marginBottom: 8 }}>
-            <Icon name="alert" />
+          <p className={`${s.alerte} ${erreur.info ? "" : s.alerteDanger}`} role={erreur.info ? "status" : "alert"} style={{ marginBottom: 8 }}>
+            <Icon name={erreur.info ? "info" : "alert"} />
             <span>
               {erreur.texte}
               {erreur.lien && (
