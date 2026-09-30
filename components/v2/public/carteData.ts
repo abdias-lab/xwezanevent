@@ -22,8 +22,13 @@ export function versCarte(e: CarteData): EvenementCarte {
   };
 }
 
+/** « sam 3 oct. » */
+export function libelleJour(d: string) {
+  return `${jourSemaine(d).replace(".", "")} ${Number(jour(d))} ${mois(d)}`;
+}
+
 /** En-tête de groupe : « sam 3 oct. » pour un jour, « 2–4 oct. » pour un festival (qui forme son propre groupe). */
 export function libelleGroupe(e: CarteData) {
   if (e.dateFin) return dateCarte({ debut: e.dateDebut, fin: e.dateFin });
-  return `${jourSemaine(e.dateDebut).replace(".", "")} ${Number(jour(e.dateDebut))} ${mois(e.dateDebut)}`;
+  return libelleJour(e.dateDebut);
 }

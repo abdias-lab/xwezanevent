@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
 import Icon from "@/components/v2/Icon";
 import Carte from "@/components/v2/public/Carte";
+import FiltresCatalogue from "@/components/v2/public/FiltresCatalogue";
 import { Header, Footer } from "@/components/v2/public/Chrome";
-import { libelleGroupe, versCarte } from "@/components/v2/public/carteData";
+import { libelleGroupe, libelleJour, versCarte } from "@/components/v2/public/carteData";
 import { POLICES_V2 } from "@/components/v2/polices";
 import v from "@/components/v2/v2.module.css";
 import s from "@/components/v2/espace.module.css";
-import { getEvenementsPublies, getCompteursCategories, getVillesPubliees, type CarteData } from "@/lib/events";
+import { getEvenementsPublies, getCompteursCategories, getCompteursVilles, getVillesPubliees, type CarteData } from "@/lib/events";
+import { aujourdhuiPortoNovo, ajouterJours } from "@/lib/date";
 import { getPaysActuel } from "@/lib/pays";
 
 export const revalidate = 60;
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   description: "Tous les événements publiés : concerts, festivals, soirées, culture, sport au Bénin.",
 };
 
-type Params = { categorie?: string; quand?: string; ville?: string; q?: string; tri?: string };
+type Params = { categorie?: string; quand?: string; date?: string; ville?: string; q?: string; tri?: string };
 
 const QUAND: { cle: string; libelle: string }[] = [
   { cle: "", libelle: "N'importe quand" },
@@ -32,29 +33,44 @@ const TRIS: { cle: string; libelle: string }[] = [
   { cle: "prix-desc", libelle: "Prix décroissant" },
 ];
 
+/** Jours (à partir d'aujourd'hui) couverts par au moins un événement : un festival couvre chaque jour de sa plage. */
+function joursCouverts(evs: CarteData[], aujourdhui: string) {
+  const jours = new Set<string>();
+  for (const e of evs)
+    for (let d = e.dateDebut > aujourdhui ? e.dateDebut : aujourdhui; d <= (e.dateFin ?? e.dateDebut); d = ajouterJours(d, 1)) jours.add(d);
+  return Array.from(jours).sort();
+}
+
 const memeTexte = (a: string, b: string) => a.localeCompare(b, "fr", { sensitivity: "base" }) === 0;
 
 /**
  * Catalogue (V2), repris de la preview (v2/evenements). Filtres portés par
- * l'adresse (partageables, sans JavaScript) : catégorie, date, ville,
- * recherche. Tri réellement branché (BUGS_REFONTE n°16). Page d'action :
+ * l'adresse (partageables, sans JavaScript) : catégorie, date (raccourci ou
+ * jour précis du calendrier), ville, recherche (celle de l'en-tête). Tri réellement branché (BUGS_REFONTE n°16). Page d'action :
  * alignée à gauche. Listing limité au pays du visiteur (getPaysActuel).
  */
 export default async function Evenements({ searchParams }: { searchParams: Params }) {
   const categorie = searchParams.categorie?.trim() ?? "";
   const ville = searchParams.ville?.trim() ?? "";
-  const quand = QUAND.some((x) => x.cle === searchParams.quand) ? (searchParams.quand as string) : "";
+  const aujourdhui = aujourdhuiPortoNovo();
+  // Un jour précis (calendrier) et un raccourci s'excluent : le jour l'emporte. Un jour passé est ignoré.
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date ?? "") && (searchParams.date as string) >= aujourdhui ? (searchParams.date as string) : "";
+  const quand = !date && QUAND.some((x) => x.cle === searchParams.quand) ? (searchParams.quand as string) : "";
   const tri = TRIS.some((x) => x.cle === searchParams.tri) ? (searchParams.tri as string) : "";
   const q = (searchParams.q ?? "").trim();
   const lien = (p: Partial<Params>) => {
-    const u = new URLSearchParams(Object.entries({ categorie, quand, ville, q, tri, ...p }).filter(([, x]) => x) as [string, string][]);
+    const u = new URLSearchParams(Object.entries({ categorie, quand, date, ville, q, tri, ...p }).filter(([, x]) => x) as [string, string][]);
     return `/evenements${u.toString() ? `?${u}` : ""}`;
   };
 
   const pays = await getPaysActuel();
-  const [trouves, compteurs, villesPubliees] = await Promise.all([
-    getEvenementsPublies({ categorie: categorie || undefined, quand: quand || undefined, q: q || undefined, ville: ville || undefined, pays }),
+  const filtresHorsDate = { categorie: categorie || undefined, q: q || undefined, ville: ville || undefined, pays };
+  const [trouves, horsDate, compteurs, compteursVilles, villesPubliees] = await Promise.all([
+    getEvenementsPublies({ ...filtresHorsDate, quand: quand || undefined, date: date || undefined }),
+    // Calendrier : jours ayant un événement pour les autres filtres. Sans filtre de date, c'est la même liste.
+    date || quand ? getEvenementsPublies(filtresHorsDate) : null,
     getCompteursCategories(pays),
+    getCompteursVilles(pays),
     getVillesPubliees(pays),
   ]);
   // Aucune ville = aucun événement à venir dans le pays, filtres ou non.
@@ -71,20 +87,16 @@ export default async function Evenements({ searchParams }: { searchParams: Param
   const villeActive = villes.find((x) => memeTexte(x, ville)) ?? ville;
   if (ville && !villes.includes(villeActive)) villes.push(villeActive);
 
-  // Groupement par jour seulement pour le tri par date (un tri par prix mélange les dates).
-  const groupes: [string, string, CarteData[]][] = [];
-  if (!tri)
-    for (const e of resultats) {
-      const dernier = groupes[groupes.length - 1];
-      if (dernier && dernier[0] === e.groupeDate.cle) dernier[2].push(e);
-      else groupes.push([e.groupeDate.cle, libelleGroupe(e), [e]]);
-    }
+  // Nombre de cartes par jour (un festival forme son propre groupe), pour l'intertitre ; tri par date seulement.
+  const parJour = new Map<string, number>();
+  for (const e of resultats) parJour.set(e.groupeDate.cle, (parJour.get(e.groupeDate.cle) ?? 0) + 1);
 
   const titre = q ? `Résultats pour « ${q} »` : categorie && ville ? `${categorie} à ${villeActive}` : categorie ? categorie : ville ? `À ${villeActive}` : "Tous les événements";
   const actifs = [
     q && { libelle: `« ${q} »`, href: lien({ q: "" }) },
     categorie && { libelle: categorie, href: lien({ categorie: "" }) },
     quand && { libelle: QUAND.find((x) => x.cle === quand)?.libelle ?? quand, href: lien({ quand: "" }) },
+    date && { libelle: libelleJour(date), href: lien({ date: "" }) },
     ville && { libelle: villeActive, href: lien({ ville: "" }) },
   ].filter(Boolean) as { libelle: string; href: string }[];
 
@@ -92,47 +104,17 @@ export default async function Evenements({ searchParams }: { searchParams: Param
     <div className={`${POLICES_V2} ${v.racine} ${s.racineEspace}`}>
       <Header />
       <main className={v.cont} style={{ paddingTop: 32, paddingBottom: 64 }}>
-        <h1 className={v.h1}>{titre}</h1>
+        <h1 className={v.h1Catalogue}>{titre}</h1>
 
-        <form action="/evenements" method="get" className={s.recherche} role="search" style={{ marginTop: 16, maxWidth: 560 }}>
-          <Icon name="search" size={20} />
-          <input type="search" name="q" defaultValue={q} placeholder="Artiste, lieu, ville" aria-label="Rechercher un événement" />
-          {categorie && <input type="hidden" name="categorie" value={categorie} />}
-          {quand && <input type="hidden" name="quand" value={quand} />}
-          {ville && <input type="hidden" name="ville" value={ville} />}
-          {tri && <input type="hidden" name="tri" value={tri} />}
-        </form>
-
-        <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-          <Filtre libelle="Catégorie">
-            <a href={lien({ categorie: "" })} className={`${s.puce} ${!categorie ? s.puceOn : ""}`} aria-current={!categorie ? "true" : undefined}>
-              Toutes
-            </a>
-            {categories.map((c) => (
-              <a key={c} href={lien({ categorie: c })} className={`${s.puce} ${categorie === c ? s.puceOn : ""}`} aria-current={categorie === c ? "true" : undefined}>
-                {c}
-                <span style={{ opacity: 0.55, fontWeight: 500 }}>{compteurs[c] ?? 0}</span>
-              </a>
-            ))}
-          </Filtre>
-          <Filtre libelle="Quand">
-            {QUAND.map((x) => (
-              <a key={x.cle || "tout"} href={lien({ quand: x.cle })} className={`${s.puce} ${quand === x.cle ? s.puceOn : ""}`} aria-current={quand === x.cle ? "true" : undefined}>
-                {x.libelle}
-              </a>
-            ))}
-          </Filtre>
-          <Filtre libelle="Ville">
-            <a href={lien({ ville: "" })} className={`${s.puce} ${!ville ? s.puceOn : ""}`} aria-current={!ville ? "true" : undefined}>
-              Toutes
-            </a>
-            {villes.map((x) => (
-              <a key={x} href={lien({ ville: x })} className={`${s.puce} ${ville && x === villeActive ? s.puceOn : ""}`} aria-current={ville && x === villeActive ? "true" : undefined}>
-                {x}
-              </a>
-            ))}
-          </Filtre>
-        </div>
+        <FiltresCatalogue
+          s={v}
+          base="/evenements"
+          params={{ categorie, quand, date, ville: ville ? villeActive : "", q, tri }}
+          villes={villes.map((x) => ({ valeur: x, n: compteursVilles[x.trim().toLowerCase()] ?? 0 }))}
+          categories={categories.map((c) => ({ valeur: c, n: compteurs[c] ?? 0 }))}
+          joursAvecEvenement={joursCouverts(horsDate ?? trouves, aujourdhui)}
+          aujourdhui={aujourdhui}
+        />
 
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, margin: "24px 0 8px" }}>
           <p className={s.note} aria-live="polite">
@@ -191,19 +173,24 @@ export default async function Evenements({ searchParams }: { searchParams: Param
             ))}
           </div>
         ) : (
-          groupes.map(([cle, libelle, evs]) => (
-            <div key={cle} className={v.groupe}>
-              <div className={v.groupeTete}>
-                <span>{libelle}</span>
-                <span className={v.groupeN}>{evs.length}</span>
-              </div>
-              <div className={v.grille}>
-                {evs.map((e) => (
-                  <Carte key={e.id} e={versCarte(e)} s={v} href={e.href} />
-                ))}
-              </div>
-            </div>
-          ))
+          <div className={v.grilleJours}>
+            {resultats.map((e, i) => {
+              const premier = i === 0 || resultats[i - 1].groupeDate.cle !== e.groupeDate.cle;
+              return (
+                <div key={e.id}>
+                  {premier ? (
+                    <div className={v.jourTete}>
+                      <h2>{libelleGroupe(e)}</h2>
+                      <span className={v.jourN}>{parJour.get(e.groupeDate.cle)}</span>
+                    </div>
+                  ) : (
+                    <div className={v.jourSuite} aria-hidden="true" />
+                  )}
+                  <Carte e={versCarte(e)} s={v} href={e.href} />
+                </div>
+              );
+            })}
+          </div>
         )}
       </main>
       <Footer />
@@ -211,15 +198,3 @@ export default async function Evenements({ searchParams }: { searchParams: Param
   );
 }
 
-function Filtre({ libelle, children }: { libelle: string; children: ReactNode }) {
-  return (
-    <div style={{ display: "flex", gap: 12, alignItems: "baseline", minWidth: 0 }}>
-      <span className={s.note} style={{ flex: "none", width: 72 }}>
-        {libelle}
-      </span>
-      <div className={`${s.puces} ${s.pucesDefil}`} role="group" aria-label={libelle}>
-        {children}
-      </div>
-    </div>
-  );
-}

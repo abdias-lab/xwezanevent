@@ -151,7 +151,9 @@ export function filtreNonTermine(depuis: string): string {
  * triés par date croissante. Filtres optionnels : catégorie (un événement
  * peut avoir plusieurs catégories — voir event_categories — il apparaît dans
  * le filtre dès qu'une seule correspond), période ("quand" : aujourdhui,
- * week-end, semaine, mois — voir plagePeriode()), recherche texte (q, sur
+ * week-end, semaine, mois — voir plagePeriode()) ou jour précis (date,
+ * AAAA-MM-JJ, choisi dans le calendrier du catalogue : prioritaire sur
+ * « quand » ; un festival en cours ce jour-là est inclus), recherche texte (q, sur
  * titre, description, lieu et ville) et ville (saisie libre, correspondance partielle).
  *
  * Exclut les événements dont la date est passée par une comparaison de
@@ -163,9 +165,12 @@ export function filtreNonTermine(depuis: string): string {
  * apparaître dans aucun listing public.
  */
 export async function getEvenementsPublies(
-  opts: { categorie?: string; quand?: string; q?: string; ville?: string; pays: string }
+  opts: { categorie?: string; quand?: string; date?: string; q?: string; ville?: string; pays: string }
 ): Promise<CarteData[]> {
-  const periode = plagePeriode(opts.quand);
+  // Un jour passé est ignoré : filtreNonTermine(depuis) avec un « depuis »
+  // antérieur à aujourd'hui ferait remonter des événements terminés.
+  const jourValide = opts.date && /^\d{4}-\d{2}-\d{2}$/.test(opts.date) && opts.date >= aujourdhuiPortoNovo() ? opts.date : null;
+  const periode = jourValide ? { debut: jourValide, fin: jourValide } : plagePeriode(opts.quand);
 
   // Filtre catégorie : une jointure event_categories!inner distincte (alias
   // `filtre_categorie`) transforme le .eq ci-dessous en jointure restrictive
