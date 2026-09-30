@@ -19,10 +19,10 @@ export default function PageIntrouvable() {
       code="404"
       titre={
         <>
-          Cette page <em>n&apos;existe pas.</em>
+          Cette page <em>a pris un autre chemin.</em>
         </>
       }
-      texte="Le lien est peut-être incomplet, ou l'événement n'est plus en ligne. Tes billets, eux, ne sont jamais perdus."
+      texte="Le lien est peut-être incomplet, ou l'événement n'est plus en ligne. Pas d'inquiétude : tes billets, eux, ne sont jamais perdus."
       actions={
         <>
           <Link href="/" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`}>

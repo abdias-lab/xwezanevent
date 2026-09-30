@@ -1114,6 +1114,54 @@
   font: 800 16px/1 var(--display);
   color: var(--or);
 }
+/* ---------- Pages d'erreur : billet illustré ---------- */
+.billetErreur {
+  width: min(220px, 64vw);
+  height: auto;
+  overflow: visible;
+}
+.billetCorps {
+  fill: var(--surface);
+  stroke: var(--or);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.billetPerfo {
+  stroke: var(--or);
+  stroke-width: 2;
+  stroke-dasharray: 3 5;
+  stroke-linecap: round;
+}
+.billetTraits {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.billetCode {
+  font: 900 38px var(--display);
+  fill: var(--or);
+}
+/* Le talon pend depuis le haut de la perforation et oscille doucement. */
+.billetTalon {
+  transform-box: view-box;
+  transform-origin: 140px 14px;
+  animation: talonOscille 3.6s ease-in-out infinite;
+}
+@keyframes talonOscille {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(7deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .billetTalon {
+    animation: none;
+  }
+}
 .espaceBarre {
   height: 96px;
 }

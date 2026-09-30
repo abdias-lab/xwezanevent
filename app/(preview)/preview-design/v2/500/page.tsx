@@ -17,10 +17,10 @@ export default function V2Erreur500() {
       code="500"
       titre={
         <>
-          Quelque chose <em>s&apos;est mal passé.</em>
+          Petit contretemps <em>de notre côté.</em>
         </>
       }
-      texte="Une erreur de notre côté, pas du tien. Réessaie dans un instant ; si ça continue, écris-nous."
+      texte="Rien de ta faute, et rien de perdu. Réessaie dans un instant ; si ça continue, écris-nous."
       actions={
         <>
           <a href={`${B}/500`} className={`${s.btn} ${s.btnOr} ${s.btnGrand}`}>

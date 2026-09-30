@@ -3,6 +3,7 @@ import { POLICES_V2 } from "../polices";
 import v from "../v2.module.css";
 import s from "../espace.module.css";
 import { Footer } from "./Entete";
+import BilletErreur from "./BilletErreur";
 
 /**
  * Pages d'erreur V2 (404, 500), reprises de la preview (v2/PageErreur.tsx).
@@ -30,9 +31,7 @@ export default function PageErreur({
       {entete}
       <main className={v.cont} style={{ padding: "64px 16px 96px" }}>
         <div style={{ maxWidth: 520, margin: "0 auto", display: "grid", gap: 16, justifyItems: "center", textAlign: "center" }}>
-          <p aria-hidden="true" style={{ font: "900 clamp(4.5rem, 22vw, 8rem)/1 var(--display)", color: "var(--or)" }}>
-            {code}
-          </p>
+          <BilletErreur code={code} s={v} />
           <h1 className={v.h1}>{titre}</h1>
           <p className={v.sous} style={{ margin: 0 }}>
             {texte}
