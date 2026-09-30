@@ -118,6 +118,22 @@ export default async function EvenementDetail({ params }: { params: { slug: stri
                 </section>
               </Reveal>
             )}
+
+            <Reveal>
+              <section className={s.section} style={{ paddingTop: 48 }}>
+                <div className={s.tete}>
+                  <h2 className={s.h2}>Localisation</h2>
+                </div>
+                <p className={s.texte}>
+                  <b style={{ color: "#fff" }}>{ev.lieu}</b>
+                  <br />
+                  {ev.ville}
+                </p>
+                <a className={s.puce} href={itineraire} target="_blank" rel="noopener noreferrer" style={{ marginTop: 16 }}>
+                  <Icon name="pin" /> Ouvrir dans Google Maps
+                </a>
+              </section>
+            </Reveal>
           </div>
 
           <aside className={s.colAchat}>

@@ -91,6 +91,28 @@ export default function V2Detail({ searchParams }: { searchParams: { etat?: stri
                   </p>
                 </section>
               </Reveal>
+
+              <Reveal>
+                <section className={s.section} style={{ paddingTop: 48 }}>
+                  <div className={s.tete}>
+                    <h2 className={s.h2}>Localisation</h2>
+                  </div>
+                  <p className={s.texte}>
+                    <b style={{ color: "#fff" }}>{ev.lieu}</b>
+                    <br />
+                    {ev.ville}
+                  </p>
+                  <a
+                    className={s.puce}
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ev.lieu}, ${ev.ville}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ marginTop: 16 }}
+                  >
+                    <Icon name="pin" /> Ouvrir dans Google Maps
+                  </a>
+                </section>
+              </Reveal>
             </div>
 
             <aside className={s.colAchat}>
