@@ -864,7 +864,9 @@
 }
 .dTitre {
   margin-top: var(--s6);
-  font: var(--titre-page);
+  /* Plus petit que les titres de page (décision du 2026-09-30) : 22 px sur
+     mobile, 32 px sur grand écran. */
+  font: 900 clamp(1.375rem, 1rem + 1.2vw, 2rem) / 1.15 var(--display);
   text-wrap: balance;
   overflow-wrap: anywhere; /* un mot très long ne sort jamais de l'écran */
 }
@@ -1029,21 +1031,88 @@
   opacity: 0.35;
   cursor: default;
 }
-.partager {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s2);
-  height: 44px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--muted);
-  font: 600 14px/20px var(--corps);
-  cursor: pointer;
-  transition: color var(--d1) var(--ease);
+/* ---------- Page événement : en-tête deux colonnes (bureau) ---------- */
+/* Mobile et tablette : empilé, l'affiche d'abord. Dès 1024 px : infos à gauche,
+   affiche 16:9 à droite. Les sections suivent en pleine largeur. */
+.evTete {
+  display: grid;
+  gap: var(--s6);
 }
-.partager:hover {
+.evVisuel {
+  order: -1;
+  min-width: 0;
+}
+.evInfos .dTitre {
+  margin-top: 0;
+}
+.evOrga {
+  margin-top: var(--s2);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
+}
+.evOrga b {
   color: #fff;
+  font-weight: 600;
+}
+/* Infos pratiques : une ligne par info, icône, filet discret entre les lignes. */
+.evListe {
+  margin-top: var(--s6);
+  border-top: 1px solid var(--border);
+}
+.evLigne {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+  line-height: 22px;
+}
+.evLigne > svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--or);
+}
+.evLigne a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--border);
+  transition: text-decoration-color var(--d1) var(--ease);
+}
+.evLigne a:hover {
+  text-decoration-color: currentColor;
+}
+.evActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  margin-top: var(--s6);
+}
+.evActions > * {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+.evSection {
+  padding-top: var(--s12);
+}
+/* Organisateur : initiales en pastille ronde, nom à côté. */
+.evOrganisateur {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+.evAvatar {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
+  font: 800 16px/1 var(--display);
+  color: var(--or);
 }
 .espaceBarre {
   height: 96px;
@@ -1143,5 +1212,34 @@
   }
   .h2 {
     font-size: 1.5rem;
+  }
+}
+
+/* Page événement : deux colonnes et billets en grille sur grand écran. */
+@media (min-width: 768px) {
+  .evBillets .barre {
+    position: static;
+    margin-top: var(--s6);
+    padding: 0;
+    border: 0;
+    background: none;
+    justify-content: flex-start;
+    gap: var(--s8);
+  }
+  .evActions > * {
+    flex: 0 0 auto;
+  }
+}
+@media (min-width: 1024px) {
+  .evTete {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: var(--s12);
+    align-items: center;
+  }
+  .evVisuel {
+    order: 1;
+  }
+  .evBillets .liste {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   }
 }

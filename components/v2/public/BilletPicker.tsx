@@ -12,12 +12,10 @@ type Styles = Record<string, string>;
  * (preview-design/BilletPicker.tsx). État local seulement : le panier part
  * dans l'adresse de /evenement/[slug]/commande, où tout est revérifié par
  * le serveur. Sous le prix : « Épuisé », ou « Plus que N » à 10 places ou
- * moins. « Partager » : feuille de partage native (WhatsApp…), sinon copie
- * du lien.
+ * moins. « Partager » est dans les actions du haut de la page (Partager.tsx).
  */
-export default function BilletPicker({ tarifs, s, commande, titre }: { tarifs: Tarif[]; s: Styles; commande: string; titre: string }) {
+export default function BilletPicker({ tarifs, s, commande }: { tarifs: Tarif[]; s: Styles; commande: string }) {
   const [q, setQ] = useState<Record<string, number>>({});
-  const [copie, setCopie] = useState(false);
   const total = tarifs.reduce((somme, t) => somme + (q[t.id] ?? 0) * t.prix, 0);
   const n = Object.values(q).reduce((a, b) => a + b, 0);
   const plafond = (t: Tarif) => Math.min(MAX_PAR_TARIF, t.disponibles);
@@ -25,25 +23,6 @@ export default function BilletPicker({ tarifs, s, commande, titre }: { tarifs: T
   const gratuit = n > 0 && total === 0;
   const libelle = gratuit ? "Réserver gratuitement" : "Payer en Mobile Money";
   const icone = gratuit ? "ticket" : "phone";
-
-  async function partager() {
-    const url = window.location.href;
-    if (typeof navigator.share === "function") {
-      try {
-        await navigator.share({ title: titre, url });
-      } catch {
-        // Partage annulé : rien à faire.
-      }
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopie(true);
-      setTimeout(() => setCopie(false), 2000);
-    } catch {
-      // Presse-papiers indisponible : cas rare, pas de repli.
-    }
-  }
 
   return (
     <>
@@ -93,10 +72,6 @@ export default function BilletPicker({ tarifs, s, commande, titre }: { tarifs: T
           </button>
         )}
       </div>
-      <button type="button" className={s.partager} onClick={partager}>
-        <Icon name={copie ? "check" : "link"} />
-        {copie ? "Lien copié" : "Partager l'événement"}
-      </button>
     </>
   );
 }
