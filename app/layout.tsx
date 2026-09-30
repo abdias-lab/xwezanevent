@@ -1,30 +1,31 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Instrument_Sans, Playfair_Display, Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({
-  subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
+// Polices hébergées dans app/fonts (sous-ensemble latin, fichiers variables
+// de Google Fonts) : le build ne dépend plus de Google. Depuis le 2026-09-30,
+// Google sert certaines polices par des adresses sans extension que
+// next/font/google ne sait pas lire, ce qui faisait échouer les builds.
+const bricolage = localFont({
+  src: [{ path: "./fonts/bricolage-grotesque-latin.woff2", weight: "200 800", style: "normal" }],
   variable: "--font-bricolage",
 });
 
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["700", "800"],
-  style: ["italic"],
+const playfair = localFont({
+  src: [{ path: "./fonts/playfair-display-latin-italic.woff2", weight: "400 900", style: "italic" }],
   variable: "--font-playfair",
 });
 
-const instrument = Instrument_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
+const instrument = localFont({
+  src: [
+    { path: "./fonts/instrument-sans-latin.woff2", weight: "400 700", style: "normal" },
+    { path: "./fonts/instrument-sans-latin-italic.woff2", weight: "400 700", style: "italic" },
+  ],
   variable: "--font-instrument",
 });
 
-const space = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
+const space = localFont({
+  src: [{ path: "./fonts/space-grotesk-latin.woff2", weight: "300 700", style: "normal" }],
   variable: "--font-space",
 });
 

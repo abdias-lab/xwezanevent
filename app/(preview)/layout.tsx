@@ -1,18 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Unbounded, Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 
 // Layout autonome des previews de refonte : polices chargées ici uniquement,
-// aucun header/footer public, jamais indexé.
-const unbounded = Unbounded({
-  subsets: ["latin"],
-  weight: ["400", "600", "800", "900"],
+// aucun header/footer public, jamais indexé. Fichiers hébergés dans app/fonts.
+const unbounded = localFont({
+  src: [{ path: "../fonts/unbounded-latin.woff2", weight: "200 900", style: "normal" }],
   variable: "--pv-display",
   display: "swap",
 });
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
+const spaceGrotesk = localFont({
+  src: [{ path: "../fonts/space-grotesk-latin.woff2", weight: "300 700", style: "normal" }],
   variable: "--pv-body",
   display: "swap",
 });
