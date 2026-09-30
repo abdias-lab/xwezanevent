@@ -7,6 +7,7 @@ import { issueTransaction } from "@/lib/statut-paiement";
 import { POLICES_V2 } from "@/components/v2/polices";
 import { Header } from "@/components/v2/public/Chrome";
 import Verification from "@/components/v2/compte/Verification";
+import NonAbouti from "@/components/v2/compte/NonAbouti";
 import { fcfa } from "@/components/v2/public/evenement";
 import v from "@/components/v2/v2.module.css";
 import s from "@/components/v2/espace.module.css";
@@ -15,6 +16,9 @@ export const metadata: Metadata = { title: "Vérification du paiement — Xwéza
 
 // Chaque visite (et chaque revérification de l'écran d'attente) réinterroge FedaPay.
 export const dynamic = "force-dynamic";
+
+/** Transaction « pending » depuis plus longtemps : considérée non aboutie, l'acheteur peut recommencer. */
+const DELAI_NON_ABOUTI_MS = 15 * 60 * 1000;
 
 /**
  * Retour navigateur depuis le checkout FedaPay (V2). Comme il n'y a pas de
@@ -29,8 +33,15 @@ export const dynamic = "force-dynamic";
  * d'attente qui revérifie, sans jamais proposer de repayer (BUGS_REFONTE n°12,
  * maquetté dans la preview v2/paiement/retour). Avant la V2, ces cas
  * partaient sur /paiement/echec?raison=en_attente.
+ *
+ * Exception, « pending » non abouti (BUGS_REFONTE n°25) : quand l'acheteur
+ * annule sur la page FedaPay, FedaPay revient ici avec close=true et laisse
+ * la transaction « pending » 24 h. Dans ce cas, ou après 15 min de
+ * « pending », écran « Paiement non abouti » avec « Recommencer l'achat »
+ * (nouvelle commande, l'ancienne n'est pas touchée). close n'est pas signé :
+ * il ne change que l'écran affiché, jamais l'état d'une commande.
  */
-export default async function RetourPaiement({ searchParams }: { searchParams: { order?: string } }) {
+export default async function RetourPaiement({ searchParams }: { searchParams: { order?: string; close?: string } }) {
   const orderId = searchParams.order;
   if (!orderId) redirect("/compte");
 
@@ -52,6 +63,7 @@ export default async function RetourPaiement({ searchParams }: { searchParams: {
   // pour ne jamais la laisser se faire avaler par notre propre catch.
   // null = issue inconnue : écran d'attente.
   let destination: string | null = null;
+  let nonAbouti = false;
 
   if (!order.fedapay_transaction_id) {
     // Aucune transaction (FedaPay indisponible à la création) : rien ne peut
@@ -73,9 +85,13 @@ export default async function RetourPaiement({ searchParams }: { searchParams: {
       } else if (issue === "echec_definitif") {
         // expired : la demande n'a jamais été validée, rien n'a été débité.
         destination = `/paiement/echec?order=${orderId}`;
+      } else if (trx.status === "pending") {
+        // Page FedaPay fermée (close=true) ou attente trop longue : non abouti.
+        const ancienneteMs = trx.creeeLe ? Date.now() - new Date(trx.creeeLe).getTime() : 0;
+        nonAbouti = searchParams.close === "true" || ancienneteMs > DELAI_NON_ABOUTI_MS;
       }
-      // pending ou tout autre statut : écran d'attente. Le webhook finalisera
-      // la commande dès qu'il recevra « approved ».
+      // pending ou tout autre statut : écran d'attente (ou non abouti). Le
+      // webhook finalisera la commande dès qu'il recevra « approved ».
     } catch (e) {
       console.error("[fedapay] vérification au retour échouée :", e);
       // Vérification impossible = on ne peut pas confirmer le succès.
@@ -88,7 +104,11 @@ export default async function RetourPaiement({ searchParams }: { searchParams: {
     <div className={`${POLICES_V2} ${v.racine} ${s.racineEspace}`}>
       <Header />
       <main className={v.cont} style={{ paddingTop: 48 }}>
-        <Verification total={fcfa(order.total)} compte={!!order.user_id} />
+        {nonAbouti ? (
+          <NonAbouti orderId={order.id} total={fcfa(order.total)} compte={!!order.user_id} />
+        ) : (
+          <Verification total={fcfa(order.total)} compte={!!order.user_id} />
+        )}
       </main>
     </div>
   );

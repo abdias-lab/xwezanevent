@@ -2,7 +2,9 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { envoyerEmail, emailUtilisateur } from "@/lib/email";
 import { emailConfirmationCommande, type BilletEmail } from "@/lib/emails/confirmation-commande";
 import { emailRecapitulatifBillets, type CommandeRecap } from "@/lib/emails/recapitulatif-billets";
-import { creerTransactionEtLien } from "@/lib/fedapay";
+import { creerTransactionEtLien, recupererTransaction } from "@/lib/fedapay";
+import { aujourdhuiPortoNovo } from "@/lib/date";
+import { issueTransaction } from "@/lib/statut-paiement";
 import QRCode from "qrcode";
 import { LARGEUR_QR_PNG, OPTIONS_QR_BILLET } from "@/lib/qr-billet";
 
@@ -282,13 +284,20 @@ export async function finaliserCommande(
   if (!order) return "introuvable";
   if (order.statut === "paye") return "deja";
   if (montantPaye !== order.total) return "montant";
+  // « echoue » : commande close comme abandonnée (/api/orders, au-delà de 30
+  // min) alors que sa transaction était encore « pending ». Si FedaPay la
+  // valide ensuite, l'argent est pris : les billets doivent être émis. Avant
+  // BUGS_REFONTE n°25, ce cas renvoyait « deja » sans rien émettre ni alerter.
+  if (order.statut === "echoue") {
+    console.warn(`[commandes] paiement tardif sur la commande ${orderId}, close comme abandonnée : finalisation`);
+  }
 
   // Claim atomique : seul l'appel qui réussit cette transition crée les billets.
   const { data: claim } = await supabaseAdmin
     .from("orders")
     .update({ statut: "paye" })
     .eq("id", orderId)
-    .eq("statut", "en_attente")
+    .in("statut", ["en_attente", "echoue"])
     .select("id");
   if (!claim || claim.length === 0) return "deja";
 
@@ -364,4 +373,163 @@ export async function commandeParTransaction(
     .eq("fedapay_transaction_id", transactionId)
     .maybeSingle();
   return data ?? null;
+}
+
+/**
+ * Sort une commande en_attente de l'index de déduplication
+ * (orders_pending_dedupe_idx) sans toucher à son statut ni à sa
+ * transaction : une nouvelle commande au panier identique peut alors être
+ * créée, et l'ancienne reste finalisable par le webhook si son paiement
+ * aboutit malgré tout (BUGS_REFONTE n°25).
+ */
+export async function detacherCommande(orderId: string): Promise<void> {
+  await supabaseAdmin
+    .from("orders")
+    .update({ panier_signature: null })
+    .eq("id", orderId)
+    .eq("statut", "en_attente");
+}
+
+export interface CommandeARecommencer {
+  id: string;
+  statut: string;
+  user_id: string | null;
+  acheteur_nom: string | null;
+  acheteur_email: string | null;
+  acheteur_telephone: string | null;
+  event_id: string;
+  panier: { ticket_type_id: string; quantite: number }[] | null;
+  fedapay_transaction_id: string | null;
+  recommencee_depuis: string | null;
+}
+
+export type ResultatRecommencer =
+  | { type: "paiement"; orderId: string; url: string }
+  | { type: "finalisee"; orderId: string }
+  | { type: "erreur"; status: number; message: string };
+
+/**
+ * « Recommencer l'achat » après un paiement non abouti (BUGS_REFONTE n°25).
+ * Quand l'acheteur annule sur la page FedaPay, la transaction reste
+ * « pending » 24 h : la relance sur la même commande est refusée pendant ce
+ * temps (double débit, n°12). On crée donc une NOUVELLE commande, même
+ * acheteur et même panier, prix et stock revérifiés côté serveur, et on ne
+ * touche pas à l'ancienne, qui garde sa transaction : si elle est validée
+ * après coup, le webhook la finalise. Au pire, deux commandes payées pour
+ * une même origine (recommencee_depuis) : le tableau de bord admin les
+ * signale, à rembourser.
+ */
+export async function recommencerCommande(params: {
+  ancienne: CommandeARecommencer;
+  acheteurNom: string;
+  acheteurEmail: string;
+  origine: string;
+}): Promise<ResultatRecommencer> {
+  const { ancienne } = params;
+  if (ancienne.statut === "paye") return { type: "finalisee", orderId: ancienne.id };
+  if (ancienne.statut !== "en_attente") {
+    return { type: "erreur", status: 409, message: "Cette commande n'est plus modifiable" };
+  }
+
+  // Paiement précédent finalement abouti : on le finalise, sans rien recréer.
+  if (ancienne.fedapay_transaction_id) {
+    try {
+      const trx = await recupererTransaction(Number(ancienne.fedapay_transaction_id));
+      if (issueTransaction(trx.status) === "payee") {
+        const r = await finaliserCommande(ancienne.id, trx.amount);
+        if (r === "ok" || r === "deja") return { type: "finalisee", orderId: ancienne.id };
+        console.error(`[commandes] recommencer : transaction payée mais finalisation impossible (${r}) pour ${ancienne.id}`);
+        return {
+          type: "erreur",
+          status: 409,
+          message: "Ton paiement a bien été reçu mais n'a pas pu être rattaché à ta commande. Écris-nous à contact@xwezan.com, rien ne sera perdu.",
+        };
+      }
+    } catch (e) {
+      // Vérification impossible : on peut continuer sans risque, l'ancienne
+      // commande n'est pas touchée et reste finalisable par le webhook.
+      console.error(`[commandes] recommencer : vérification de la transaction ${ancienne.fedapay_transaction_id} impossible :`, e);
+    }
+  }
+
+  const { data: ev } = await supabaseAdmin
+    .from("events")
+    .select("id, titre, statut, date_debut, date_fin, est_demo, ticket_types(id, nom, prix, quantite_totale, quantite_vendue)")
+    .eq("id", ancienne.event_id)
+    .maybeSingle();
+  if (!ev || ev.statut !== "publie" || (ev.date_fin ?? ev.date_debut) < aujourdhuiPortoNovo()) {
+    return { type: "erreur", status: 409, message: "Cet événement n'est plus disponible à la vente" };
+  }
+  if (ev.est_demo) {
+    return { type: "erreur", status: 403, message: "Cet événement est une démonstration : la billetterie n'est pas activée." };
+  }
+
+  // Prix et stock ACTUELS (jamais ceux du panier enregistré) : ils ont pu changer.
+  const parId = new Map(
+    (ev.ticket_types as { id: string; nom: string; prix: number; quantite_totale: number; quantite_vendue: number }[]).map((tt) => [tt.id, tt])
+  );
+  const panier: { ticket_type_id: string; nom: string; prix: number; quantite: number }[] = [];
+  let total = 0;
+  for (const l of ancienne.panier ?? []) {
+    const tt = parId.get(l.ticket_type_id);
+    if (!tt) {
+      return { type: "erreur", status: 409, message: "Un des billets choisis n'est plus en vente. Reviens à la page de l'événement." };
+    }
+    const dispo = tt.quantite_totale - tt.quantite_vendue;
+    if (l.quantite > dispo) {
+      return { type: "erreur", status: 409, message: `Stock insuffisant pour « ${tt.nom} » (${dispo} restant)` };
+    }
+    panier.push({ ticket_type_id: tt.id, nom: tt.nom, prix: tt.prix, quantite: l.quantite });
+    total += tt.prix * l.quantite;
+  }
+  if (panier.length === 0) return { type: "erreur", status: 409, message: "Sélection vide" };
+
+  await detacherCommande(ancienne.id);
+  const { data: nouvelle, error } = await supabaseAdmin
+    .from("orders")
+    .insert({
+      ...(ancienne.user_id
+        ? { user_id: ancienne.user_id }
+        : { acheteur_nom: ancienne.acheteur_nom, acheteur_email: ancienne.acheteur_email, acheteur_telephone: ancienne.acheteur_telephone }),
+      event_id: ev.id,
+      sous_total: total,
+      frais_service: 0,
+      total,
+      statut: "en_attente",
+      panier,
+      panier_signature: signaturePanier(panier),
+      recommencee_depuis: ancienne.recommencee_depuis ?? ancienne.id,
+    })
+    .select("id")
+    .single();
+  if (error || !nouvelle) {
+    // 23505 : une autre commande en_attente au panier identique existe déjà
+    // (achat relancé en parallèle depuis la page de l'événement).
+    if (error?.code === "23505") {
+      return { type: "erreur", status: 409, message: "Une autre tentative est déjà en cours pour cette sélection. Reviens à la page de l'événement." };
+    }
+    console.error("[commandes] recommencer : création de la commande :", error?.message);
+    return { type: "erreur", status: 500, message: "Création de la commande impossible, réessaie." };
+  }
+
+  if (total === 0) {
+    const r = await finaliserCommande(nouvelle.id, 0);
+    if (r === "ok" || r === "deja") return { type: "finalisee", orderId: nouvelle.id };
+    return { type: "erreur", status: 500, message: "Impossible de finaliser la commande, réessaie." };
+  }
+
+  const [firstname, ...reste] = params.acheteurNom.trim().split(" ");
+  try {
+    const { url } = await creerTransactionPourCommande({
+      orderId: nouvelle.id,
+      eventTitre: ev.titre,
+      total,
+      callbackUrl: `${params.origine}/paiement/retour?order=${nouvelle.id}`,
+      client: { firstname: firstname || undefined, lastname: reste.join(" ") || undefined, email: params.acheteurEmail || undefined },
+    });
+    return { type: "paiement", orderId: nouvelle.id, url };
+  } catch (e) {
+    console.error("[commandes] recommencer : FedaPay :", e);
+    return { type: "erreur", status: 502, message: "Paiement momentanément indisponible, réessaie dans un instant." };
+  }
 }

@@ -4,7 +4,10 @@ import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { payoutDisponible } from "@/lib/payouts";
+import { getAchatsEnDouble } from "@/lib/achats-doubles";
+import { formaterNumero as formaterTelephone } from "@/lib/telephone";
 import BoutonVerse from "@/components/v2/admin/BoutonVerse";
+import AchatDouble from "@/components/v2/admin/AchatDouble";
 import { formaterNumero, nomMoyen } from "@/components/v2/admin/moyens";
 import Coquille from "@/components/v2/Coquille";
 import Icon from "@/components/v2/Icon";
@@ -137,8 +140,11 @@ export default async function AdminPage() {
   const geles = payouts.filter((p) => p.statut === "bloque");
   const totalPrets = prets.reduce((n, p) => n + p.montant, 0);
 
+  // Paiement tardif d'une tentative abandonnée + nouvel achat (BUGS_REFONTE n°25).
+  const doubles = await getAchatsEnDouble();
+
   const plusAncien = aValider[0];
-  const rien = aValider.length === 0 && prets.length === 0;
+  const rien = aValider.length === 0 && prets.length === 0 && doubles.length === 0;
   const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
 
   return (
@@ -157,10 +163,30 @@ export default async function AdminPage() {
         <div className={s.vide}>
           <Icon name="check" size={32} />
           <p className={s.videTitre}>Rien à traiter</p>
-          <p className={s.videTexte}>Aucun événement en attente de validation, aucun virement prêt à envoyer.</p>
+          <p className={s.videTexte}>Aucun événement en attente de validation, aucun virement prêt à envoyer, aucun achat payé en double.</p>
         </div>
       ) : (
         <ul className={s.pile} style={{ gap: 8 }}>
+          {doubles.map((d) => (
+            <li key={d.origine} className={s.carte}>
+              <div className={s.carteHaut}>
+                <div>
+                  <p className={s.carteTitre}>
+                    Payé {d.commandes.length} fois · {d.acheteur} · à rembourser
+                  </p>
+                  <p className={s.carteMeta}>
+                    {d.evenement}.{d.telephone ? ` Tél. ${formaterTelephone(d.telephone)}.` : ""}
+                    {d.email ? ` ${d.email}.` : ""} L&apos;acheteur a recommencé son achat pendant que le premier paiement était encore en cours :
+                    rembourse la commande en trop sur son numéro Mobile Money, puis marque-la remboursée.{" "}
+                    <Link href={`/admin/billets?q=${encodeURIComponent(d.email ?? d.acheteur)}`} style={{ textDecoration: "underline" }}>
+                      Voir ses billets
+                    </Link>
+                  </p>
+                </div>
+              </div>
+              <AchatDouble commandes={d.commandes} telephone={d.telephone ? formaterTelephone(d.telephone) : null} />
+            </li>
+          ))}
           {plusAncien && (
             <li className={`${s.carte} ${s.carteRangee}`}>
               <div className={s.carteHaut}>

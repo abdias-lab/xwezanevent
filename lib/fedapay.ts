@@ -44,10 +44,15 @@ export async function creerTransactionEtLien(params: {
 /** État courant d'une transaction (pour vérifier au retour navigateur). */
 export async function recupererTransaction(
   id: number
-): Promise<{ id: number; status: string; amount: number }> {
+): Promise<{ id: number; status: string; amount: number; creeeLe: string | null }> {
   init();
   const t = await Transaction.retrieve(id);
-  return { id: Number(t.id), status: String(t.status), amount: Number(t.amount) };
+  return {
+    id: Number(t.id),
+    status: String(t.status),
+    amount: Number(t.amount),
+    creeeLe: t.created_at ? String(t.created_at) : null,
+  };
 }
 
 export interface EvenementWebhook {
