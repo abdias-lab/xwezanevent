@@ -22,6 +22,15 @@ export function Header({ connecte }: { connecte?: RoleConnecte }) {
           <Icon name="search" size={20} />
           <input type="search" name="q" placeholder="Artiste, lieu, ville" aria-label="Rechercher un événement" />
         </form>
+        {/* « Publier » dans l'en-tête seulement pour un utilisateur connecté ; toujours dans le pied de page. */}
+        {connecte && (
+          <a href="/preview-design/v2/creer" aria-label="Publier un événement" className={s.btnPublier}>
+            <Icon name="plus" size={16} />
+            <span>
+              Publier<span className={s.libelleLong}> un événement</span>
+            </span>
+          </a>
+        )}
         <a href={espace.href} className={s.btnBlanc}>
           {espace.libelle}
         </a>

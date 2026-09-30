@@ -17,8 +17,9 @@ export const SE_CONNECTER: Espace = { libelle: "Se connecter", href: "/connexion
 
 /**
  * Dessin de l'en-tête public V2, repris de la preview (v2/chrome.tsx) : logo,
- * bouton de l'espace et recherche. « Événements », « Tarifs » et « Publier un
- * événement » sont dans le pied de page (décision du 2026-09-30). Sans
+ * recherche, « Publier un événement » (connecté seulement) et bouton de
+ * l'espace. « Événements », « Tarifs » et « Publier un événement » sont aussi
+ * dans le pied de page, pour tous (décisions du 2026-09-30). Sans
  * accès à la session : utilisable côté serveur (Chrome.tsx) comme côté client
  * (EnteteClient.tsx, pour app/error.tsx). La recherche envoie sur /evenements?q=.
  */
@@ -33,6 +34,14 @@ export function Entete({ espace }: { espace: Espace }) {
           <Icon name="search" size={20} />
           <input type="search" name="q" placeholder="Artiste, lieu, ville" aria-label="Rechercher un événement" />
         </form>
+        {espace !== SE_CONNECTER && (
+          <Link href="/creer" aria-label="Publier un événement" className={v.btnPublier}>
+            <Icon name="plus" size={16} />
+            <span>
+              Publier<span className={v.libelleLong}> un événement</span>
+            </span>
+          </Link>
+        )}
         <Link href={espace.href} className={v.btnBlanc}>
           {espace.libelle}
         </Link>
