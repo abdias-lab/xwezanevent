@@ -707,22 +707,103 @@
 }
 .footerCorps {
   display: grid;
-  gap: var(--s6);
+  gap: var(--s12);
 }
 .slogan {
   font: italic 700 1.25rem/1.2 var(--font-playfair), serif;
   color: var(--or);
 }
-.footerLiens {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s2) var(--s6);
+/* Colonnes à intitulés (Découvrir, Organisateurs, Aide), empilées sur mobile. */
+.footerColonnes {
+  display: grid;
+  gap: var(--s8);
 }
-.footerLiens a {
+.footerColonne ul {
+  display: grid;
+  gap: var(--s3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.footerTitre {
+  margin-bottom: var(--s4);
+  font: 700 12px/16px var(--corps);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.footerColonne a {
+  color: var(--texte);
   transition: color var(--d1) var(--ease);
 }
-.footerLiens a:hover {
+.footerColonne a:hover {
+  color: var(--or);
+}
+.footerBas {
+  display: grid;
+  gap: var(--s3);
+  padding-top: var(--s8);
+  border-top: 1px solid var(--border);
+}
+.footerSignature {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2) var(--s6);
+}
+.footerReseaux {
+  display: flex;
+  gap: var(--s1);
+  margin-left: calc(-1 * var(--s3));
+}
+.footerReseaux a {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--texte);
+  transition: color var(--d1) var(--ease), background var(--d1) var(--ease);
+}
+.footerReseaux a:hover {
+  color: var(--or);
+  background: var(--hover);
+}
+/* Bascule acheteur / organisateur en haut de /compte (organisateur ou admin). */
+.onglets {
+  display: inline-flex;
+  gap: var(--s1);
+  margin-bottom: var(--s6);
+  padding: var(--s1);
+  border-radius: 999px;
+  background: var(--surface);
+}
+.onglets a {
+  min-height: 40px;
+  padding: 0 var(--s4);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  border-radius: 999px;
+  color: var(--muted);
+  font: 700 14px/1 var(--corps);
+  transition: color var(--d1) var(--ease), background var(--d1) var(--ease);
+}
+.onglets a:hover {
   color: #fff;
+}
+.onglets a[aria-current="page"] {
+  background: #fff;
+  color: var(--inverse);
+}
+@media (min-width: 600px) {
+  .footerColonnes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .footerBas {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
 }
 
 /* ---------- Détail ---------- */

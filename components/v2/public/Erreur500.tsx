@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import Icon from "../Icon";
 import s from "../espace.module.css";
-import { HeaderClient } from "./EnteteClient";
+import { FooterClient, HeaderClient } from "./EnteteClient";
 import PageErreur from "./PageErreur";
 
 /**
@@ -23,6 +23,7 @@ export default function Erreur500({ error, reset }: { error: Error & { digest?: 
   return (
     <PageErreur
       entete={<HeaderClient />}
+      pied={<FooterClient />}
       code="500"
       titre={
         <>

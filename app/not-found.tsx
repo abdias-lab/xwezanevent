@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import Icon from "@/components/v2/Icon";
-import { Header } from "@/components/v2/public/Chrome";
+import { Header, Footer } from "@/components/v2/public/Chrome";
 import PageErreur from "@/components/v2/public/PageErreur";
 import s from "@/components/v2/espace.module.css";
 
@@ -16,6 +16,7 @@ export default function PageIntrouvable() {
   return (
     <PageErreur
       entete={<Header />}
+      pied={<Footer />}
       code="404"
       titre={
         <>

@@ -2,17 +2,18 @@ import type { ReactNode } from "react";
 import { POLICES_V2 } from "../polices";
 import v from "../v2.module.css";
 import s from "../espace.module.css";
-import { Footer } from "./Entete";
 import BilletErreur from "./BilletErreur";
 
 /**
  * Pages d'erreur V2 (404, 500), reprises de la preview (v2/PageErreur.tsx).
- * Pages de résultat : contenu centré. L'en-tête est passé en paramètre :
- * <Header /> (serveur) pour app/not-found.tsx, <HeaderClient /> pour
- * app/error.tsx et app/global-error.tsx, qui sont des composants client.
+ * Pages de résultat : contenu centré. L'en-tête et le pied de page sont
+ * passés en paramètre : <Header /> et <Footer /> (serveur) pour
+ * app/not-found.tsx, <HeaderClient /> et <FooterClient /> pour app/error.tsx
+ * et app/global-error.tsx, qui sont des composants client.
  */
 export default function PageErreur({
   entete,
+  pied,
   code,
   titre,
   texte,
@@ -20,6 +21,7 @@ export default function PageErreur({
   aide,
 }: {
   entete: ReactNode;
+  pied: ReactNode;
   code: string;
   titre: ReactNode;
   texte: ReactNode;
@@ -44,7 +46,7 @@ export default function PageErreur({
           )}
         </div>
       </main>
-      <Footer />
+      {pied}
     </div>
   );
 }
