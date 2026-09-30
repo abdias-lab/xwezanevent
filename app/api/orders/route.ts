@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { signaturePanier, creerTransactionPourCommande, finaliserCommande } from "@/lib/commandes";
+import { signaturePanier, creerTransactionPourCommande, finaliserCommande, detacherCommande } from "@/lib/commandes";
 import { aujourdhuiPortoNovo } from "@/lib/date";
 import { aidePays, normaliserNumero } from "@/lib/telephone";
 
@@ -232,6 +232,9 @@ export async function POST(req: NextRequest) {
   // résout ci-dessous (jamais un simple SELECT-puis-INSERT pour CE cas-là,
   // sujet à la même race).
   let orderId: string | null = null;
+  // Commande d'origine quand l'acheteur rachète le même panier alors qu'une
+  // tentative précédente a déjà une transaction FedaPay (voir plus bas).
+  let origineRecommencee: string | null = null;
   for (let tentative = 0; tentative < TENTATIVES_MAX && !orderId; tentative++) {
     const { data: order, error: errOrder } = await supabaseAdmin
       .from("orders")
@@ -244,6 +247,7 @@ export async function POST(req: NextRequest) {
         statut: "en_attente",
         panier,
         panier_signature: signature,
+        ...(origineRecommencee ? { recommencee_depuis: origineRecommencee } : {}),
       })
       .select("id")
       .single();
@@ -270,7 +274,7 @@ export async function POST(req: NextRequest) {
     // provoqué le conflit pour décider quoi en faire.
     let requeteExistante = supabaseAdmin
       .from("orders")
-      .select("id, statut, created_at")
+      .select("id, statut, created_at, fedapay_transaction_id, recommencee_depuis")
       .eq("event_id", ev.id)
       .eq("panier_signature", signature)
       .order("created_at", { ascending: false })
@@ -305,6 +309,20 @@ export async function POST(req: NextRequest) {
       continue;
     }
 
+    // Une transaction FedaPay existe déjà : elle peut rester « pending » 24 h
+    // et être validée après coup (annulation sur la page FedaPay, ou Mobile
+    // Money confirmé en retard). Réutiliser la commande écraserait son
+    // identifiant de transaction, et la clore en « echoue » la sortirait du
+    // circuit : dans les deux cas, un paiement tardif ne donnerait aucun
+    // billet (BUGS_REFONTE n°12 et n°25). On la sort seulement de l'index de
+    // déduplication et on crée une nouvelle commande, reliée à la même
+    // origine : deux commandes payées pour une même origine sont signalées
+    // dans le tableau de bord admin, à rembourser.
+    if (existante.fedapay_transaction_id) {
+      await detacherCommande(existante.id);
+      origineRecommencee = existante.recommencee_depuis ?? existante.id;
+      continue;
+    }
     const ancienneteMs = Date.now() - new Date(existante.created_at).getTime();
     if (ancienneteMs < FENETRE_REUTILISATION_MS) {
       // Même intention d'achat récente (double-clic, onglet dupliqué...) :
@@ -313,8 +331,9 @@ export async function POST(req: NextRequest) {
       break;
     }
 
-    // Tentative abandonnée (> 30 min) : on la clôt pour laisser un nouvel
-    // achat légitime du même panier passer, puis on retente la création.
+    // Tentative abandonnée (> 30 min) sans aucune transaction FedaPay (rien
+    // n'a pu être payé) : on la clôt pour laisser un nouvel achat légitime
+    // du même panier passer, puis on retente la création.
     await supabaseAdmin
       .from("orders")
       .update({ statut: "echoue" })

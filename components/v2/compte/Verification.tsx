@@ -76,7 +76,7 @@ export default function Verification({ total, compte }: { total: string; compte:
             </Link>
           </div>
           <p className={s.note} style={{ maxWidth: 400 }}>
-            Tu n&apos;as rien validé, ou tu as refusé la demande ? Elle expire d&apos;elle-même : tu pourras alors recommencer ta commande.
+            Tu n&apos;as rien validé, ou tu as refusé la demande ? Au bout de 15 minutes, tu pourras recommencer ton achat depuis cette page.
           </p>
         </>
       )}
