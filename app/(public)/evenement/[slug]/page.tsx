@@ -40,7 +40,19 @@ export default async function EvenementDetail({ params }: { params: { slug: stri
     : ev.affiche_url
       ? [ev.affiche_url]
       : [];
-  const paragraphes = (ev.description ?? "").split(/\r?\n/).map((p) => p.trim()).filter(Boolean);
+  // Description telle que saisie : une ligne vide sépare deux paragraphes, un
+  // simple retour à la ligne reste un retour à la ligne (.texteLibre).
+  const paragraphes = (ev.description ?? "")
+    .replace(/\r\n?/g, "\n")
+    .split(/\n[ \t]*\n/)
+    .map((p) =>
+      p
+        .split("\n")
+        .map((l) => l.trim())
+        .join("\n")
+        .trim(),
+    )
+    .filter(Boolean);
   const ferme = ev.estDemo || ev.estTermine;
 
   return (
@@ -85,7 +97,7 @@ export default async function EvenementDetail({ params }: { params: { slug: stri
                     <h2 className={s.h2}>À propos</h2>
                   </div>
                   {paragraphes.map((p, i) => (
-                    <p key={i} className={s.texte} style={i > 0 ? { marginTop: 16 } : undefined}>
+                    <p key={i} className={`${s.texte} ${s.texteLibre}`} style={i > 0 ? { marginTop: 16 } : undefined}>
                       {p}
                     </p>
                   ))}

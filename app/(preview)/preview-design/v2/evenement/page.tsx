@@ -57,7 +57,7 @@ export default function V2Detail({ searchParams }: { searchParams: { etat?: stri
                   <div className={s.tete}>
                     <h2 className={s.h2}>À propos</h2>
                   </div>
-                  <p className={s.texte}>{ev.description}</p>
+                  <p className={`${s.texte} ${s.texteLibre}`}>{ev.description}</p>
                   <div className={s.puces} style={{ marginTop: 16 }}>
                     {ev.tags.map((t) => (
                       <span key={t} className={s.tag}>

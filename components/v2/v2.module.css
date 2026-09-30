@@ -844,6 +844,11 @@
   max-width: 62ch;
   color: var(--muted);
 }
+/* Texte saisi par un organisateur : ses retours à la ligne sont gardés tels quels. */
+.texteLibre {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
 .programme {
   border-top: 1px solid var(--border);
 }
