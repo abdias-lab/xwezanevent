@@ -9,6 +9,7 @@ import Icon from "@/components/v2/Icon";
 import { NAV_ADMIN } from "@/components/v2/navAdmin";
 import { dateAnnee, joursDepuis, montant, nombre } from "@/components/v2/format";
 import { formaterNumero } from "@/components/v2/admin/moyens";
+import VerificationCompte from "@/components/v2/admin/VerificationCompte";
 import s from "@/components/v2/espace.module.css";
 
 export const metadata: Metadata = {
@@ -19,6 +20,11 @@ const COLS = { "--cols": "minmax(0, 1.8fr) minmax(0, 1.6fr) 110px 120px 150px 14
 const TRIS = [
   { cle: "ventes", libelle: "Plus de ventes" },
   { cle: "recents", libelle: "Inscrits récemment" },
+] as const;
+
+const FILTRES = [
+  { cle: "", libelle: "Tous" },
+  { cle: "verifies", libelle: "Vérifiés" },
 ] as const;
 
 const norm = (x: string) => x.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -56,8 +62,10 @@ async function emailsComptes(): Promise<Map<string, string>> {
  * e-mail, commissions et ce qui attend l'équipe (événements à valider,
  * virements demandés). Ventes et commissions sur les commandes payées, hors
  * événements annulés ou refusés, au taux propre à chaque événement.
+ * Comptes vérifiés (labels, artistes auto-produits, design/ARTISTES.md) :
+ * badge, filtre, vérifier ou retirer la vérification.
  */
-export default async function AdminOrganisateurs({ searchParams }: { searchParams: { q?: string; tri?: string } }) {
+export default async function AdminOrganisateurs({ searchParams }: { searchParams: { q?: string; tri?: string; filtre?: string } }) {
   const supabase = creerClientServeur();
   const {
     data: { user },
@@ -69,16 +77,19 @@ export default async function AdminOrganisateurs({ searchParams }: { searchParam
 
   const q = (searchParams.q ?? "").trim();
   const tri = TRIS.find((t) => t.cle === searchParams.tri) ?? TRIS[0];
+  const filtre = FILTRES.find((f) => f.cle === searchParams.filtre) ?? FILTRES[0];
 
   // supabaseAdmin : le téléphone de l'organisateur n'est plus lisible via le
   // rôle `authenticated` (migration 20260717140000), les e-mails sont dans
   // auth.users ; le rôle admin est vérifié ci-dessus via la session.
-  const [{ data: orgasData }, { data: eventsData }, { data: payoutsData }, emails] = await Promise.all([
+  const [{ data: orgasData }, { data: eventsData }, { data: payoutsData }, emails, { data: verifiesData }] = await Promise.all([
     supabaseAdmin.from("profiles").select("id, nom, nom_public, telephone, created_at").eq("role", "organisateur"),
     supabase.from("events").select("organisateur_id, statut, taux_commission, ticket_types(prix, quantite_vendue), orders(total, statut)"),
     supabaseAdmin.from("payouts").select("organisateur_id").eq("statut", "demande"),
     emailsComptes(),
+    supabaseAdmin.from("comptes_verifies").select("user_id, verifie_le"),
   ]);
+  const verifies = new Map(((verifiesData ?? []) as { user_id: string; verifie_le: string }[]).map((v) => [v.user_id, v.verifie_le]));
 
   const orgas = (orgasData as ProfilOrga[]) ?? [];
   const evenements = (eventsData as unknown as EventAgrege[]) ?? [];
@@ -102,14 +113,17 @@ export default async function AdminOrganisateurs({ searchParams }: { searchParam
         commission: comptes.reduce((n, e) => n + Math.round(brutEv(e) * e.taux_commission), 0),
         virementsAttente: payouts.filter((p) => p.organisateur_id === o.id).length,
         nouveau: joursDepuis(o.created_at) <= 7,
+        verifieLe: verifies.get(o.id) ?? null,
       };
     })
+    .filter((l) => filtre.cle !== "verifies" || l.verifieLe !== null)
     .filter((l) => !q || norm(`${l.o.nom} ${l.o.nom_public ?? ""} ${l.email} ${l.o.telephone ?? ""} ${l.tel ?? ""}`).includes(norm(q)))
     .sort((a, b) => (tri.cle === "ventes" ? b.brut - a.brut : b.o.created_at.localeCompare(a.o.created_at)));
 
   const total = orgas.length;
+  const nbVerifies = orgas.filter((o) => verifies.has(o.id)).length;
   const lien = (params: Record<string, string>) => {
-    const u = new URLSearchParams({ ...(q ? { q } : {}), ...(tri.cle !== "ventes" ? { tri: tri.cle } : {}), ...params });
+    const u = new URLSearchParams({ ...(q ? { q } : {}), ...(tri.cle !== "ventes" ? { tri: tri.cle } : {}), ...(filtre.cle ? { filtre: filtre.cle } : {}), ...params });
     for (const [k, v] of Array.from(u.entries())) if (!v) u.delete(k);
     const str = u.toString();
     return `/admin/organisateurs${str ? `?${str}` : ""}`;
@@ -138,7 +152,20 @@ export default async function AdminOrganisateurs({ searchParams }: { searchParam
             <Icon name="search" size={20} />
             <input type="search" name="q" defaultValue={q} placeholder="Nom, e-mail ou téléphone" aria-label="Rechercher un organisateur" />
             {tri.cle !== "ventes" && <input type="hidden" name="tri" value={tri.cle} />}
+            {filtre.cle && <input type="hidden" name="filtre" value={filtre.cle} />}
           </form>
+          <div className={s.puces} role="group" aria-label="Filtrer" style={{ marginTop: 12 }}>
+            {FILTRES.map((f) => (
+              <Link
+                key={f.cle || "tous"}
+                href={lien({ filtre: f.cle })}
+                className={`${s.puce} ${f.cle === filtre.cle ? s.puceOn : ""}`}
+                aria-current={f.cle === filtre.cle ? "true" : undefined}
+              >
+                {f.libelle} <span style={{ opacity: 0.6 }}>{f.cle ? nbVerifies : total}</span>
+              </Link>
+            ))}
+          </div>
           <div className={s.puces} role="group" aria-label="Trier" style={{ margin: "12px 0 16px" }}>
             {TRIS.map((t) => (
               <Link
@@ -156,7 +183,7 @@ export default async function AdminOrganisateurs({ searchParams }: { searchParam
             <div className={s.vide}>
               <Icon name="search" size={32} />
               <p className={s.videTitre}>Aucun résultat</p>
-              <p className={s.videTexte}>Aucun organisateur ne correspond à « {q} ».</p>
+              <p className={s.videTexte}>{q ? `Aucun organisateur ne correspond à « ${q} ».` : "Aucun compte vérifié pour l'instant."}</p>
               <Link href={lien({ q: "" })} className={`${s.btn} ${s.btnGris}`}>
                 Effacer la recherche
               </Link>
@@ -177,6 +204,11 @@ export default async function AdminOrganisateurs({ searchParams }: { searchParam
                     <div>
                       <p className={s.carteTitre} style={{ fontSize: 15 }}>
                         {l.o.nom_public || l.o.nom}
+                        {l.verifieLe && (
+                          <span className={`${s.statut} ${s.stVerifie}`} style={{ marginLeft: 8, verticalAlign: "middle" }}>
+                            Vérifié
+                          </span>
+                        )}
                         {l.nouveau && (
                           <span className={`${s.statut} ${s.stAttente}`} style={{ marginLeft: 8, verticalAlign: "middle" }}>
                             Nouveau
@@ -185,6 +217,7 @@ export default async function AdminOrganisateurs({ searchParams }: { searchParam
                       </p>
                       <p className={s.carteMeta}>
                         {l.o.nom_public ? l.o.nom : "Pas de nom public"} · inscrit le {dateAnnee(l.o.created_at)}
+                        {l.verifieLe && ` · vérifié le ${dateAnnee(l.verifieLe)}`}
                       </p>
                       {(l.enAttente > 0 || l.virementsAttente > 0) && (
                         <p className={s.carteMeta} style={{ color: "var(--or)" }}>
@@ -193,6 +226,9 @@ export default async function AdminOrganisateurs({ searchParams }: { searchParam
                             .join(" · ")}
                         </p>
                       )}
+                      <div style={{ marginTop: 8, display: "grid" }}>
+                        <VerificationCompte userId={l.o.id} nom={l.o.nom_public || l.o.nom} verifieLe={l.verifieLe} />
+                      </div>
                     </div>
                   </div>
                   <dl className={s.paires}>

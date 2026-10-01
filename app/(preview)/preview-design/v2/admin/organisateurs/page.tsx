@@ -4,6 +4,7 @@ import Coquille, { RubanEtats } from "../../Coquille";
 import Icon from "../../../Icon";
 import { SqueletteListe } from "../../orga/ui";
 import { dateAnnee, etatPage, montant, nombre } from "../../orga/_orga";
+import VerificationCompte from "./VerificationCompte";
 import { A, EVENEMENTS_ADMIN, NAV_ADMIN, ORGANISATEURS, VIREMENTS_ADMIN, chiffresAdmin, joursDepuis } from "../_admin";
 
 const COLS = { "--cols": "minmax(0, 1.8fr) minmax(0, 1.6fr) 110px 120px 150px 140px" } as CSSProperties;
@@ -19,12 +20,13 @@ const norm = (x: string) => x.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,
  * (nom, téléphone, événements, billets vendus, revenu généré). Ajouts V2 :
  * recherche, tri, nom public, e-mail, commissions et virements en attente.
  */
-export default function V2AdminOrganisateurs({ searchParams }: { searchParams: { q?: string; tri?: string; etat?: string } }) {
+export default function V2AdminOrganisateurs({ searchParams }: { searchParams: { q?: string; tri?: string; etat?: string; filtre?: string } }) {
   const etat = etatPage(searchParams.etat);
   const q = (searchParams.q ?? "").trim();
   const tri = TRIS.find((t) => t.cle === searchParams.tri) ?? TRIS[0];
+  const filtreVerifies = searchParams.filtre === "verifies";
 
-  const lignes = (etat === "vide" ? [] : ORGANISATEURS)
+  const lignes = (etat === "vide" ? [] : ORGANISATEURS.filter((o) => !filtreVerifies || o.verifieLe))
     .map((o) => {
       const evs = EVENEMENTS_ADMIN.filter((e) => e.organisateur === o.id);
       const c = evs.filter((e) => e.statut !== "annule" && e.statut !== "refuse").map(chiffresAdmin);
@@ -44,8 +46,9 @@ export default function V2AdminOrganisateurs({ searchParams }: { searchParams: {
     .sort((a, b) => (tri.cle === "ventes" ? b.brut - a.brut : b.o.inscritLe.localeCompare(a.o.inscritLe)));
 
   const total = etat === "vide" ? 0 : ORGANISATEURS.length;
+  const nbVerifies = etat === "vide" ? 0 : ORGANISATEURS.filter((o) => o.verifieLe).length;
   const lien = (params: Record<string, string>) => {
-    const u = new URLSearchParams({ ...(q ? { q } : {}), ...(tri.cle !== "ventes" ? { tri: tri.cle } : {}), ...params });
+    const u = new URLSearchParams({ ...(q ? { q } : {}), ...(tri.cle !== "ventes" ? { tri: tri.cle } : {}), ...(filtreVerifies ? { filtre: "verifies" } : {}), ...params });
     for (const [k, v] of Array.from(u.entries())) if (!v) u.delete(k);
     const str = u.toString();
     return `${A}/organisateurs${str ? `?${str}` : ""}`;
@@ -76,7 +79,23 @@ export default function V2AdminOrganisateurs({ searchParams }: { searchParams: {
             <Icon name="search" size={20} />
             <input type="search" name="q" defaultValue={q} placeholder="Nom, e-mail ou téléphone" aria-label="Rechercher un organisateur" />
             {tri.cle !== "ventes" && <input type="hidden" name="tri" value={tri.cle} />}
+            {filtreVerifies && <input type="hidden" name="filtre" value="verifies" />}
           </form>
+          <div className={s.puces} role="group" aria-label="Filtrer" style={{ marginTop: 12 }}>
+            {[
+              { cle: "", libelle: "Tous", n: total },
+              { cle: "verifies", libelle: "Vérifiés", n: nbVerifies },
+            ].map((f) => (
+              <a
+                key={f.cle || "tous"}
+                href={lien({ filtre: f.cle })}
+                className={`${s.puce} ${(f.cle === "verifies") === filtreVerifies ? s.puceOn : ""}`}
+                aria-current={(f.cle === "verifies") === filtreVerifies ? "true" : undefined}
+              >
+                {f.libelle} <span style={{ opacity: 0.6 }}>{f.n}</span>
+              </a>
+            ))}
+          </div>
           <div className={s.puces} role="group" aria-label="Trier" style={{ margin: "12px 0 16px" }}>
             {TRIS.map((t) => (
               <a
@@ -94,7 +113,7 @@ export default function V2AdminOrganisateurs({ searchParams }: { searchParams: {
             <div className={s.vide}>
               <Icon name="search" size={32} />
               <p className={s.videTitre}>Aucun résultat</p>
-              <p className={s.videTexte}>Aucun organisateur ne correspond à « {q} ».</p>
+              <p className={s.videTexte}>{q ? `Aucun organisateur ne correspond à « ${q} ».` : "Aucun compte vérifié pour l'instant."}</p>
               <a href={lien({ q: "" })} className={`${s.btn} ${s.btnGris}`}>
                 Effacer la recherche
               </a>
@@ -115,6 +134,11 @@ export default function V2AdminOrganisateurs({ searchParams }: { searchParams: {
                     <div>
                       <p className={s.carteTitre} style={{ fontSize: 15 }}>
                         {l.o.nomPublic ?? l.o.nom}
+                        {l.o.verifieLe && (
+                          <span className={`${s.statut} ${s.stVerifie}`} style={{ marginLeft: 8, verticalAlign: "middle" }}>
+                            Vérifié
+                          </span>
+                        )}
                         {l.nouveau && (
                           <span className={`${s.statut} ${s.stAttente}`} style={{ marginLeft: 8, verticalAlign: "middle" }}>
                             Nouveau
@@ -123,12 +147,16 @@ export default function V2AdminOrganisateurs({ searchParams }: { searchParams: {
                       </p>
                       <p className={s.carteMeta}>
                         {l.o.nomPublic ? l.o.nom : "Pas de nom public"} · inscrit le {dateAnnee(l.o.inscritLe)}
+                        {l.o.verifieLe && ` · vérifié le ${dateAnnee(l.o.verifieLe)}`}
                       </p>
                       {(l.enAttente > 0 || l.virementsAttente > 0) && (
                         <p className={s.carteMeta} style={{ color: "var(--or)" }}>
                           {[l.enAttente > 0 && `${l.enAttente} à valider`, l.virementsAttente > 0 && `${l.virementsAttente} virement${l.virementsAttente > 1 ? "s" : ""} en attente`].filter(Boolean).join(" · ")}
                         </p>
                       )}
+                      <div style={{ marginTop: 8, display: "grid" }}>
+                        <VerificationCompte userId={l.o.id} nom={l.o.nomPublic ?? l.o.nom} verifieLe={l.o.verifieLe ?? null} />
+                      </div>
                     </div>
                   </div>
                   <dl className={s.paires}>

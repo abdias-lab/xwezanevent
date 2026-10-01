@@ -47,13 +47,14 @@ export type Organisateur = {
   id: string;
   nom: string; // nom personnel (profiles.nom), jamais public
   nomPublic: string | null;
+  verifieLe?: string; // comptes_verifies.verifie_le (label ou artiste auto-produit)
   email: string;
   tel: string;
   inscritLe: string;
 };
 
 export const ORGANISATEURS: Organisateur[] = [
-  { id: "o1", nom: "Rodrigue Houngbédji", nomPublic: "Ouidah Live", email: "contact@ouidahlive.bj", tel: "01 97 42 18 63", inscritLe: "2026-07-14" },
+  { id: "o1", nom: "Rodrigue Houngbédji", nomPublic: "Ouidah Live", email: "contact@ouidahlive.bj", tel: "01 97 42 18 63", inscritLe: "2026-07-14", verifieLe: "2026-09-02" },
   { id: "o2", nom: "Mariam Adjovi", nomPublic: "Lagune Sessions", email: "mariam.adjovi@exemple.bj", tel: "01 95 30 77 12", inscritLe: "2026-08-02" },
   { id: "o3", nom: "Codjo Tossou", nomPublic: null, email: "codjo.tossou@exemple.bj", tel: "01 96 11 48 20", inscritLe: "2026-09-20" },
   { id: "o4", nom: "Esther Kpadonou", nomPublic: "Rire Bénin", email: "esther@rirebenin.bj", tel: "01 91 73 05 44", inscritLe: "2026-08-28" },
