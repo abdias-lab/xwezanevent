@@ -14,6 +14,7 @@ export const NAV_ADMIN: Nav = {
     { cle: "evenements", libelle: "Événements", court: "Événements", href: `${A}/evenements`, icone: "shield" },
     { cle: "virements", libelle: "Virements", court: "Virements", href: `${A}/virements`, icone: "wallet" },
     { cle: "organisateurs", libelle: "Organisateurs", court: "Orgas", href: `${A}/organisateurs`, icone: "users", secondaire: true },
+    { cle: "artistes", libelle: "Artistes", court: "Artistes", href: `${A}/artistes`, icone: "image", secondaire: true },
     { cle: "billets", libelle: "Billets et remboursements", court: "Billets", href: `${A}/billets`, icone: "ticket", secondaire: true },
     { cle: "commissions", libelle: "Commissions", court: "Commissions", href: `${A}/commissions`, icone: "percent", secondaire: true },
   ],
