@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { aujourdhuiPortoNovo, plagePeriode, formatPlageDates, formatEnTeteJour } from "@/lib/date";
 
 const MOIS_COURTS = [
@@ -598,4 +599,54 @@ export async function getCompteursVilles(pays: string): Promise<Record<string, n
     compteurs[cle] = (compteurs[cle] ?? 0) + 1;
   }
   return compteurs;
+}
+
+/** Date passée d'un artiste (page /artiste/[slug]) : liste compacte, sans carte. */
+export interface DatePasseeArtiste {
+  slug: string;
+  titre: string;
+  date: string;
+  lieu: string;
+  ville: string;
+}
+
+/**
+ * Dates d'un artiste (design/ARTISTES.md) : événements où il est rattaché
+ * et accepté (evenement_artistes, statut « accepte » : un rattachement
+ * proposé par un autre organisateur n'apparaît jamais avant l'accord),
+ * publiés ou terminés, hors démo. À venir : publiés et pas encore
+ * terminés, par date croissante ; passées : les autres, les plus récentes
+ * d'abord. evenement_artistes n'a aucun accès client : lu via service_role.
+ */
+export async function getDatesArtiste(artisteId: string): Promise<{ aVenir: CarteData[]; passees: DatePasseeArtiste[] }> {
+  const { data: liens, error: e1 } = await supabaseAdmin
+    .from("evenement_artistes")
+    .select("event_id")
+    .eq("artiste_id", artisteId)
+    .eq("statut", "accepte");
+  if (e1) console.error("[events] dates artiste (liens) :", e1.message);
+  const ids = (liens ?? []).map((l) => l.event_id as string);
+  if (ids.length === 0) return { aVenir: [], passees: [] };
+
+  const { data, error } = await supabaseAdmin
+    .from("events")
+    .select("slug, titre, ville, lieu, date_debut, date_fin, heure, affiche_url, est_demo, statut, ticket_types(prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre)")
+    .in("id", ids)
+    .eq("est_demo", false)
+    .in("statut", ["publie", "termine"])
+    .order("date_debut", { ascending: true });
+  if (error) {
+    console.error("[events] dates artiste :", error.message);
+    return { aVenir: [], passees: [] };
+  }
+  const aujourdhui = aujourdhuiPortoNovo();
+  const lignes = (data ?? []) as unknown as (EventRow & { statut: string })[];
+  const estAVenir = (e: EventRow & { statut: string }) => e.statut === "publie" && (e.date_fin ?? e.date_debut) >= aujourdhui;
+  return {
+    aVenir: lignes.filter(estAVenir).map(mapRow),
+    passees: lignes
+      .filter((e) => !estAVenir(e))
+      .reverse()
+      .map((e) => ({ slug: e.slug, titre: e.titre, date: e.date_fin ?? e.date_debut, lieu: e.lieu, ville: e.ville })),
+  };
 }
