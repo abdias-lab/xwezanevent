@@ -302,7 +302,7 @@ export async function getEvenementParSlug(
   const { data, error } = await supabase
     .from("events")
     .select(
-      "slug, titre, description, ville, lieu, date_debut, date_fin, heure, affiche_url, pays_code, statut, est_demo, organisateur:profiles(nom, nom_public), ticket_types(id, nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale, ordre)"
+      "slug, titre, description, ville, lieu, date_debut, date_fin, heure, affiche_url, pays_code, statut, est_demo, organisateur:profiles!organisateur_id(nom, nom_public), ticket_types(id, nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale, ordre)"
     )
     .eq("slug", slug)
     .in("statut", ["publie", "termine"])

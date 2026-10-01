@@ -55,7 +55,7 @@ export default async function AdminCommissions({ searchParams }: { searchParams:
 
   const { data } = await supabase
     .from("events")
-    .select("id, titre, date_debut, date_fin, statut, taux_commission, organisateur_id, organisateur:profiles(nom, nom_public), orders(total, statut)")
+    .select("id, titre, date_debut, date_fin, statut, taux_commission, organisateur_id, organisateur:profiles!organisateur_id(nom, nom_public), orders(total, statut)")
     .not("statut", "in", "(annule,refuse)");
 
   const evs = ((data as unknown as EventCommission[]) ?? [])

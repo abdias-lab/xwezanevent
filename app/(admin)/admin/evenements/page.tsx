@@ -93,7 +93,7 @@ export default async function AdminEvenements({ searchParams }: { searchParams: 
   const { data } = await supabase
     .from("events")
     .select(
-      "id, titre, date_debut, date_fin, heure, lieu, ville, description, statut, soumis_le, affiche_url, mis_en_avant, accroche, est_demo, motif_refus, organisateur_id, organisateur:profiles(nom, nom_public, created_at), ticket_types(nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale)"
+      "id, titre, date_debut, date_fin, heure, lieu, ville, description, statut, soumis_le, affiche_url, mis_en_avant, accroche, est_demo, motif_refus, organisateur_id, organisateur:profiles!organisateur_id(nom, nom_public, created_at), ticket_types(nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale)"
     )
     .order("soumis_le", { ascending: true, nullsFirst: false });
 

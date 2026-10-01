@@ -98,7 +98,7 @@ export default async function AdminPage() {
       .gte("created_at", ilYA7Jours),
     supabase
       .from("events")
-      .select("id, titre, date_debut, date_fin, ville, soumis_le, organisateur:profiles(nom, nom_public)")
+      .select("id, titre, date_debut, date_fin, ville, soumis_le, organisateur:profiles!organisateur_id(nom, nom_public)")
       .eq("statut", "en_validation")
       .order("soumis_le", { ascending: true }),
     // supabaseAdmin : le téléphone de l'organisateur (nécessaire pour
