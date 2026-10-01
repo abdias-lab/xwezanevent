@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { creerClientServeur } from "@/lib/supabase-server";
 
 /**
- * Espace organisateur (/orga et ses sous-pages) : réservé aux organisateurs
- * et aux admins. Un simple acheteur (rôle « visiteur », qui n'a jamais créé
+ * Espace organisateur (/orga et ses sous-pages, groupe de routes « espace »)
+ * : réservé aux organisateurs et aux admins. /orga/artistes est hors du
+ * groupe : un artiste auto-produit doit pouvoir y faire sa demande avant
+ * d'avoir rien publié (design/ARTISTES.md). Un simple acheteur (rôle « visiteur », qui n'a jamais créé
  * d'événement) est envoyé vers /creer : un tableau de bord vide n'a aucun
  * sens pour lui. Sans session, chaque page redirige déjà vers /connexion.
  */
