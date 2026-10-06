@@ -52,7 +52,7 @@ export default async function Creer({ searchParams }: { searchParams: { erreur?:
   if (searchParams.envoye) {
     const { data: ev } = await supabase
       .from("events")
-      .select("slug, titre, date_debut, date_fin, heure, lieu, ville, affiche_url, event_categories(categorie, ordre), ticket_types(prix)")
+      .select("slug, titre, statut, date_debut, date_fin, heure, lieu, ville, affiche_url, event_categories(categorie, ordre), ticket_types(prix)")
       .eq("id", searchParams.envoye)
       .eq("organisateur_id", user.id)
       .maybeSingle();
@@ -62,6 +62,8 @@ export default async function Creer({ searchParams }: { searchParams: { erreur?:
       confirmation = (
         <Confirmation
           email={user.email ?? ""}
+          // Compte vérifié : publié directement (statut réel relu en base).
+          publie={ev.statut === "publie"}
           apercu={{
             slug: ev.slug,
             titre: ev.titre,

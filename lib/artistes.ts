@@ -534,3 +534,18 @@ export async function rattachementsEvenement(eventId: string, userId: string): P
       : [],
   );
 }
+
+/**
+ * Événement publié directement par un compte vérifié (design/ARTISTES.md,
+ * lot 2) : e-mail de surveillance à l'équipe, sans blocage. Best-effort.
+ */
+export async function surveillerEvenementPublie(ev: { titre: string; slug: string }, user: { id: string; email?: string }, origine: string) {
+  const { data: auteur } = await supabaseAdmin.from("profiles").select("nom, nom_public").eq("id", user.id).maybeSingle();
+  const { subject, html } = emailPublicationVerifiee({
+    quoi: "evenement",
+    titre: ev.titre,
+    auteur: auteur?.nom_public || auteur?.nom || user.email || "Compte vérifié",
+    lien: `${origine}/evenement/${ev.slug}`,
+  });
+  await envoyerEmail({ to: ADRESSE_EQUIPE, subject, html }).catch((e) => console.error("[artistes] e-mail de surveillance (événement) :", e));
+}

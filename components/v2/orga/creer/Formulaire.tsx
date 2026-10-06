@@ -20,11 +20,11 @@ const CATEGORIES_V2 = CATEGORIES.map(valeurCategorie);
 /** `taux` : pays.taux_commission_defaut, le taux appliqué à l'événement créé. */
 type Pays = { code: string; nom: string; taux: number };
 
-function BoutonEnvoi({ valide, pleine = false }: { valide: boolean; pleine?: boolean }) {
+function BoutonEnvoi({ valide, pleine = false, verifie }: { valide: boolean; pleine?: boolean; verifie: boolean }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} style={pleine ? { flex: 1 } : undefined} aria-disabled={!valide || pending}>
-      {pending ? "Envoi…" : "Envoyer pour validation"}
+      {pending ? (verifie ? "Publication…" : "Envoi…") : verifie ? "Publier l'événement" : "Envoyer pour validation"}
     </button>
   );
 }
@@ -447,8 +447,12 @@ export default function Formulaire({
           <Checklist check={check} />
         </div>
         <div style={{ display: "grid", gap: 8 }}>
-          <BoutonEnvoi valide={valide} />
-          <p className={s.note}>L&apos;équipe Xwézan vérifie chaque événement avant sa mise en ligne. Tu reçois un e-mail dès qu&apos;il est validé.</p>
+          <BoutonEnvoi valide={valide} verifie={verifie} />
+          <p className={s.note}>
+            {verifie
+              ? "Ton compte est vérifié : l'événement est en ligne dès l'envoi, sans attendre l'équipe."
+              : "L'équipe Xwézan vérifie chaque événement avant sa mise en ligne. Tu reçois un e-mail dès qu'il est validé."}
+          </p>
         </div>
       </aside>
 
@@ -457,7 +461,7 @@ export default function Formulaire({
         <span className={s.barreBasInfo}>
           {faits}/{requis.length} obligatoires
         </span>
-        <BoutonEnvoi valide={valide} pleine />
+        <BoutonEnvoi valide={valide} pleine verifie={verifie} />
       </div>
       <div className={s.espaceBarreBas} aria-hidden="true" />
     </form>
