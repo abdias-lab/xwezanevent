@@ -7,7 +7,19 @@ import DetailSquelette from "../../DetailSquelette";
 import Icon from "../../Icon";
 import Partager from "../../Partager";
 import Reveal from "../../Reveal";
+import { RubanEtats } from "../Coquille";
 import { EVENEMENTS, EVENEMENT_DETAIL, dateLongue } from "../../_data";
+import { initialesArtiste } from "../orga/artistes/_artistes";
+
+/**
+ * « Avec » (design/ARTISTES.md) : artistes rattachés et acceptés. Validé :
+ * lien vers sa page ; en attente de validation : texte simple, sans lien ;
+ * refusé : absent.
+ */
+const ARTISTES: { nom: string; lien: string | null; photo: string | null }[] = [
+  { nom: "Zeynab Habib", lien: "/preview-design/v2/artiste", photo: EVENEMENTS[4].image },
+  { nom: "Kemi Sound", lien: null, photo: null },
+];
 
 /** Initiales (1 ou 2 lettres) de l'avatar organisateur : « Ouidah Live » → « OL ». */
 const initialesOrga = (nom: string) =>
@@ -26,6 +38,11 @@ const initialesOrga = (nom: string) =>
  */
 export default function V2Detail({ searchParams }: { searchParams: { etat?: string; affiche?: string; images?: string } }) {
   const ev = searchParams.affiche === "non" ? { ...EVENEMENT_DETAIL, image: null } : EVENEMENT_DETAIL;
+  const etat = searchParams.etat;
+  const artistes = etat === "sans-artiste" ? [] : ARTISTES;
+  // Artiste auto-produit : l'organisateur est le compte de l'artiste, « Organisé par » est masqué.
+  const autoProduit = etat === "auto-produit";
+  const orgaVerifie = etat !== "non-verifie";
   const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ev.lieu}, ${ev.ville}`)}`;
 
   return (
@@ -45,9 +62,45 @@ export default function V2Detail({ searchParams }: { searchParams: { etat?: stri
             <div className={s.evTete}>
               <div className={s.evInfos}>
                 <h1 className={s.dTitre}>{ev.titre}</h1>
-                <p className={s.evOrga}>
-                  Organisé par <b>{ev.organisateur}</b>
-                </p>
+                {artistes.length > 0 && (
+                  <div className={s.evAvec}>
+                    <span className={s.evAvecLibelle}>Avec</span>
+                    {artistes.map((a) => {
+                      const contenu = (
+                        <>
+                          <span className={s.avecAvatar} aria-hidden="true">
+                            {a.photo ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={a.photo} alt="" />
+                            ) : (
+                              initialesArtiste(a.nom)
+                            )}
+                          </span>
+                          {a.nom}
+                        </>
+                      );
+                      return a.lien ? (
+                        <a key={a.nom} href={a.lien} className={s.avecArtiste}>
+                          {contenu}
+                        </a>
+                      ) : (
+                        <span key={a.nom} className={s.avecArtiste}>
+                          {contenu}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+                {!autoProduit && (
+                  <p className={s.evOrga}>
+                    Organisé par <b>{ev.organisateur}</b>
+                    {orgaVerifie && (
+                      <span className={`${s.badgeVerifie} ${s.badgeVerifiePetit}`}>
+                        <Icon name="check" /> Vérifié
+                      </span>
+                    )}
+                  </p>
+                )}
                 <ul className={s.evListe}>
                   <li className={s.evLigne}>
                     <Icon name="calendar" size={20} />
@@ -119,6 +172,7 @@ export default function V2Detail({ searchParams }: { searchParams: { etat?: stri
               </section>
             </Reveal>
 
+            {!autoProduit && (
             <Reveal>
               <section className={s.evSection}>
                 <div className={s.tete}>
@@ -129,9 +183,15 @@ export default function V2Detail({ searchParams }: { searchParams: { etat?: stri
                     {initialesOrga(ev.organisateur)}
                   </span>
                   <b>{ev.organisateur}</b>
+                  {orgaVerifie && (
+                    <span className={`${s.badgeVerifie} ${s.badgeVerifiePetit}`}>
+                      <Icon name="check" /> Vérifié
+                    </span>
+                  )}
                 </div>
               </section>
             </Reveal>
+            )}
 
             <Reveal>
               <section className={s.evSection}>
@@ -166,6 +226,7 @@ export default function V2Detail({ searchParams }: { searchParams: { etat?: stri
           </>
         )}
         <div className={s.espaceBarre} />
+        <RubanEtats chemin="/preview-design/v2/evenement" etats={["normal", "sans-artiste", "auto-produit", "non-verifie", "chargement"]} />
       </main>
       <Footer />
     </div>
