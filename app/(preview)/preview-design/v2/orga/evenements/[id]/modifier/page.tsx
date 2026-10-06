@@ -28,7 +28,7 @@ export default function V2Modifier({ params, searchParams }: { params: { id: str
             <StatutEvt statut={e.statut} />
           </div>
           <h1 className={s.titre}>Modifier l&apos;événement</h1>
-          <p className={s.sousTitre}>Description, catégories, date et images. Les changements sont visibles dès l&apos;enregistrement.</p>
+          <p className={s.sousTitre}>Description, artistes, catégories, date et images. Les changements sont visibles dès l&apos;enregistrement.</p>
         </div>
       </div>
 

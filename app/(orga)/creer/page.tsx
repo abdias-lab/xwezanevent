@@ -10,7 +10,7 @@ import Confirmation from "@/components/v2/orga/creer/Confirmation";
 import { NAV_ORGA } from "@/components/v2/navOrga";
 import s from "@/components/v2/espace.module.css";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { estVerifie } from "@/lib/artistes";
+import { MESSAGES_ERREUR_ARTISTES, estVerifie } from "@/lib/artistes";
 import { chercherArtistes, publierEvenement } from "./actions";
 
 export const metadata: Metadata = {
@@ -24,11 +24,7 @@ const MESSAGES_ERREUR: Record<string, string> = {
   date_passee: "La date de l'événement est déjà passée. Choisis une date à partir d'aujourd'hui.",
   pays: "Ce pays n'est pas disponible pour le moment.",
   affiche: "L'envoi d'une image a échoué. Rien n'a été enregistré, réessaie.",
-  artistes: "La liste des artistes n'a pas pu être lue. Rien n'a été enregistré, réessaie.",
-  artiste_nom: "Indique le nom de scène de chaque nouvel artiste (80 caractères au plus).",
-  artiste_whatsapp: "Indique un numéro WhatsApp valide, avec l'indicatif du pays, pour chaque nouvel artiste.",
-  artiste_moi_meme: "Tu as déjà ta page artiste : choisis-la dans la liste au lieu d'en demander une nouvelle.",
-  artiste_indisponible: "Un des artistes choisis n'est plus disponible. Vérifie la liste et réessaie.",
+  ...MESSAGES_ERREUR_ARTISTES,
 };
 
 /**

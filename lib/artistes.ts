@@ -1,5 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { envoyerEmail } from "@/lib/email";
+import { ADRESSE_EQUIPE, emailPublicationVerifiee } from "@/lib/emails/surveillance";
 
 /**
  * Artistes et comptes vérifiés (design/ARTISTES.md ; schéma :
@@ -163,14 +165,31 @@ export type ChoixArtiste = { id: string } | { nouveau: { nom: string; type: Type
 /** Rattachements prêts à enregistrer, validés avant toute écriture. */
 export type PlanArtistes = ({ id: string; gere: boolean } | { nouveau: { nom: string; type: TypeDemande; whatsapp: string } })[];
 
+/** Messages des refus de preparerArtistes (?erreur=), communs à /creer et /modifier. */
+export const MESSAGES_ERREUR_ARTISTES: Record<string, string> = {
+  artistes: "La liste des artistes n'a pas pu être lue. Rien n'a été enregistré, réessaie.",
+  artiste_nom: "Indique le nom de scène de chaque nouvel artiste (80 caractères au plus).",
+  artiste_whatsapp: "Indique un numéro WhatsApp valide, avec l'indicatif du pays, pour chaque nouvel artiste.",
+  artiste_moi_meme: "Tu as déjà ta page artiste : choisis-la dans la liste au lieu d'en demander une nouvelle.",
+  artiste_indisponible: "Un des artistes choisis n'est plus disponible. Vérifie la liste et réessaie.",
+};
+
 /**
  * Lit et valide les artistes choisis, sans rien écrire : un refus ne doit
  * laisser ni événement ni artiste orphelin. Les règles de la demande d'un
  * nouvel artiste sont celles de creerArtiste (app/(orga)/orga/artistes/actions.ts).
  * Un artiste devenu indisponible (refusé, introuvable) est signalé, jamais
  * écarté en silence (leçon de BUGS_REFONTE n°5).
+ * `dejaRattaches` (modification) : artistes déjà sur l'événement, acceptés
+ * tels quels même devenus refusés, pour ne pas bloquer l'enregistrement du
+ * reste de l'événement.
  */
-export async function preparerArtistes(brut: unknown, userId: string, verifie: boolean): Promise<{ plan: PlanArtistes } | { erreur: string }> {
+export async function preparerArtistes(
+  brut: unknown,
+  userId: string,
+  verifie: boolean,
+  dejaRattaches: ReadonlySet<string> = new Set(),
+): Promise<{ plan: PlanArtistes } | { erreur: string }> {
   let choix: unknown;
   try {
     choix = JSON.parse(String(brut ?? "[]"));
@@ -207,12 +226,13 @@ export async function preparerArtistes(brut: unknown, userId: string, verifie: b
     if (dejaPerso) return { erreur: "artiste_moi_meme" };
   }
 
-  if (ids.length) {
-    const { data, error } = await supabaseAdmin.from("artistes").select("id, statut, cree_par, label_id, compte_id").in("id", ids);
+  const aVerifier = ids.filter((id) => !dejaRattaches.has(id));
+  if (aVerifier.length) {
+    const { data, error } = await supabaseAdmin.from("artistes").select("id, statut, cree_par, label_id, compte_id").in("id", aVerifier);
     if (error) return { erreur: "artistes" };
     const lus = new Map(((data ?? []) as Artiste[]).map((a) => [a.id, a]));
     for (const p of plan) {
-      if (!("id" in p)) continue;
+      if (!("id" in p) || dejaRattaches.has(p.id)) continue;
       const a = lus.get(p.id);
       if (!a || a.statut === "refuse") return { erreur: "artiste_indisponible" };
       p.gere = gere(a, userId);
@@ -224,20 +244,42 @@ export async function preparerArtistes(brut: unknown, userId: string, verifie: b
 }
 
 /**
- * Enregistre les rattachements d'un événement créé : crée d'abord les
- * nouveaux artistes demandés (en validation, ou validés pour un compte
- * vérifié), puis les lignes evenement_artistes dans l'ordre choisi. Artiste
- * géré par le compte : « accepte » ; sinon « propose », invisible jusqu'à
- * l'accord de son label, de son compte ou de l'admin.
+ * Enregistre les rattachements d'un événement dans l'ordre choisi :
+ * - nouveaux artistes demandés créés d'abord (en validation, ou validés pour
+ *   un compte vérifié) ;
+ * - artiste ajouté : « accepte » s'il est géré par le compte, sinon
+ *   « propose », invisible jusqu'à l'accord de son label, de son compte ou de
+ *   l'admin ;
+ * - modification (`existants` : artiste_id des lignes en base) : une ligne
+ *   conservée garde son statut et son acceptation, seul l'ordre change ; une
+ *   ligne retirée de la liste est supprimée.
  * Renvoie les artistes publiés directement (compte vérifié), pour l'e-mail
  * de surveillance.
  */
-export async function enregistrerArtistes(eventId: string, plan: PlanArtistes, userId: string, verifie: boolean): Promise<{ nom: string; slug: string }[]> {
+export async function enregistrerArtistes(
+  eventId: string,
+  plan: PlanArtistes,
+  userId: string,
+  verifie: boolean,
+  existants: ReadonlySet<string> = new Set(),
+): Promise<{ nom: string; slug: string }[]> {
+  const gardes = new Set(plan.flatMap((p) => ("id" in p && existants.has(p.id) ? [p.id] : [])));
+  const retires = Array.from(existants).filter((id) => !gardes.has(id));
+  if (retires.length) {
+    const { error } = await supabaseAdmin.from("evenement_artistes").delete().eq("event_id", eventId).in("artiste_id", retires);
+    if (error) throw new Error(`Retrait des artistes impossible : ${error.message}`);
+  }
+
   const maintenant = new Date().toISOString();
   const publies: { nom: string; slug: string }[] = [];
   const lignes: Record<string, unknown>[] = [];
   for (let ordre = 0; ordre < plan.length; ordre++) {
     const p = plan[ordre];
+    if ("id" in p && gardes.has(p.id)) {
+      const { error } = await supabaseAdmin.from("evenement_artistes").update({ ordre }).eq("event_id", eventId).eq("artiste_id", p.id);
+      if (error) throw new Error(`Ordre des artistes impossible à enregistrer : ${error.message}`);
+      continue;
+    }
     let artisteId: string;
     let accepte: boolean;
     if ("nouveau" in p) {
@@ -281,4 +323,23 @@ export async function enregistrerArtistes(eventId: string, plan: PlanArtistes, u
     if (error) throw new Error(`Rattachement des artistes impossible : ${error.message}`);
   }
   return publies;
+}
+
+/**
+ * E-mail de surveillance pour les artistes publiés directement par un compte
+ * vérifié depuis le formulaire d'événement (comme depuis /orga/artistes).
+ * Best-effort : n'interrompt jamais l'enregistrement.
+ */
+export async function surveillerArtistesPublies(publies: { nom: string; slug: string }[], user: { id: string; email?: string }, origine: string) {
+  if (!publies.length) return;
+  const { data: auteur } = await supabaseAdmin.from("profiles").select("nom, nom_public").eq("id", user.id).maybeSingle();
+  for (const a of publies) {
+    const { subject, html } = emailPublicationVerifiee({
+      quoi: "artiste",
+      titre: a.nom,
+      auteur: auteur?.nom_public || auteur?.nom || user.email || "Compte vérifié",
+      lien: `${origine}/artiste/${a.slug}`,
+    });
+    await envoyerEmail({ to: ADRESSE_EQUIPE, subject, html }).catch((e) => console.error("[artistes] e-mail de surveillance :", e));
+  }
 }

@@ -9,11 +9,16 @@ import { MAX_IMAGES } from "@/lib/affiche";
 import { MAX_CATEGORIES } from "@/lib/categories";
 import { aujourdhuiPortoNovo } from "@/lib/date";
 import { headers } from "next/headers";
-import { envoyerEmail } from "@/lib/email";
-import { ADRESSE_EQUIPE, emailPublicationVerifiee } from "@/lib/emails/surveillance";
-import { enregistrerArtistes, estVerifie, preparerArtistes, rechercherArtistes, type ArtisteTrouve } from "@/lib/artistes";
+import { enregistrerArtistes, estVerifie, preparerArtistes, rechercherArtistes, surveillerArtistesPublies, type ArtisteTrouve } from "@/lib/artistes";
 
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+function origine(): string {
+  const h = headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
 
 interface TicketSaisi {
   nom?: string;
@@ -245,16 +250,7 @@ export async function publierEvenement(formData: FormData) {
   const publies = await enregistrerArtistes(ev.id, artistes.plan, user.id, verifie);
   // Compte vérifié : ses nouveaux artistes sont en ligne sans validation,
   // l'équipe reçoit l'e-mail de surveillance (comme depuis /orga/artistes).
-  if (publies.length) {
-    const { data: auteur } = await supabaseAdmin.from("profiles").select("nom, nom_public").eq("id", user.id).maybeSingle();
-    const h = headers();
-    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-    const origine = `${h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https")}://${host}`;
-    for (const a of publies) {
-      const { subject, html } = emailPublicationVerifiee({ quoi: "artiste", titre: a.nom, auteur: auteur?.nom_public || auteur?.nom || user.email || "Compte vérifié", lien: `${origine}/artiste/${a.slug}` });
-      await envoyerEmail({ to: ADRESSE_EQUIPE, subject, html }).catch((e) => console.error("[creer] e-mail de surveillance :", e));
-    }
-  }
+  await surveillerArtistesPublies(publies, user, origine());
 
   // Rafraîchit le tableau de bord organisateur, où l'événement apparaît
   // immédiatement avec le badge « En validation ».

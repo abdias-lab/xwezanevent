@@ -8,9 +8,21 @@ import Carte from "../../../../../Carte";
 import type { Evenement } from "../../../../../_data";
 import { B } from "../../../../Coquille";
 import Images, { type ImageLocale } from "../../../../creer/Images";
+import Artistes, { valeurArtistes, type ArtisteChoisi } from "../../../../creer/Artistes";
+import { chercherDemo } from "../../../../creer/artistesDemo";
 import { AUJOURDHUI, CATEGORIES_ORGA, montant, nombre, type EvenementOrga } from "../../../_orga";
 
 const MAX_CATEGORIES = 3;
+
+/**
+ * Artistes déjà rattachés (factices) : un artiste du label, un artiste d'un autre
+ * label accepté, un autre encore proposé (design/ARTISTES.md, lot 2).
+ */
+const ARTISTES_DEMO: ArtisteChoisi[] = [
+  { cle: "a1", rattache: "accepte", trouve: { id: "a1", nom: "Zeynab Habib", photo: null, statut: "valide", gere: true } },
+  { cle: "x2", rattache: "accepte", trouve: { id: "x2", nom: "Sèna Melody", photo: null, statut: "valide", gere: false } },
+  { cle: "x3", rattache: "propose", trouve: { id: "x3", nom: "Kpanlogo Crew", photo: null, statut: "valide", gere: false } },
+];
 
 /**
  * Modification d'un événement (preview V2). Même périmètre que
@@ -50,6 +62,8 @@ export default function FormulaireModif({
   const [principale, setPrincipale] = useState<string | null>(null);
   const [etat, setEtat] = useState<"saisie" | "envoi" | "enregistre">("saisie");
   const [imagesTouchees, setImagesTouchees] = useState(false);
+  const [baseArtistes, setBaseArtistes] = useState<ArtisteChoisi[]>(ARTISTES_DEMO);
+  const [artistes, setArtistes] = useState<ArtisteChoisi[]>(ARTISTES_DEMO);
   const [tente, setTente] = useState(false);
 
   const apercuRef = useRef<HTMLDivElement>(null);
@@ -79,6 +93,7 @@ export default function FormulaireModif({
 
   const modifie =
     imagesTouchees ||
+    valeurArtistes(artistes) !== valeurArtistes(baseArtistes) ||
     description !== initial.description ||
     heure !== initial.heure ||
     dateChangee ||
@@ -132,6 +147,7 @@ export default function FormulaireModif({
           setBase({ description, categories, dateDebut, dateFin: fin ?? "", heure });
           setEtat("enregistre");
           setImagesTouchees(false);
+          setBaseArtistes(artistes);
           window.scrollTo({ top: 0 });
         }, 1000);
       }}
@@ -196,6 +212,7 @@ export default function FormulaireModif({
             <label htmlFor="description">Description</label>
             <textarea id="description" rows={5} value={description} onChange={(ev) => setDescription(ev.target.value)} />
           </div>
+          <Artistes choisis={artistes} setChoisis={setArtistes} chercher={chercherDemo} verifie={false} peutMoiMeme />
           <div className={s.champ}>
             <span className={s.etiquette} id="cat-label">
               Catégories <small>(jusqu&apos;à {MAX_CATEGORIES})</small>

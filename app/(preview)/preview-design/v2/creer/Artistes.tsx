@@ -25,7 +25,8 @@ const NOM_MAX = 80;
 export type ArtisteTrouve = { id: string; nom: string; photo: string | null; statut: "en_validation" | "valide" | "refuse"; gere: boolean };
 type TypeDemande = "label" | "auto_produit";
 export type ArtisteChoisi = { cle: string } & (
-  | { trouve: ArtisteTrouve }
+  // `rattache` : déjà sur l'événement (modification), avec son statut en base.
+  | { trouve: ArtisteTrouve; rattache?: "accepte" | "propose" }
   | { nouveau: { nom: string; type: TypeDemande; whatsapp: string } }
 );
 
@@ -47,11 +48,13 @@ function Avatar({ nom, photo }: { nom: string; photo: string | null }) {
 function sousTitre(c: ArtisteChoisi, verifie: boolean): string {
   if ("nouveau" in c) {
     return verifie
-      ? "Nouvelle page, publiée à l'envoi. Complète sa photo et sa bio dans Mes artistes."
+      ? "Nouvelle page, publiée dès l'enregistrement. Complète sa photo et sa bio dans Mes artistes."
       : "Nouvelle page : l'équipe te contacte sur WhatsApp pour la vérifier. Son nom s'affiche en attendant.";
   }
   const a = c.trouve;
-  if (!a.gere) return "Proposé : s'affiche après l'accord de son label ou de l'artiste.";
+  // Refusé après son rattachement : la ligne reste, l'artiste est masqué (design/ARTISTES.md).
+  if (a.statut === "refuse") return a.gere ? "Page refusée : il n'apparaît pas. Corrige sa page dans Mes artistes, ou retire-le." : "Page indisponible : il n'apparaît pas sur l'événement.";
+  if (!a.gere) return c.rattache === "accepte" ? "Accepté par son label ou l'artiste." : "Proposé : s'affiche après l'accord de son label ou de l'artiste.";
   return a.statut === "valide" ? "Ton artiste" : "Page en vérification : son nom s'affiche, sans lien, en attendant.";
 }
 
