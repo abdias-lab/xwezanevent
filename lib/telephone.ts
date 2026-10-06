@@ -106,7 +106,30 @@ export function exemplePays(paysCode: string): string {
   return TELEPHONE_PAR_PAYS[paysCode]?.exemple ?? "";
 }
 
-/** Formate un numéro normalisé pour l'affichage, quelle que soit sa longueur : "0190123456" → "01 90 12 34 56", "90123456" → "90 12 34 56". */
+/**
+ * Formate un numéro pour l'affichage, national ou international :
+ * "0190123456" → "01 90 12 34 56", "90123456" → "90 12 34 56",
+ * "+2290190123456" → "+229 01 90 12 34 56". L'indicatif est détaché avant de
+ * grouper par deux (les profils stockent les deux formes, voir
+ * 20260821120000_backfill_telephone_inscription.sql) ; un indicatif inconnu
+ * est pris sur 3 chiffres, la longueur des indicatifs d'Afrique de l'Ouest.
+ * Une valeur sans chiffre (« — ») ou d'une autre forme est rendue telle quelle.
+ */
 export function formaterNumero(n: string): string {
-  return n.replace(/(\d{2})(?=\d)/g, "$1 ").trim();
+  const brut = n.trim();
+  const compact = brut.replace(/[\s().-]/g, "");
+  const parDeux = (chiffres: string) => chiffres.replace(/(\d{2})(?=\d)/g, "$1 ");
+  const indicatifs = Object.values(TELEPHONE_PAR_PAYS).map((p) => p.indicatif.slice(1));
+  if (/^\d+$/.test(compact)) {
+    // Plus de 10 chiffres et un indicatif connu en tête : « 229… » enregistré sans le « + ».
+    const sansPlus = compact.length > 10 ? indicatifs.find((ind) => compact.startsWith(ind)) : undefined;
+    return sansPlus ? `+${sansPlus} ${parDeux(compact.slice(sansPlus.length))}` : parDeux(compact);
+  }
+  const international = compact.match(/^\+(\d+)$/);
+  if (!international) return brut;
+  const chiffres = international[1];
+  const connu = indicatifs.find((ind) => chiffres.startsWith(ind) && chiffres.length > ind.length);
+  const indicatif = connu ?? chiffres.slice(0, 3);
+  const reste = chiffres.slice(indicatif.length);
+  return reste ? `+${indicatif} ${parDeux(reste)}` : `+${indicatif}`;
 }

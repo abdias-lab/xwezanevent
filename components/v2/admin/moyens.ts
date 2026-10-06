@@ -1,4 +1,4 @@
-import { TELEPHONE_PAR_PAYS } from "@/lib/telephone";
+import { TELEPHONE_PAR_PAYS, formaterNumero as formaterTelephone } from "@/lib/telephone";
 
 /** "mtn" → "MTN Mobile Money" (lib/telephone.ts) ; code inconnu affiché tel quel. */
 export function nomMoyen(code: string): string {
@@ -9,7 +9,5 @@ export function nomMoyen(code: string): string {
   return code.toUpperCase();
 }
 
-/** "0190123456" → "01 90 12 34 56" ; autre format affiché tel quel. */
-export function formaterNumero(n: string): string {
-  return /^\d{10}$/.test(n) ? n.replace(/(\d{2})(?=\d)/g, "$1 ").trim() : n;
-}
+/** "0190123456" → "01 90 12 34 56", "+2290190123456" → "+229 01 90 12 34 56" : même règle que lib/telephone.ts. */
+export const formaterNumero = formaterTelephone;
