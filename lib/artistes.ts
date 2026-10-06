@@ -2,6 +2,9 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { envoyerEmail } from "@/lib/email";
 import { ADRESSE_EQUIPE, emailPublicationVerifiee } from "@/lib/emails/surveillance";
+import { emailUtilisateur } from "@/lib/email";
+import { emailPropositionRattachement } from "@/lib/emails/rattachement";
+import { formatPlageDates } from "@/lib/date";
 
 /**
  * Artistes et comptes vérifiés (design/ARTISTES.md ; schéma :
@@ -254,7 +257,7 @@ export async function preparerArtistes(
  *   conservée garde son statut et son acceptation, seul l'ordre change ; une
  *   ligne retirée de la liste est supprimée.
  * Renvoie les artistes publiés directement (compte vérifié), pour l'e-mail
- * de surveillance.
+ * de surveillance, et les artistes nouvellement proposés, à notifier.
  */
 export async function enregistrerArtistes(
   eventId: string,
@@ -262,7 +265,7 @@ export async function enregistrerArtistes(
   userId: string,
   verifie: boolean,
   existants: ReadonlySet<string> = new Set(),
-): Promise<{ nom: string; slug: string }[]> {
+): Promise<{ publies: { nom: string; slug: string }[]; proposes: string[] }> {
   const gardes = new Set(plan.flatMap((p) => ("id" in p && existants.has(p.id) ? [p.id] : [])));
   const retires = Array.from(existants).filter((id) => !gardes.has(id));
   if (retires.length) {
@@ -322,7 +325,8 @@ export async function enregistrerArtistes(
     const { error } = await supabaseAdmin.from("evenement_artistes").insert(lignes);
     if (error) throw new Error(`Rattachement des artistes impossible : ${error.message}`);
   }
-  return publies;
+  const proposes = lignes.filter((l) => l.statut === "propose").map((l) => l.artiste_id as string);
+  return { publies, proposes };
 }
 
 /**
@@ -342,4 +346,186 @@ export async function surveillerArtistesPublies(publies: { nom: string; slug: st
     });
     await envoyerEmail({ to: ADRESSE_EQUIPE, subject, html }).catch((e) => console.error("[artistes] e-mail de surveillance :", e));
   }
+}
+
+/* ---------- Rattachements proposés : notification, décision (lot 2) ---------- */
+
+export type StatutRattachement = "accepte" | "propose" | "refuse";
+
+/** Destinataires d'une proposition : le label et le compte de l'artiste, à défaut son créateur. */
+function decideurs(a: Pick<Artiste, "label_id" | "compte_id" | "cree_par">): string[] {
+  const ids = [a.label_id, a.compte_id].filter((x): x is string => !!x);
+  if (!ids.length && a.cree_par) ids.push(a.cree_par);
+  return Array.from(new Set(ids));
+}
+
+/** Clé d'une proposition dans les liens (?proposition=) et les ancres de Mes artistes. */
+export const cleProposition = (eventId: string, artisteId: string) => `${eventId}.${artisteId}`;
+
+/**
+ * Prévient le label ou le compte de chaque artiste nouvellement proposé, avec
+ * un lien direct vers la proposition. Best-effort : n'interrompt jamais
+ * l'enregistrement de l'événement.
+ */
+export async function notifierPropositions(eventId: string, artisteIds: string[], proposeur: { id: string; email?: string }, origine: string) {
+  if (!artisteIds.length) return;
+  try {
+    const [{ data: ev }, { data: arts }, { data: auteur }] = await Promise.all([
+      supabaseAdmin.from("events").select("titre, date_debut, date_fin, lieu, ville").eq("id", eventId).maybeSingle(),
+      supabaseAdmin.from("artistes").select("id, nom_scene, label_id, compte_id, cree_par").in("id", artisteIds),
+      supabaseAdmin.from("profiles").select("nom, nom_public").eq("id", proposeur.id).maybeSingle(),
+    ]);
+    if (!ev) return;
+    const organisateur = auteur?.nom_public || auteur?.nom || proposeur.email || "Un organisateur";
+    for (const a of (arts ?? []) as Artiste[]) {
+      const lien = `${origine}/orga/artistes?proposition=${cleProposition(eventId, a.id)}#proposition-${cleProposition(eventId, a.id)}`;
+      const { subject, html } = emailPropositionRattachement({
+        artiste: a.nom_scene,
+        organisateur,
+        evenement: ev.titre,
+        quand: formatPlageDates(ev.date_debut, ev.date_fin, { avecAnnee: true }),
+        ou: `${ev.lieu}, ${ev.ville}`,
+        lien,
+      });
+      for (const id of decideurs(a).filter((x) => x !== proposeur.id)) {
+        const to = await emailUtilisateur(id);
+        if (to) await envoyerEmail({ to, subject, html }).catch((e) => console.error("[artistes] e-mail de proposition :", e));
+      }
+    }
+  } catch (e) {
+    console.error("[artistes] notification des propositions :", (e as Error).message);
+  }
+}
+
+/** Proposition reçue par un label ou un artiste (section « Propositions » de Mes artistes). */
+export interface PropositionRecue {
+  cle: string;
+  eventId: string;
+  artisteId: string;
+  artiste: string;
+  photo: string | null;
+  titre: string;
+  slug: string;
+  debut: string;
+  fin: string | null;
+  lieu: string;
+  ville: string;
+  statutEvenement: string;
+  organisateur: string;
+  proposeLe: string;
+}
+
+/** Propositions en attente pour les artistes que le compte gère, les plus anciennes d'abord. */
+export async function propositionsRecues(userId: string, geres?: Artiste[]): Promise<PropositionRecue[]> {
+  const ids = (geres ?? (await artistesGeres(userId))).map((a) => a.id);
+  if (!ids.length) return [];
+  return lirePropositions(supabaseAdmin.from("evenement_artistes").select(COLONNES_PROPOSITION).in("artiste_id", ids));
+}
+
+const COLONNES_PROPOSITION =
+  "event_id, artiste_id, created_at, artiste:artistes(nom_scene, photo_url, statut), evenement:events(titre, slug, date_debut, date_fin, lieu, ville, statut, organisateur:profiles!organisateur_id(nom, nom_public))";
+
+type LigneProposition = {
+  event_id: string;
+  artiste_id: string;
+  created_at: string;
+  artiste: { nom_scene: string; photo_url: string | null; statut: StatutArtiste } | null;
+  evenement: { titre: string; slug: string; date_debut: string; date_fin: string | null; lieu: string; ville: string; statut: string; organisateur: { nom: string; nom_public: string | null } | null } | null;
+};
+
+/** Propositions en attente, toutes (file de l'admin) ou filtrées par la requête fournie. */
+export async function lirePropositions(
+  requete = supabaseAdmin.from("evenement_artistes").select(COLONNES_PROPOSITION),
+): Promise<PropositionRecue[]> {
+  const { data, error } = await requete.eq("statut", "propose").order("created_at", { ascending: true });
+  if (error) {
+    console.error("[artistes] lecture des propositions :", error.message);
+    return [];
+  }
+  return ((data ?? []) as unknown as LigneProposition[]).flatMap((l) =>
+    l.artiste && l.evenement
+      ? [
+          {
+            cle: cleProposition(l.event_id, l.artiste_id),
+            eventId: l.event_id,
+            artisteId: l.artiste_id,
+            artiste: l.artiste.nom_scene,
+            photo: l.artiste.statut === "valide" ? l.artiste.photo_url : null,
+            titre: l.evenement.titre,
+            slug: l.evenement.slug,
+            debut: l.evenement.date_debut,
+            fin: l.evenement.date_fin,
+            lieu: l.evenement.lieu,
+            ville: l.evenement.ville,
+            statutEvenement: l.evenement.statut,
+            organisateur: l.evenement.organisateur?.nom_public || l.evenement.organisateur?.nom || "—",
+            proposeLe: l.created_at,
+          },
+        ]
+      : [],
+  );
+}
+
+/**
+ * Accepte ou refuse une proposition. Transition conditionnée au statut
+ * « propose » : une décision déjà prise (autre onglet, label et admin en même
+ * temps) n'est jamais écrasée. Renvoie le slug de l'événement et de l'artiste
+ * pour la revalidation, ou null si rien n'a changé.
+ */
+export async function deciderProposition(eventId: string, artisteId: string, decision: "accepter" | "refuser", parId: string): Promise<{ evenement: string; artiste: string } | null> {
+  const maintenant = new Date().toISOString();
+  const { data, error } = await supabaseAdmin
+    .from("evenement_artistes")
+    .update(decision === "accepter" ? { statut: "accepte", accepte_par: parId, accepte_le: maintenant } : { statut: "refuse", refuse_par: parId, refuse_le: maintenant })
+    .eq("event_id", eventId)
+    .eq("artiste_id", artisteId)
+    .eq("statut", "propose")
+    .select("evenement:events(slug), artiste:artistes(slug)");
+  if (error) {
+    console.error("[artistes] décision sur une proposition :", error.message);
+    return null;
+  }
+  const l = (data ?? [])[0] as unknown as { evenement: { slug: string } | null; artiste: { slug: string } | null } | undefined;
+  return l ? { evenement: l.evenement?.slug ?? "", artiste: l.artiste?.slug ?? "" } : null;
+}
+
+/** Artiste rattaché à un événement, vu par son organisateur (fiche, modification). */
+export interface RattachementOrga {
+  id: string;
+  nom: string;
+  photo: string | null;
+  statutArtiste: StatutArtiste;
+  gere: boolean;
+  statut: StatutRattachement;
+  /** Date de la proposition, de l'accord ou du refus selon le statut. */
+  le: string | null;
+}
+
+/** Artistes d'un événement dans l'ordre, avec l'état de chaque rattachement. Service_role : appeler après la preuve de propriété. */
+export async function rattachementsEvenement(eventId: string, userId: string): Promise<RattachementOrga[]> {
+  const { data, error } = await supabaseAdmin
+    .from("evenement_artistes")
+    .select("statut, created_at, accepte_le, refuse_le, artiste:artistes(id, nom_scene, photo_url, statut, cree_par, label_id, compte_id)")
+    .eq("event_id", eventId)
+    .order("ordre", { ascending: true });
+  if (error) {
+    console.error("[artistes] rattachements de l'événement :", error.message);
+    return [];
+  }
+  type Ligne = { statut: StatutRattachement; created_at: string; accepte_le: string | null; refuse_le: string | null; artiste: Artiste | null };
+  return ((data ?? []) as unknown as Ligne[]).flatMap((l) =>
+    l.artiste
+      ? [
+          {
+            id: l.artiste.id,
+            nom: l.artiste.nom_scene,
+            photo: l.artiste.statut === "valide" ? l.artiste.photo_url : null,
+            statutArtiste: l.artiste.statut,
+            gere: gere(l.artiste, userId),
+            statut: l.statut,
+            le: l.statut === "propose" ? l.created_at : l.statut === "refuse" ? l.refuse_le : l.accepte_le,
+          },
+        ]
+      : [],
+  );
 }

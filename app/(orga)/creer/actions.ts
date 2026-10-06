@@ -9,7 +9,7 @@ import { MAX_IMAGES } from "@/lib/affiche";
 import { MAX_CATEGORIES } from "@/lib/categories";
 import { aujourdhuiPortoNovo } from "@/lib/date";
 import { headers } from "next/headers";
-import { enregistrerArtistes, estVerifie, preparerArtistes, rechercherArtistes, surveillerArtistesPublies, type ArtisteTrouve } from "@/lib/artistes";
+import { enregistrerArtistes, estVerifie, notifierPropositions, preparerArtistes, rechercherArtistes, surveillerArtistesPublies, type ArtisteTrouve } from "@/lib/artistes";
 
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -247,10 +247,12 @@ export async function publierEvenement(formData: FormData) {
     if (e2) throw new Error(`Création billets impossible : ${e2.message}`);
   }
 
-  const publies = await enregistrerArtistes(ev.id, artistes.plan, user.id, verifie);
+  const { publies, proposes } = await enregistrerArtistes(ev.id, artistes.plan, user.id, verifie);
   // Compte vérifié : ses nouveaux artistes sont en ligne sans validation,
   // l'équipe reçoit l'e-mail de surveillance (comme depuis /orga/artistes).
   await surveillerArtistesPublies(publies, user, origine());
+  // Artistes d'autres comptes : leur label ou leur compte est prévenu, avec un lien direct.
+  await notifierPropositions(ev.id, proposes, user, origine());
 
   // Rafraîchit le tableau de bord organisateur, où l'événement apparaît
   // immédiatement avec le badge « En validation ».

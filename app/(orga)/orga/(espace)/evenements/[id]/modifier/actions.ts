@@ -11,7 +11,7 @@ import { envoyerEmail, emailUtilisateur } from "@/lib/email";
 import { emailEvenementDateModifiee } from "@/lib/emails/evenement-edition";
 import { aujourdhuiPortoNovo, formatPlageDates } from "@/lib/date";
 import { headers } from "next/headers";
-import { enregistrerArtistes, estVerifie, preparerArtistes, surveillerArtistesPublies } from "@/lib/artistes";
+import { enregistrerArtistes, estVerifie, notifierPropositions, preparerArtistes, surveillerArtistesPublies } from "@/lib/artistes";
 
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -225,9 +225,11 @@ export async function modifierEvenement(eventId: string, formData: FormData) {
   }
 
   if (artistes) {
-    const publies = await enregistrerArtistes(eventId, artistes.plan, user.id, artistes.verifie, artistes.existants);
+    const { publies, proposes } = await enregistrerArtistes(eventId, artistes.plan, user.id, artistes.verifie, artistes.existants);
     // Compte vérifié : nouveaux artistes en ligne sans validation, e-mail de surveillance.
     await surveillerArtistesPublies(publies, user, origine());
+    // Nouvelles propositions : label ou compte de l'artiste prévenu, avec un lien direct.
+    await notifierPropositions(eventId, proposes, user, origine());
   }
 
   // Nettoyage Storage des images retirées — best-effort, après l'écriture

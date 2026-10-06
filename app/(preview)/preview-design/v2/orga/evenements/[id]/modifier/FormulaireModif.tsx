@@ -16,12 +16,13 @@ const MAX_CATEGORIES = 3;
 
 /**
  * Artistes déjà rattachés (factices) : un artiste du label, un artiste d'un autre
- * label accepté, un autre encore proposé (design/ARTISTES.md, lot 2).
+ * label accepté, un proposé en attente, un refusé (design/ARTISTES.md, lot 2).
  */
 const ARTISTES_DEMO: ArtisteChoisi[] = [
   { cle: "a1", rattache: "accepte", trouve: { id: "a1", nom: "Zeynab Habib", photo: null, statut: "valide", gere: true } },
   { cle: "x2", rattache: "accepte", trouve: { id: "x2", nom: "Sèna Melody", photo: null, statut: "valide", gere: false } },
-  { cle: "x3", rattache: "propose", trouve: { id: "x3", nom: "Kpanlogo Crew", photo: null, statut: "valide", gere: false } },
+  { cle: "x3", rattache: "propose", le: "24 sept. 2026", trouve: { id: "x3", nom: "Kpanlogo Crew", photo: null, statut: "valide", gere: false } },
+  { cle: "x4", rattache: "refuse", le: "25 sept. 2026", trouve: { id: "x4", nom: "DJ Gbêtô", photo: null, statut: "valide", gere: false } },
 ];
 
 /**

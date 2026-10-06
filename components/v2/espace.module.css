@@ -1823,3 +1823,22 @@
   justify-content: flex-end;
   gap: var(--s2);
 }
+
+/* ---------- Rattachements proposés (design/ARTISTES.md, lot 2) ---------- */
+/* Fiche d'un événement : artiste, état, pastille. */
+.artisteFiche {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s3);
+}
+/* Mes artistes : proposition ouverte depuis le lien de l'e-mail. */
+.carteEnAvant {
+  box-shadow: inset 0 0 0 2px var(--or);
+  scroll-margin-top: 96px;
+}
+.propositionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}

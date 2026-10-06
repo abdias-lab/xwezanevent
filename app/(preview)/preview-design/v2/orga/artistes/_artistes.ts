@@ -78,6 +78,13 @@ export const ARTISTES_ORGA: ArtisteOrga[] = [
 
 export const artisteOrga = (id: string) => ARTISTES_ORGA.find((a) => a.id === id);
 
+/** Propositions reçues (factices) : rattachements proposés par d'autres organisateurs (design/ARTISTES.md, lot 2). */
+export type PropositionDemo = { cle: string; artiste: string; titre: string; quand: string; lieu: string; organisateur: string; depuis: string; enLigne: boolean };
+export const PROPOSITIONS_DEMO: PropositionDemo[] = [
+  { cle: "p1", artiste: "Zeynab Habib", titre: "Nuit du Wassa", quand: "14 nov.", lieu: "Esplanade de l'Amazone, Cotonou", organisateur: "Cotonou Live", depuis: "il y a 3 jours", enLigne: true },
+  { cle: "p2", artiste: "DJ Shado", titre: "Rooftop Amapiano Vol. 4", quand: "29 nov.", lieu: "Ganhi Rooftop, Cotonou", organisateur: "Ganhi Events", depuis: "hier", enLigne: false },
+];
+
 export function initialesArtiste(nom: string) {
   return nom
     .split(/\s+/)

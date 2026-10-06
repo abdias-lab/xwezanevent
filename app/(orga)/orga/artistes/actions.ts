@@ -8,7 +8,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { uploaderImageEvenement, supprimerImageEvenement } from "@/lib/images-evenement";
 import { envoyerEmail } from "@/lib/email";
 import { ADRESSE_EQUIPE, emailPublicationVerifiee } from "@/lib/emails/surveillance";
-import { BIO_MAX, COLONNES_ARTISTE, NOM_SCENE_MAX, WHATSAPP_MAX, estVerifie, gere, lireLiens, slugLibre, type Artiste } from "@/lib/artistes";
+import { BIO_MAX, COLONNES_ARTISTE, NOM_SCENE_MAX, WHATSAPP_MAX, deciderProposition, estVerifie, gere, lireLiens, slugLibre, type Artiste } from "@/lib/artistes";
 
 export type EtatFormulaireArtiste = { erreur: string } | null;
 
@@ -185,4 +185,27 @@ export async function modifierArtiste(_etat: EtatFormulaireArtiste, formData: Fo
   revalidatePath("/orga/artistes");
   revalidatePath(`/artiste/${artiste.slug}`);
   redirect("/orga/artistes?maj=1");
+}
+
+/**
+ * Accepter ou refuser une proposition de rattachement (design/ARTISTES.md,
+ * lot 2), depuis la section « Propositions » de Mes artistes. Réservé à qui
+ * gère l'artiste (label, compte de l'artiste, créateur de la page) ; la
+ * décision n'écrase jamais une décision déjà prise (deciderProposition).
+ */
+export async function deciderPropositionOrga(formData: FormData) {
+  const user = await utilisateur();
+  const [eventId, artisteId] = String(formData.get("cle") ?? "").split(".");
+  const decision = formData.get("decision");
+  if (!eventId || !artisteId || (decision !== "accepter" && decision !== "refuser")) redirect("/orga/artistes");
+
+  const { data } = await supabaseAdmin.from("artistes").select("cree_par, label_id, compte_id").eq("id", artisteId).maybeSingle();
+  if (!data || !gere(data, user.id)) redirect("/orga/artistes");
+
+  const fait = await deciderProposition(eventId, artisteId, decision, user.id);
+  if (!fait) redirect("/orga/artistes?decision=deja");
+  revalidatePath("/orga/artistes");
+  if (fait.evenement) revalidatePath(`/evenement/${fait.evenement}`);
+  if (fait.artiste) revalidatePath(`/artiste/${fait.artiste}`);
+  redirect(`/orga/artistes?decision=${decision === "accepter" ? "acceptee" : "refusee"}`);
 }

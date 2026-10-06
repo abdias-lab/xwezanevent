@@ -11,7 +11,8 @@ import { NAV_ORGA } from "@/components/v2/navOrga";
 import { STATUTS, StatutEvt, type Statut } from "@/components/v2/statuts";
 import s from "@/components/v2/espace.module.css";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { MESSAGES_ERREUR_ARTISTES, estVerifie, gere, type Artiste } from "@/lib/artistes";
+import { MESSAGES_ERREUR_ARTISTES, estVerifie, rattachementsEvenement } from "@/lib/artistes";
+import { dateAnnee } from "@/components/v2/format";
 import type { ArtisteChoisi } from "@/components/v2/orga/creer/Artistes";
 import { chercherArtistes } from "@/app/(orga)/creer/actions";
 import { modifierEvenement } from "./actions";
@@ -105,22 +106,17 @@ export default async function ModifierEvenementPage({
 
   // Artistes déjà rattachés, dans l'ordre (lecture service_role : aucun accès
   // client à evenement_artistes), et ce qu'il faut au sélecteur.
-  const [{ data: rattaches, error: erreurArtistes }, verifie, { data: pagePerso }] = await Promise.all([
-    supabaseAdmin
-      .from("evenement_artistes")
-      .select("statut, artiste:artistes(id, nom_scene, photo_url, statut, cree_par, label_id, compte_id)")
-      .eq("event_id", event.id)
-      .order("ordre", { ascending: true }),
+  const [rattaches, verifie, { data: pagePerso }] = await Promise.all([
+    rattachementsEvenement(event.id, user.id),
     estVerifie(user.id),
     supabaseAdmin.from("artistes").select("id").eq("compte_id", user.id).maybeSingle(),
   ]);
-  if (erreurArtistes) console.error("[orga/modifier] échec chargement artistes :", erreurArtistes.message);
-  type Rattache = { statut: "accepte" | "propose"; artiste: Pick<Artiste, "id" | "nom_scene" | "photo_url" | "statut" | "cree_par" | "label_id" | "compte_id"> | null };
-  const artistes: ArtisteChoisi[] = ((rattaches ?? []) as unknown as Rattache[]).flatMap(({ statut, artiste: a }) =>
-    a
-      ? [{ cle: a.id, rattache: statut, trouve: { id: a.id, nom: a.nom_scene, photo: a.statut === "valide" ? a.photo_url : null, statut: a.statut, gere: gere(a, user.id) } }]
-      : [],
-  );
+  const artistes: ArtisteChoisi[] = rattaches.map((r) => ({
+    cle: r.id,
+    rattache: r.statut,
+    le: r.le ? dateAnnee(r.le) : null,
+    trouve: { id: r.id, nom: r.nom, photo: r.photo, statut: r.statutArtiste, gere: r.gere },
+  }));
 
   return (
     <Coquille nav={NAV_ORGA} actif="accueil" compte={{ nom, email: user.email ?? "" }}>
@@ -141,7 +137,7 @@ export default async function ModifierEvenementPage({
         <FormulaireModif
           // Remonte le formulaire quand la ligne en base change (après
           // enregistrement) : l'état local repart des valeurs enregistrées.
-          key={JSON.stringify([event.description, event.date_debut, event.date_fin, heure, categories, images, artistes.map((a) => a.cle)])}
+          key={JSON.stringify([event.description, event.date_debut, event.date_fin, heure, categories, images, rattaches.map((r) => `${r.id}:${r.statut}`)])}
           action={modifierEvenement.bind(null, event.id)}
           e={{
             id: event.id,
