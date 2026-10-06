@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import s from "../../espace.module.css";
 import Coquille, { RubanEtats } from "../../Coquille";
-import Icon from "../../../Icon";
 import { A, NAV_ADMIN } from "../_admin";
 import ValidationArtistes, { type DemandeArtiste } from "./ValidationArtistes";
 import PropositionsArtistes, { type PropositionAdmin } from "./PropositionsArtistes";
@@ -136,12 +135,6 @@ export default function V2AdminArtistes({ searchParams }: { searchParams: { etat
       </div>
       {vuePropositions ? (
         <PropositionsArtistes propositions={PROPOSITIONS} />
-      ) : demandes.length === 0 ? (
-        <div className={s.vide}>
-          <Icon name="check" size={32} />
-          <p className={s.videTitre}>Aucune demande en attente</p>
-          <p className={s.videTexte}>Les nouvelles pages artistes et les changements de nom à vérifier apparaîtront ici.</p>
-        </div>
       ) : (
         <ValidationArtistes demandes={demandes} />
       )}

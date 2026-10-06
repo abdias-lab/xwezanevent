@@ -93,6 +93,18 @@ export default function ValidationArtistes({ demandes }: { demandes: DemandeArti
             ? `Nouveau nom refusé${d.motif ? ` (motif envoyé : « ${d.motif} »)` : ""}. La page garde « ${x.nom} ».`
             : `Refusé. ${d.motif ? `Motif envoyé : « ${d.motif} »` : "E-mail envoyé sans motif."}`;
 
+  // Toujours monté, même file vide : la confirmation de la dernière décision
+  // reste affichée après le rafraîchissement (même règle que PropositionsArtistes).
+  if (affiches.length === 0) {
+    return (
+      <div className={s.vide}>
+        <Icon name="check" size={32} />
+        <p className={s.videTitre}>Aucune demande en attente</p>
+        <p className={s.videTexte}>Les nouvelles pages artistes et les changements de nom à vérifier apparaîtront ici.</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <p className={s.note} aria-live="polite" style={{ marginBottom: 12 }}>

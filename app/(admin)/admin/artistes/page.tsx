@@ -181,15 +181,8 @@ export default async function AdminArtistes({ searchParams }: { searchParams: { 
       </div>
 
       {!filtre.cle ? (
-        demandes.length === 0 ? (
-          <div className={s.vide}>
-            <Icon name="check" size={32} />
-            <p className={s.videTitre}>Aucune demande en attente</p>
-            <p className={s.videTexte}>Les nouvelles pages artistes et les changements de nom à vérifier apparaîtront ici.</p>
-          </div>
-        ) : (
-          <ValidationArtistes demandes={demandes} />
-        )
+        // Toujours monté, même file vide : voir ValidationArtistes.
+        <ValidationArtistes demandes={demandes} />
       ) : filtre.cle === "propositions" ? (
         // Toujours monté, même file vide : la confirmation de la dernière décision reste affichée après le rafraîchissement.
         <PropositionsArtistes propositions={propositions} />
