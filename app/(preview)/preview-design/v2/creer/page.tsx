@@ -21,8 +21,8 @@ export default function V2Creer({ searchParams }: { searchParams: { etat?: strin
           <p className={s.sousTitre}>Quatre blocs à remplir, l&apos;aperçu se met à jour au fil de la saisie.</p>
         </div>
       </div>
-      <Formulaire erreurServeur={searchParams.etat === "erreur"} envoyeDemo={searchParams.etat === "envoye"} />
-      <RubanEtats chemin={`${B}/creer`} etats={["normal", "erreur", "envoye"]} />
+      <Formulaire erreurServeur={searchParams.etat === "erreur"} envoyeDemo={searchParams.etat === "envoye"} verifie={searchParams.etat === "verifie"} />
+      <RubanEtats chemin={`${B}/creer`} etats={["normal", "erreur", "envoye", "verifie"]} />
     </Coquille>
   );
 }

@@ -10,6 +10,7 @@ import type { EvenementCarte } from "../../public/evenement";
 import { CATEGORIES, MAX_CATEGORIES, valeurCategorie } from "@/lib/categories";
 import Images, { type ImageLocale } from "./Images";
 import Billets, { nouveauTarif, tarifValide, type TarifSaisi } from "./Billets";
+import Artistes, { valeurArtistes, type ArtisteChoisi, type ArtisteTrouve } from "./Artistes";
 
 /** Villes proposées (même liste que l'ancien formulaire de création). */
 const VILLES = ["Cotonou", "Porto-Novo", "Ouidah", "Abomey", "Parakou", "Grand-Popo"];
@@ -39,11 +40,20 @@ export default function Formulaire({
   pays,
   aujourdhui,
   erreurServeur,
+  chercherArtistes,
+  verifie,
+  peutMoiMeme,
 }: {
   action: (formData: FormData) => void;
   pays: Pays[];
   aujourdhui: string;
   erreurServeur: string | null;
+  /** Recherche du sélecteur d'artistes (action serveur chercherArtistes). */
+  chercherArtistes: (q: string) => Promise<ArtisteTrouve[]>;
+  /** Compte vérifié : ses nouveaux artistes sont publiés sans validation. */
+  verifie: boolean;
+  /** Le compte n'a pas encore sa propre page artiste. */
+  peutMoiMeme: boolean;
 }) {
   const [titre, setTitre] = useState("");
   const [description, setDescription] = useState("");
@@ -58,6 +68,7 @@ export default function Formulaire({
   const [ville, setVille] = useState("");
   const [tarifs, setTarifs] = useState<TarifSaisi[]>(() => [nouveauTarif("Standard")]);
   const [images, setImages] = useState<ImageLocale[]>([]);
+  const [artistes, setArtistes] = useState<ArtisteChoisi[]>([]);
   const [principale, setPrincipale] = useState<string | null>(null);
   const [tente, setTente] = useState(false); // erreurs affichées après une tentative d'envoi
   // Aperçu non interactif : `inert` n'est pas typé en React 18, posé à la main.
@@ -153,6 +164,7 @@ export default function Formulaire({
       <input type="hidden" name="categories" value={JSON.stringify(categories)} />
       <input type="hidden" name="tickets" value={JSON.stringify(tarifs.map((t) => ({ nom: t.nom, prix: t.prix, quantite: t.quantite, venteJusqua: t.venteJusqua })))} />
       <input type="hidden" name="pays_code" value={paysCode} />
+      <input type="hidden" name="artistes" value={valeurArtistes(artistes)} />
       {multiJours && dateFin && <input type="hidden" name="date_fin" value={dateFin} />}
       <input type="hidden" name="image_principale_type" value={images.length ? "nouvelle" : ""} />
       <input type="hidden" name="image_principale_valeur" value={String(indexPrincipale)} />
@@ -215,6 +227,8 @@ export default function Formulaire({
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
+
+          <Artistes choisis={artistes} setChoisis={setArtistes} chercher={chercherArtistes} verifie={verifie} peutMoiMeme={peutMoiMeme} />
 
           <div className={s.champ}>
             <span className={s.etiquette} id="cat-label">

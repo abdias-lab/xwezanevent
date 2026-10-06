@@ -8,6 +8,10 @@ import { uploaderImageEvenement } from "@/lib/images-evenement";
 import { MAX_IMAGES } from "@/lib/affiche";
 import { MAX_CATEGORIES } from "@/lib/categories";
 import { aujourdhuiPortoNovo } from "@/lib/date";
+import { headers } from "next/headers";
+import { envoyerEmail } from "@/lib/email";
+import { ADRESSE_EQUIPE, emailPublicationVerifiee } from "@/lib/emails/surveillance";
+import { enregistrerArtistes, estVerifie, preparerArtistes, rechercherArtistes, type ArtisteTrouve } from "@/lib/artistes";
 
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -87,6 +91,12 @@ export async function publierEvenement(formData: FormData) {
   if (date_debut < aujourdhuiPortoNovo()) {
     redirect("/creer?erreur=date_passee");
   }
+
+  // Artistes à l'affiche (design/ARTISTES.md, lot 2) : validés ici, avant
+  // tout envoi d'image ou écriture, comme les champs ci-dessus.
+  const verifie = await estVerifie(user.id);
+  const artistes = await preparerArtistes(formData.get("artistes"), user.id, verifie);
+  if ("erreur" in artistes) redirect(`/creer?erreur=${artistes.erreur}`);
 
   const fichiersImages = formData
     .getAll("images_nouvelles")
@@ -232,6 +242,20 @@ export async function publierEvenement(formData: FormData) {
     if (e2) throw new Error(`Création billets impossible : ${e2.message}`);
   }
 
+  const publies = await enregistrerArtistes(ev.id, artistes.plan, user.id, verifie);
+  // Compte vérifié : ses nouveaux artistes sont en ligne sans validation,
+  // l'équipe reçoit l'e-mail de surveillance (comme depuis /orga/artistes).
+  if (publies.length) {
+    const { data: auteur } = await supabaseAdmin.from("profiles").select("nom, nom_public").eq("id", user.id).maybeSingle();
+    const h = headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+    const origine = `${h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https")}://${host}`;
+    for (const a of publies) {
+      const { subject, html } = emailPublicationVerifiee({ quoi: "artiste", titre: a.nom, auteur: auteur?.nom_public || auteur?.nom || user.email || "Compte vérifié", lien: `${origine}/artiste/${a.slug}` });
+      await envoyerEmail({ to: ADRESSE_EQUIPE, subject, html }).catch((e) => console.error("[creer] e-mail de surveillance :", e));
+    }
+  }
+
   // Rafraîchit le tableau de bord organisateur, où l'événement apparaît
   // immédiatement avec le badge « En validation ».
   revalidatePath("/orga");
@@ -240,4 +264,14 @@ export async function publierEvenement(formData: FormData) {
   // son événement attend l'équipe, au lieu d'un retour muet sur /orga
   // (design/BUGS_REFONTE.md n°1). La page revérifie qu'il en est bien l'auteur.
   redirect(`/creer?envoye=${ev.id}`);
+}
+
+/** Recherche du sélecteur d'artistes (components/v2/orga/creer/Artistes.tsx). */
+export async function chercherArtistes(q: string): Promise<ArtisteTrouve[]> {
+  const supabase = creerClientServeur();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  return rechercherArtistes(user.id, String(q ?? ""));
 }

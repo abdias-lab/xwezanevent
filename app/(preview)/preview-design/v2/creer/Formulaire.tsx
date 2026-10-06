@@ -10,6 +10,8 @@ import { AUJOURDHUI, CATEGORIES_ORGA, ORGA, VILLES } from "../orga/_orga";
 import { B } from "../Coquille";
 import Images, { type ImageLocale } from "./Images";
 import Billets, { nouveauTarif, tarifValide, type TarifSaisi } from "./Billets";
+import Artistes, { type ArtisteChoisi } from "./Artistes";
+import { chercherDemo } from "./artistesDemo";
 
 const MAX_CATEGORIES = 3; // lib/categories.ts
 
@@ -21,13 +23,14 @@ const MAX_CATEGORIES = 3; // lib/categories.ts
  *
  * `erreurServeur` : refus renvoyé par le serveur (?etat=erreur).
  * `envoyeDemo` : ouvre directement l'écran de confirmation (?etat=envoye).
+ * `verifie` : compte vérifié (?etat=verifie), nouveaux artistes publiés sans validation.
  */
 // Saisie de démonstration pour ?etat=envoye.
 const DEMO = { titre: "Nuit Zinli : Cotonou by Night", categories: ["Concert"], dateDebut: "2026-10-24", heure: "20:00", lieu: "Palais des Congrès", ville: "Cotonou" };
 
 type Etape = "saisie" | "envoi" | "envoye";
 
-export default function Formulaire({ erreurServeur = false, envoyeDemo = false }: { erreurServeur?: boolean; envoyeDemo?: boolean }) {
+export default function Formulaire({ erreurServeur = false, envoyeDemo = false, verifie = false }: { erreurServeur?: boolean; envoyeDemo?: boolean; verifie?: boolean }) {
   const d = envoyeDemo ? DEMO : null;
   const [etape, setEtape] = useState<Etape>(envoyeDemo ? "envoye" : "saisie");
   const [titre, setTitre] = useState(d?.titre ?? "");
@@ -43,6 +46,7 @@ export default function Formulaire({ erreurServeur = false, envoyeDemo = false }
     d ? [{ ...nouveauTarif("Standard"), prix: "3000", quantite: "400" }, { ...nouveauTarif("Carré Or"), prix: "10000", quantite: "50" }] : [nouveauTarif("Standard")],
   );
   const [images, setImages] = useState<ImageLocale[]>([]);
+  const [artistes, setArtistes] = useState<ArtisteChoisi[]>([]);
   const [principale, setPrincipale] = useState<string | null>(null);
   const [tente, setTente] = useState(false); // erreurs affichées après une tentative d'envoi
   // Aperçu non interactif : `inert` n'est pas typé en React 18, posé à la main.
@@ -193,6 +197,9 @@ export default function Formulaire({ erreurServeur = false, envoyeDemo = false }
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
+
+          {/* « Ouidah Live » est un label sans page personnelle : « Moi-même » reste possible. */}
+          <Artistes choisis={artistes} setChoisis={setArtistes} chercher={chercherDemo} verifie={verifie} peutMoiMeme />
 
           <div className={s.champ}>
             <span className={s.etiquette} id="cat-label">

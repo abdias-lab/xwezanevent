@@ -9,7 +9,9 @@ import Formulaire from "@/components/v2/orga/creer/Formulaire";
 import Confirmation from "@/components/v2/orga/creer/Confirmation";
 import { NAV_ORGA } from "@/components/v2/navOrga";
 import s from "@/components/v2/espace.module.css";
-import { publierEvenement } from "./actions";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { estVerifie } from "@/lib/artistes";
+import { chercherArtistes, publierEvenement } from "./actions";
 
 export const metadata: Metadata = {
   title: "Créer un événement — XwézanEvent",
@@ -22,6 +24,11 @@ const MESSAGES_ERREUR: Record<string, string> = {
   date_passee: "La date de l'événement est déjà passée. Choisis une date à partir d'aujourd'hui.",
   pays: "Ce pays n'est pas disponible pour le moment.",
   affiche: "L'envoi d'une image a échoué. Rien n'a été enregistré, réessaie.",
+  artistes: "La liste des artistes n'a pas pu être lue. Rien n'a été enregistré, réessaie.",
+  artiste_nom: "Indique le nom de scène de chaque nouvel artiste (80 caractères au plus).",
+  artiste_whatsapp: "Indique un numéro WhatsApp valide, avec l'indicatif du pays, pour chaque nouvel artiste.",
+  artiste_moi_meme: "Tu as déjà ta page artiste : choisis-la dans la liste au lieu d'en demander une nouvelle.",
+  artiste_indisponible: "Un des artistes choisis n'est plus disponible. Vérifie la liste et réessaie.",
 };
 
 /**
@@ -36,9 +43,11 @@ export default async function Creer({ searchParams }: { searchParams: { erreur?:
   } = await supabase.auth.getUser();
   if (!user) redirect("/connexion?redirect=/creer");
 
-  const [{ data: profil }, { data: paysData }] = await Promise.all([
+  const [{ data: profil }, { data: paysData }, verifie, { data: pagePerso }] = await Promise.all([
     supabase.from("profiles").select("nom, nom_public").eq("id", user.id).maybeSingle(),
     supabase.from("pays").select("code, nom, taux_commission_defaut").eq("actif", true).order("ordre", { ascending: true }),
+    estVerifie(user.id),
+    supabaseAdmin.from("artistes").select("id").eq("compte_id", user.id).maybeSingle(),
   ]);
   const nom = profil?.nom_public || profil?.nom || user.email || "organisateur";
 
@@ -94,6 +103,9 @@ export default async function Creer({ searchParams }: { searchParams: { erreur?:
           pays={(paysData ?? []).map((p) => ({ code: p.code, nom: p.nom, taux: Number(p.taux_commission_defaut) }))}
           aujourdhui={aujourdhuiPortoNovo()}
           erreurServeur={searchParams.erreur ? (MESSAGES_ERREUR[searchParams.erreur] ?? null) : null}
+          chercherArtistes={chercherArtistes}
+          verifie={verifie}
+          peutMoiMeme={!pagePerso}
         />
       )}
     </Coquille>
