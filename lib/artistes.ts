@@ -413,6 +413,9 @@ export interface PropositionRecue {
   statutEvenement: string;
   organisateur: string;
   proposeLe: string;
+  /** Pour la file admin : relancer l'organisateur ou ceux qui doivent décider. */
+  organisateurId: string;
+  decideurs: { id: string; role: "label" | "artiste" | "createur" }[];
 }
 
 /** Propositions en attente pour les artistes que le compte gère, les plus anciennes d'abord. */
@@ -423,14 +426,14 @@ export async function propositionsRecues(userId: string, geres?: Artiste[]): Pro
 }
 
 const COLONNES_PROPOSITION =
-  "event_id, artiste_id, created_at, artiste:artistes(nom_scene, photo_url, statut), evenement:events(titre, slug, date_debut, date_fin, lieu, ville, statut, organisateur:profiles!organisateur_id(nom, nom_public))";
+  "event_id, artiste_id, created_at, artiste:artistes(nom_scene, photo_url, statut, label_id, compte_id, cree_par), evenement:events(titre, slug, date_debut, date_fin, lieu, ville, statut, organisateur_id, organisateur:profiles!organisateur_id(nom, nom_public))";
 
 type LigneProposition = {
   event_id: string;
   artiste_id: string;
   created_at: string;
-  artiste: { nom_scene: string; photo_url: string | null; statut: StatutArtiste } | null;
-  evenement: { titre: string; slug: string; date_debut: string; date_fin: string | null; lieu: string; ville: string; statut: string; organisateur: { nom: string; nom_public: string | null } | null } | null;
+  artiste: { nom_scene: string; photo_url: string | null; statut: StatutArtiste; label_id: string | null; compte_id: string | null; cree_par: string | null } | null;
+  evenement: { titre: string; slug: string; date_debut: string; date_fin: string | null; lieu: string; ville: string; statut: string; organisateur_id: string; organisateur: { nom: string; nom_public: string | null } | null } | null;
 };
 
 /** Propositions en attente, toutes (file de l'admin) ou filtrées par la requête fournie. */
@@ -460,6 +463,8 @@ export async function lirePropositions(
             statutEvenement: l.evenement.statut,
             organisateur: l.evenement.organisateur?.nom_public || l.evenement.organisateur?.nom || "—",
             proposeLe: l.created_at,
+            organisateurId: l.evenement.organisateur_id,
+            decideurs: decideurs(l.artiste).map((id) => ({ id, role: id === l.artiste!.label_id ? ("label" as const) : id === l.artiste!.compte_id ? ("artiste" as const) : ("createur" as const) })),
           },
         ]
       : [],

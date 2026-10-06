@@ -5,7 +5,9 @@ import { creerClientServeur } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { emailUtilisateur } from "@/lib/email";
 import { formaterNumero } from "@/lib/telephone";
-import { RESEAUX, type CleReseau } from "@/lib/artistes";
+import { RESEAUX, lirePropositions, type CleReseau } from "@/lib/artistes";
+import { formatPlageDates } from "@/lib/date";
+import PropositionsArtistes, { type Contact, type PropositionAdmin } from "@/components/v2/admin/PropositionsArtistes";
 import Coquille from "@/components/v2/Coquille";
 import Icon from "@/components/v2/Icon";
 import { NAV_ADMIN } from "@/components/v2/navAdmin";
@@ -18,6 +20,7 @@ export const metadata: Metadata = { title: "Artistes — Administration — Xwé
 
 const FILTRES = [
   { cle: "", libelle: "À valider" },
+  { cle: "propositions", libelle: "Propositions" },
   { cle: "valide", libelle: "En ligne" },
   { cle: "refuse", libelle: "Refusés" },
 ] as const;
@@ -60,18 +63,25 @@ export default async function AdminArtistes({ searchParams }: { searchParams: { 
 
   const filtre = FILTRES.find((f) => f.cle === searchParams.filtre) ?? FILTRES[0];
 
-  const [{ data: artistesData }, { data: verifiesData }] = await Promise.all([
+  const [{ data: artistesData }, { data: verifiesData }, enAttente] = await Promise.all([
     supabaseAdmin
       .from("artistes")
       .select("id, slug, nom_scene, nom_scene_demande, bio, photo_url, liens, type_demande, label_id, cree_par, whatsapp_contact, statut, motif_refus, soumis_le, updated_at, valide_le")
       .order("soumis_le", { ascending: true, nullsFirst: false }),
     supabaseAdmin.from("comptes_verifies").select("user_id"),
+    // Rattachements proposés en attente (lot 2) : file « Propositions ».
+    lirePropositions(),
   ]);
   const tous = (artistesData ?? []) as LigneArtiste[];
   const verifies = new Set((verifiesData ?? []).map((v) => v.user_id as string));
 
   const aValider = tous.filter((a) => a.statut === "en_validation" || (a.statut === "valide" && a.nom_scene_demande));
-  const compte = { "": aValider.length, valide: tous.filter((a) => a.statut === "valide").length, refuse: tous.filter((a) => a.statut === "refuse").length };
+  const compte = {
+    "": aValider.length,
+    propositions: enAttente.length,
+    valide: tous.filter((a) => a.statut === "valide").length,
+    refuse: tous.filter((a) => a.statut === "refuse").length,
+  };
 
   // Profils des demandeurs et des labels (téléphone : service_role uniquement).
   const idsProfils = Array.from(new Set(tous.flatMap((a) => [a.cree_par, a.label_id]).filter((x): x is string => !!x)));
@@ -115,7 +125,38 @@ export default async function AdminArtistes({ searchParams }: { searchParams: { 
       };
     });
   }
-  const liste = filtre.cle ? tous.filter((a) => a.statut === filtre.cle) : [];
+  // File des propositions : coordonnées de l'organisateur et des décideurs (téléphone : service_role uniquement).
+  let propositions: PropositionAdmin[] = [];
+  if (filtre.cle === "propositions" && enAttente.length) {
+    const ids = Array.from(new Set(enAttente.flatMap((p) => [p.organisateurId, ...p.decideurs.map((d) => d.id)])));
+    const [{ data: profilsProp }, emails] = await Promise.all([
+      supabaseAdmin.from("profiles").select("id, nom, nom_public, telephone").in("id", ids),
+      Promise.all(ids.map((id) => emailUtilisateur(id))),
+    ]);
+    const parId = new Map((profilsProp ?? []).map((p) => [p.id as string, p]));
+    const emailDe = new Map(ids.map((id, i) => [id, emails[i]]));
+    const contact = (id: string, role: string): Contact => {
+      const p = parId.get(id);
+      return { nom: p ? p.nom_public || p.nom : "Compte supprimé", role, email: emailDe.get(id) ?? null, tel: p?.telephone ? formaterNumero(p.telephone) : null };
+    };
+    const ROLES = { label: "label", artiste: "compte de l'artiste", createur: "a créé la page" };
+    propositions = enAttente.map((p) => ({
+      cle: p.cle,
+      eventId: p.eventId,
+      artisteId: p.artisteId,
+      artiste: p.artiste,
+      photo: p.photo,
+      titre: p.titre,
+      lienEvenement: p.statutEvenement === "publie" ? `/evenement/${p.slug}` : null,
+      quand: formatPlageDates(p.debut, p.fin, { avecAnnee: true }),
+      ou: `${p.lieu}, ${p.ville}`,
+      depuis: depuis(p.proposeLe),
+      jours: Math.floor((Date.now() - new Date(p.proposeLe).getTime()) / 86_400_000),
+      organisateur: contact(p.organisateurId, "organisateur"),
+      decideurs: p.decideurs.map((d) => contact(d.id, ROLES[d.role])),
+    }));
+  }
+  const liste = filtre.cle && filtre.cle !== "propositions" ? tous.filter((a) => a.statut === filtre.cle) : [];
 
   return (
     <Coquille nav={NAV_ADMIN} actif="artistes" compte={{ nom: profil.nom || user.email || "Admin", email: user.email ?? "" }}>
@@ -149,6 +190,9 @@ export default async function AdminArtistes({ searchParams }: { searchParams: { 
         ) : (
           <ValidationArtistes demandes={demandes} />
         )
+      ) : filtre.cle === "propositions" ? (
+        // Toujours monté, même file vide : la confirmation de la dernière décision reste affichée après le rafraîchissement.
+        <PropositionsArtistes propositions={propositions} />
       ) : liste.length === 0 ? (
         <div className={s.vide}>
           <Icon name="users" size={32} />
