@@ -55,6 +55,35 @@ Audiomack, Boomplay, site web), bio et photo facultatives (repli typographique),
   abonnés, quel que soit le pays. Un seul e-mail par abonné et par événement
   (`notifications_nouvelle_date`).
 - Table `abonnements` prête pour suivre un organisateur (phase 2).
+- Déclencheurs (`lib/nouvelle-date.ts`) : validation admin, publication directe d'un compte
+  vérifié, acceptation d'un rattachement proposé (label ou admin), ajout dans `/modifier` d'un
+  artiste géré à un événement déjà en ligne (décision d'Abdias du 2026-10-07).
+- Conditions : événement publié, à venir, **vente ouverte** (au moins un tarif non complet dont la
+  vente n'est pas close) ; jamais d'e-mail pour un événement complet ou à la vente close.
+- Registre écrit **après** chaque lot Resend réussi (100 e-mails, validation stricte), jamais
+  avant : les abonnés d'un lot en échec restent non marqués. Relance :
+  `POST /api/admin/events/[id]/nouvelle-date` (admin), qui ne sert que les non-marqués ; pas
+  encore de bouton dans l'admin.
+- En-têtes `List-Unsubscribe` et `List-Unsubscribe-Post` (désabonnement en un clic natif des
+  messageries, `/api/desabonnement/[jeton]`). E-mail au gabarit V2 (`lib/emails/v2/gabarit.ts`).
+
+### Limites connues
+
+- **L'envoi « nouvelle date » se fait dans la requête qui le déclenche** (validation admin,
+  publication, `/modifier`, acceptation) et la fait attendre. Acceptable au volume actuel
+  (décision d'Abdias du 2026-10-07). Mesures du 2026-10-07 (build de prod local, 1 à 3
+  abonnés) : environ 1,5 s de coût fixe par envoi, puis de l'ordre de 20 ms par abonné (adresse
+  e-mail lue une à une dans l'API d'auth, 10 en parallèle, et un appel Resend par lot de 100).
+  **Seuil : au-delà d'environ 300 abonnés cumulés sur les artistes d'un même événement**, l'envoi
+  dépasse quelques secondes et approche la durée maximale d'une fonction Vercel (10 s sans
+  configuration sur l'ancien runtime ; à vérifier dans Vercel, Settings › Functions). Il faudra
+  alors sortir l'envoi de la requête : file d'envois traitée par une tâche planifiée (pg_cron ou
+  cron Vercel), qui reprend aussi les lots en échec. Suivre la durée dans le journal du serveur
+  (`[nouvelle-date] … ms`).
+- Deux déclenchements simultanés pour le même événement (ex. deux acceptations à la même
+  seconde) peuvent viser les mêmes abonnés avant l'écriture du registre. La clé d'idempotence
+  Resend par lot évite le double envoi d'un lot identique ; un recouvrement partiel reste
+  possible, rare au volume actuel.
 
 ## Lots
 

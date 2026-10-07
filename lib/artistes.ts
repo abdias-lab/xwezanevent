@@ -257,7 +257,8 @@ export async function preparerArtistes(
  *   conservée garde son statut et son acceptation, seul l'ordre change ; une
  *   ligne retirée de la liste est supprimée.
  * Renvoie les artistes publiés directement (compte vérifié), pour l'e-mail
- * de surveillance, et les artistes nouvellement proposés, à notifier.
+ * de surveillance, les artistes nouvellement proposés (e-mail au label) et
+ * nouvellement acceptés (e-mail « nouvelle date » si l'événement est en ligne).
  */
 export async function enregistrerArtistes(
   eventId: string,
@@ -265,7 +266,7 @@ export async function enregistrerArtistes(
   userId: string,
   verifie: boolean,
   existants: ReadonlySet<string> = new Set(),
-): Promise<{ publies: { nom: string; slug: string }[]; proposes: string[] }> {
+): Promise<{ publies: { nom: string; slug: string }[]; proposes: string[]; acceptes: string[] }> {
   const gardes = new Set(plan.flatMap((p) => ("id" in p && existants.has(p.id) ? [p.id] : [])));
   const retires = Array.from(existants).filter((id) => !gardes.has(id));
   if (retires.length) {
@@ -326,7 +327,8 @@ export async function enregistrerArtistes(
     if (error) throw new Error(`Rattachement des artistes impossible : ${error.message}`);
   }
   const proposes = lignes.filter((l) => l.statut === "propose").map((l) => l.artiste_id as string);
-  return { publies, proposes };
+  const acceptes = lignes.filter((l) => l.statut === "accepte").map((l) => l.artiste_id as string);
+  return { publies, proposes, acceptes };
 }
 
 /**

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
 import { verifierAdmin, journaliserActionAdmin } from "@/lib/admin-auth";
 import { deciderProposition } from "@/lib/artistes";
+import { notifierNouvelleDate } from "@/lib/nouvelle-date";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -27,6 +28,12 @@ export async function POST(req: NextRequest) {
   if (!fait) return NextResponse.json({ error: "Cette proposition a déjà été traitée." }, { status: 409 });
 
   journaliserActionAdmin(adminId, `rattachement : ${action}`, { event_id: eventId, artiste_id: artisteId });
+  if (action === "accepter") {
+    // « Nouvelle date » aux abonnés de l'artiste si l'événement est en ligne, à venir et en vente (lot 3).
+    const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "localhost:3000";
+    const proto = req.headers.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+    await notifierNouvelleDate(eventId, `${proto}://${host}`, [artisteId]);
+  }
   if (fait.evenement) revalidatePath(`/evenement/${fait.evenement}`);
   if (fait.artiste) revalidatePath(`/artiste/${fait.artiste}`);
   return NextResponse.json({ ok: true });

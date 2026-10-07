@@ -8,6 +8,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { uploaderImageEvenement, supprimerImageEvenement } from "@/lib/images-evenement";
 import { envoyerEmail } from "@/lib/email";
 import { ADRESSE_EQUIPE, emailPublicationVerifiee } from "@/lib/emails/surveillance";
+import { notifierNouvelleDate } from "@/lib/nouvelle-date";
 import { BIO_MAX, COLONNES_ARTISTE, NOM_SCENE_MAX, WHATSAPP_MAX, deciderProposition, estVerifie, gere, lireLiens, slugLibre, type Artiste } from "@/lib/artistes";
 
 export type EtatFormulaireArtiste = { erreur: string } | null;
@@ -204,6 +205,9 @@ export async function deciderPropositionOrga(formData: FormData) {
 
   const fait = await deciderProposition(eventId, artisteId, decision, user.id);
   if (!fait) redirect("/orga/artistes?decision=deja");
+  // Rattachement accepté : « nouvelle date » aux abonnés de l'artiste si l'événement
+  // est en ligne, à venir et en vente (lot 3).
+  if (decision === "accepter") await notifierNouvelleDate(eventId, origine(), [artisteId]);
   revalidatePath("/orga/artistes");
   if (fait.evenement) revalidatePath(`/evenement/${fait.evenement}`);
   if (fait.artiste) revalidatePath(`/artiste/${fait.artiste}`);

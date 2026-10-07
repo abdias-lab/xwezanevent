@@ -20,6 +20,7 @@ import {
   type ArtisteTrouve,
 } from "@/lib/artistes";
 import { journaliserAction } from "@/lib/journal";
+import { notifierNouvelleDate } from "@/lib/nouvelle-date";
 
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -271,7 +272,6 @@ export async function publierEvenement(formData: FormData) {
   // jamais en ligne incomplète. En cas d'échec, l'événement reste en
   // validation et suit le circuit habituel (l'écran de confirmation lit le
   // statut réel). L'équipe reçoit l'e-mail de surveillance, sans blocage.
-  // Lot 3 : e-mail « nouvelle date » aux abonnés des artistes à cet endroit.
   if (verifie) {
     const { data: publie, error: erreurPublication } = await supabaseAdmin
       .from("events")
@@ -284,6 +284,8 @@ export async function publierEvenement(formData: FormData) {
     if (publie) {
       await journaliserAction(user.id, "organisateur", "publication directe (compte vérifié)", { event_id: ev.id, titre });
       await surveillerEvenementPublie({ titre, slug: ev.slug }, user, origine());
+      // « Nouvelle date » aux abonnés des artistes de l'affiche (lot 3).
+      await notifierNouvelleDate(ev.id, origine());
       revalidatePath("/");
       revalidatePath("/evenements");
     }

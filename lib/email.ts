@@ -72,6 +72,41 @@ export async function envoyerEmail({
 }
 
 /**
+ * Envoi groupé (Resend batch, 100 messages au plus) en validation stricte :
+ * le lot est accepté ou refusé EN ENTIER, ce qui permet à l'appelant de ne
+ * marquer comme servis que les destinataires d'un lot réussi. `cle` : clé
+ * d'idempotence Resend (24 h), un même lot relancé n'est pas renvoyé.
+ * Même contrat que envoyerEmail : jamais d'exception, `false` en cas d'échec
+ * (clé absente comprise : rien n'est envoyé, chaque message est journalisé).
+ */
+export async function envoyerLotEmails(
+  messages: { to: string; subject: string; html: string; headers?: Record<string, string> }[],
+  cle: string,
+): Promise<boolean> {
+  if (messages.length === 0) return true;
+  if (messages.length > 100) throw new Error("envoyerLotEmails : 100 messages au plus par lot");
+  if (!process.env.RESEND_API_KEY) {
+    for (const m of messages) console.warn(`[email] RESEND_API_KEY absente — email "${m.subject}" à ${m.to} non envoyé (lot)`);
+    return false;
+  }
+  try {
+    const { data, error } = await resend().batch.send(
+      messages.map((m) => ({ from: EXPEDITEUR_EMAIL, ...m })),
+      { idempotencyKey: cle },
+    );
+    if (error) {
+      console.error(`[email] échec du lot de ${messages.length} (« ${messages[0].subject} ») :`, error);
+      return false;
+    }
+    console.log(`[email] lot envoyé : ${data?.data?.length ?? 0} message(s) (« ${messages[0].subject} »)`);
+    return true;
+  } catch (e) {
+    console.error(`[email] exception à l'envoi d'un lot de ${messages.length} :`, e);
+    return false;
+  }
+}
+
+/**
  * Email d'un utilisateur via l'API admin — profiles ne stocke pas
  * l'email (voir lib/supabase-admin.ts), il faut passer par auth.users.
  */
