@@ -7,6 +7,7 @@ import { RESEAUX, type CleReseau } from "@/lib/artistes";
 import { getDatesArtiste } from "@/lib/events";
 import Icon from "@/components/v2/Icon";
 import Carte from "@/components/v2/public/Carte";
+import AbonnementArtiste from "@/components/v2/public/AbonnementArtiste";
 import { Header, Footer } from "@/components/v2/public/Chrome";
 import { versCarte } from "@/components/v2/public/carteData";
 import { jour, mois } from "@/components/v2/public/evenement";
@@ -50,14 +51,13 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-const formatNombre = (n: number) => n.toLocaleString("fr-FR").replace(/ /g, " ");
 
 /**
  * Page artiste (V2), reprise de la preview (v2/artiste) : design/ARTISTES.md.
  * 404 tant que l'artiste n'est pas validé. Badge « Vérifié » quand un compte
  * qui gère l'artiste (label, compte de l'artiste, créateur) est vérifié ;
- * label relié au compte organisateur du label. « S'abonner » arrive au
- * lot 3 : absent d'ici là (jamais de bouton sans effet).
+ * label relié au compte organisateur du label. « S'abonner » (lot 3) :
+ * e-mail à chaque nouvelle date (lib/abonnements.ts).
  */
 export default async function PageArtiste({ params }: { params: { slug: string } }) {
   const a = await lireArtiste(params.slug);
@@ -103,14 +103,8 @@ export default async function PageArtiste({ params }: { params: { slug: string }
                 </span>
               )}
             </h1>
-            <p className={v.artMeta}>
-              {nomLabel && (
-                <>
-                  Label <b>{nomLabel}</b> ·{" "}
-                </>
-              )}
-              <b className={v.chiffreArt}>{formatNombre(nbAbonnes)}</b> abonné{nbAbonnes > 1 ? "s" : ""}
-            </p>
+            {/* Compteur et « S'abonner » : état du visiteur lu côté client, la page reste en cache. */}
+            <AbonnementArtiste artisteId={a.id} slug={a.slug} nom={a.nom_scene} nomLabel={nomLabel} abonnesInitial={nbAbonnes} />
             {reseaux.length > 0 && (
               <div className={v.artReseaux}>
                 {reseaux.map((r) => (

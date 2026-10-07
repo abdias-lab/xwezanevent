@@ -6,6 +6,7 @@ import Icon from "../../Icon";
 import { RubanEtats } from "../Coquille";
 import { EVENEMENTS, jour, mois } from "../../_data";
 import { initialesArtiste } from "../orga/artistes/_artistes";
+import AbonnementArtiste from "./AbonnementArtiste";
 
 export const metadata: Metadata = { title: "Zeynab Habib — XwézanEvent" };
 
@@ -25,9 +26,9 @@ const PASSEES = [
  * Page artiste (preview V2, design/ARTISTES.md). En prod :
  * app/(public)/artiste/[slug] (404 tant que l'artiste n'est pas validé).
  * Badge « Vérifié » quand le compte qui gère l'artiste est vérifié ; label
- * relié au compte organisateur du label. « S'abonner » arrive au lot 3 :
- * absent tant que les abonnements ne sont pas branchés. États :
- * ?etat=sans-dates, sans-photo, non-verifie.
+ * relié au compte organisateur du label. « S'abonner » (lot 3) : visiteur
+ * non connecté par défaut. États : ?etat=sans-dates, sans-photo,
+ * non-verifie, connecte (connecté, pas abonné), abonne.
  */
 export default function V2Artiste({ searchParams }: { searchParams: { etat?: string } }) {
   const etat = searchParams.etat;
@@ -65,9 +66,14 @@ export default function V2Artiste({ searchParams }: { searchParams: { etat?: str
                 </span>
               )}
             </h1>
-            <p className={s.artMeta}>
-              Label <b>Ouidah Live</b> · <b className={s.chiffreArt}>1 248</b> abonnés
-            </p>
+            <AbonnementArtiste
+              artisteId="a1"
+              slug="zeynab-habib"
+              nom={nom}
+              nomLabel="Ouidah Live"
+              abonnesInitial={etat === "abonne" ? 1249 : 1248}
+              initial={{ connecte: etat === "connecte" || etat === "abonne", abonne: etat === "abonne" }}
+            />
             <div className={s.artReseaux}>
               {RESEAUX.map((r) => (
                 <a key={r.url} href={r.url} target="_blank" rel="noopener noreferrer">
@@ -127,7 +133,7 @@ export default function V2Artiste({ searchParams }: { searchParams: { etat?: str
             </ul>
           </section>
         )}
-        <RubanEtats chemin="/preview-design/v2/artiste" etats={["normal", "sans-dates", "sans-photo", "non-verifie"]} />
+        <RubanEtats chemin="/preview-design/v2/artiste" etats={["normal", "sans-dates", "sans-photo", "non-verifie", "connecte", "abonne"]} />
       </main>
       <Footer />
     </div>
