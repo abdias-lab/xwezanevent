@@ -42,7 +42,7 @@ Décisions d'Abdias du 2026-10-01. Schéma : `supabase/migrations/20261001120000
 
 ## Retrait et suppression par l'admin
 
-Décisions d'Abdias du 2026-10-08 (migration `20261009120000_retrait_artistes.sql`).
+Décisions d'Abdias du 2026-10-08 (migration `20261008130000_retrait_artistes.sql`).
 
 - **Retirer** un artiste en ligne : statut `retire`. Page en 404, absent des sections « Avec »,
   plus d'abonnement possible ni d'e-mail « nouvelle date », plus proposé dans le sélecteur ni

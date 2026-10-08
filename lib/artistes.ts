@@ -12,7 +12,7 @@ import { formatPlageDates } from "@/lib/date";
  * service_role uniquement : les tables n'ont aucun droit d'écriture client.
  */
 
-/** « retire » : retiré par l'équipe après validation, réversible (20261009120000_retrait_artistes.sql). */
+/** « retire » : retiré par l'équipe après validation, réversible (20261008130000_retrait_artistes.sql). */
 export type StatutArtiste = "en_validation" | "valide" | "refuse" | "retire";
 export type TypeDemande = "label" | "auto_produit";
 export type CleReseau = "instagram" | "facebook" | "tiktok" | "youtube" | "spotify" | "audiomack" | "boomplay" | "site";
