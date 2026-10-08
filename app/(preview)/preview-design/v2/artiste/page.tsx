@@ -6,16 +6,20 @@ import Icon from "../../Icon";
 import { RubanEtats } from "../Coquille";
 import { EVENEMENTS, jour, mois } from "../../_data";
 import { initialesArtiste } from "../orga/artistes/_artistes";
-import AbonnementArtiste from "./AbonnementArtiste";
+import LogoReseau from "./LogoReseau";
+import AbonnementArtiste, { BoutonAbonner, CompteurAbonnes } from "./AbonnementArtiste";
 
 export const metadata: Metadata = { title: "Zeynab Habib — XwézanEvent" };
 
 const DETAIL = "/preview-design/v2/evenement";
+// Boomplay : pas de tracé de marque disponible, pictogramme générique (voir LogoReseau).
 const RESEAUX = [
-  { libelle: "Instagram", url: "https://instagram.com/zeynab" },
-  { libelle: "YouTube", url: "https://youtube.com/@zeynab" },
-  { libelle: "Spotify", url: "https://open.spotify.com/artist/zeynab" },
-  { libelle: "Audiomack", url: "https://audiomack.com/zeynab" },
+  { cle: "instagram", libelle: "Instagram", url: "https://instagram.com/zeynab" },
+  { cle: "tiktok", libelle: "TikTok", url: "https://tiktok.com/@zeynab" },
+  { cle: "youtube", libelle: "YouTube", url: "https://youtube.com/@zeynab" },
+  { cle: "spotify", libelle: "Spotify", url: "https://open.spotify.com/artist/zeynab" },
+  { cle: "audiomack", libelle: "Audiomack", url: "https://audiomack.com/zeynab" },
+  { cle: "boomplay", libelle: "Boomplay", url: "https://boomplay.com/artists/zeynab" },
 ];
 const PASSEES = [
   { date: "2026-08-15", titre: "Zeynab en acoustique", lieu: "Institut français", ville: "Cotonou" },
@@ -45,8 +49,8 @@ export default function V2Artiste({ searchParams }: { searchParams: { etat?: str
   const aVenir = etat === "sans-dates" ? [] : [EVENEMENTS[1], EVENEMENTS[3], EVENEMENTS[0]];
   const passees = etat === "sans-dates" ? [] : PASSEES;
   const reseaux = RESEAUX.map((r) => (
-    <a key={r.url} href={r.url} target="_blank" rel="noopener noreferrer">
-      <Icon name="link" /> {r.libelle}
+    <a key={r.url} href={r.url} target="_blank" rel="noopener noreferrer" aria-label={r.libelle} title={r.libelle}>
+      <LogoReseau cle={r.cle} />
     </a>
   ));
 
@@ -63,6 +67,12 @@ export default function V2Artiste({ searchParams }: { searchParams: { etat?: str
         </div>
         {/* Bandeau : photo de profil peu floutée en fond (WebP, largeur fixe), voile local sous le texte.
             Sans photo : dégradé anthracite → or. */}
+        {/* Compteur (bandeau) et bouton (sous le bandeau) partagent un même état. */}
+        <AbonnementArtiste
+          slug="zeynab-habib"
+          abonnesInitial={etat === "abonne" ? 1249 : 1248}
+          initial={{ connecte: etat === "connecte" || etat === "abonne", abonne: etat === "abonne" }}
+        >
         <section className={`${s.artBandeau} ${photo ? "" : s.artBandeauRepli}`}>
           {photo && (
             <div className={s.artFond} aria-hidden="true">
@@ -84,29 +94,25 @@ export default function V2Artiste({ searchParams }: { searchParams: { etat?: str
                   <span aria-hidden="true">{initialesArtiste(nom)}</span>
                 )}
               </div>
+              {/* Identité : badge seul sur sa ligne, nom, nombre d'abonnés ; base alignée sur la vignette. */}
               <div className={s.artInfos}>
-                <h1 className={s.h1}>
-                  {nom}
-                  {verifie && (
-                    <span className={s.badgeVerifie}>
-                      <Icon name="check" /> Vérifié
-                    </span>
-                  )}
-                </h1>
-                <AbonnementArtiste
-                  artisteId="a1"
-                  slug="zeynab-habib"
-                  nom={nom}
-                  nomLabel="Ouidah Live"
-                  abonnesInitial={etat === "abonne" ? 1249 : 1248}
-                  initial={{ connecte: etat === "connecte" || etat === "abonne", abonne: etat === "abonne" }}
-                />
-                {/* Bureau seulement ; en mobile, sous la bio (bandeau moins haut à 360 px). */}
-                <div className={`${s.artReseaux} ${s.artReseauxBureau}`}>{reseaux}</div>
+                {verifie && (
+                  <span className={s.badgeVerifie}>
+                    <Icon name="check" /> Vérifié
+                  </span>
+                )}
+                <h1 className={s.h1}>{nom}</h1>
+                <CompteurAbonnes />
               </div>
             </div>
           </div>
         </section>
+        {/* Sous la bande : « S'abonner », puis les réseaux à la ligne. */}
+        <div className={`${s.cont} ${s.artCont} ${s.artSous}`}>
+          <BoutonAbonner />
+          <div className={s.artLogos}>{reseaux}</div>
+        </div>
+        </AbonnementArtiste>
 
         <div className={`${s.cont} ${s.artCont}`}>
         <section className={s.artSection} aria-labelledby="a-venir">
@@ -139,7 +145,6 @@ export default function V2Artiste({ searchParams }: { searchParams: { etat?: str
             tournée 2026 qui passe par les grandes villes du pays.
             {"\n\n"}Son dernier single, « Gbè », a dépassé le million d&apos;écoutes sur Audiomack.
           </p>
-          <div className={`${s.artReseaux} ${s.artReseauxMobile}`}>{reseaux}</div>
         </section>
 
         {passees.length > 0 && (

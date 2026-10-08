@@ -1963,9 +1963,24 @@
 .artBandeauRepli {
   background: linear-gradient(120deg, var(--bg) 25%, rgb(228 169 63 / 0.38) 100%), var(--bg);
 }
+/* Disposition (structure Shotgun) : vignette | identité (badge seul sur sa
+   ligne, nom, nombre d'abonnés), bases alignées. « S'abonner » et les
+   réseaux sont sous la bande. */
+.artBandeau .artTete {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: var(--s4);
+}
+.artBandeau .artInfos {
+  gap: var(--s2);
+  justify-items: start;
+}
+.artBandeau .badgeVerifie {
+  margin-left: 0;
+}
 /* Dégradé de lecture : pleine largeur (la bande coupe ce qui dépasse),
-   70 % plein du bas de la bande jusqu'en haut du bloc de texte, puis fondu
-   sur 64 px. Sa hauteur suit le texte : un nom sur deux lignes reste couvert. */
+   70 % plein du bas de la bande jusqu'en haut du texte, puis fondu sur
+   48 px. Sa hauteur suit le texte : un nom sur deux lignes reste couvert. */
 .artBandeau .artInfos {
   position: relative;
 }
@@ -1973,14 +1988,44 @@
   content: "";
   position: absolute;
   z-index: -1;
-  top: -64px;
+  top: -48px;
   bottom: calc(var(--s6) * -1);
   left: -100vw;
   right: -100vw;
-  background: linear-gradient(to top, rgb(28 28 28 / 0.7) calc(100% - 64px), rgb(28 28 28 / 0));
+  background: linear-gradient(to top, rgb(28 28 28 / 0.7) calc(100% - 48px), rgb(28 28 28 / 0));
 }
 .artBandeauRepli .artInfos::before {
   display: none;
+}
+/* Sous la bande : bouton, puis réseaux à la ligne. */
+.artSous {
+  display: grid;
+  justify-items: start;
+  gap: var(--s3);
+  padding-top: var(--s4);
+}
+.artSous .artAbonnementNote:empty {
+  display: none;
+}
+/* Réseaux : logos seuls, ronds, nom en aria-label et infobulle. */
+.artLogos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+.artLogos a {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: #fff;
+  transition: box-shadow var(--d1) var(--ease), color var(--d1) var(--ease);
+}
+.artLogos a:hover {
+  box-shadow: inset 0 0 0 1px var(--or);
+  color: var(--or);
 }
 .artBandeau .badgeVerifie,
 .artBandeau .artReseaux a {
@@ -1991,12 +2036,6 @@
 }
 .artBandeau .artPhoto {
   box-shadow: 0 0 0 3px rgb(28 28 28 / 0.6);
-}
-.artReseauxBureau {
-  display: none;
-}
-.artReseauxMobile {
-  margin-top: var(--s6);
 }
 .artCont {
   max-width: 960px;
@@ -2021,12 +2060,6 @@
   flex: none;
 }
 @media (max-width: 767px) {
-  /* Mobile : vignette à gauche, calée en haut sur la ligne du nom. */
-  .artBandeau .artTete {
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: var(--s4);
-    align-items: start;
-  }
   .artBandeau .artPhoto {
     width: 72px;
     height: 72px;
@@ -2037,15 +2070,8 @@
   .artBandeau {
     min-height: 380px;
   }
-  /* Vignette et bloc nom calés sur la même ligne basse. */
   .artBandeau .artTete {
-    align-items: end;
-  }
-  .artReseauxBureau {
-    display: flex;
-  }
-  .artReseauxMobile {
-    display: none;
+    column-gap: var(--s8);
   }
 }
 
@@ -2119,12 +2145,12 @@ a.avecArtiste:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--s2);
-  height: 44px;
-  padding: 0 var(--s4);
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
   border: 0;
   border-radius: var(--r);
-  font: 700 12px/16px var(--corps);
+  font: 700 10px/14px var(--corps);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
