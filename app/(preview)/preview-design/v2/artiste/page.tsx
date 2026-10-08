@@ -46,6 +46,11 @@ export default function V2Artiste({ searchParams }: { searchParams: { etat?: str
   // Photo de démonstration libre de droits (Unsplash, Keagan Henman, licence Unsplash) ;
   // photo-blanche : pire cas du contraste (image entièrement blanche).
   const photo = etat === "sans-photo" ? null : etat === "photo-blanche" ? "/images/preview-blanc.png" : "/images/artiste-demo.jpg";
+  // Couverture (Unsplash, Tony Pham) : niveau 1 du bandeau, affichée nette. couverture-blanche : pire cas.
+  const couverture = etat === "couverture" ? "/images/couverture-demo.jpg" : etat === "couverture-blanche" ? "/images/preview-blanc.png" : null;
+  // Fond du bandeau : couverture (nette) → photo de profil (floutée) → dégradé.
+  const fond = couverture ?? photo;
+  const optimisee = (url: string, largeur: number) => `/_next/image?url=${encodeURIComponent(url)}&w=${largeur}&q=${largeur > 1000 ? 70 : 60}`;
   const aVenir = etat === "sans-dates" ? [] : [EVENEMENTS[1], EVENEMENTS[3], EVENEMENTS[0]];
   const passees = etat === "sans-dates" ? [] : PASSEES;
   const reseaux = RESEAUX.map((r) => (
@@ -73,14 +78,14 @@ export default function V2Artiste({ searchParams }: { searchParams: { etat?: str
           abonnesInitial={etat === "abonne" ? 1249 : 1248}
           initial={{ connecte: etat === "connecte" || etat === "abonne", abonne: etat === "abonne" }}
         >
-        <section className={`${s.artBandeau} ${photo ? "" : s.artBandeauRepli}`}>
-          {photo && (
-            <div className={s.artFond} aria-hidden="true">
-              {/* Largeur fixe quelle que soit la densité de l'écran : 640 px en mobile, 1 200 en bureau (fond peu flouté). */}
+        <section className={`${s.artBandeau} ${fond ? "" : s.artBandeauRepli}`}>
+          {fond && (
+            <div className={`${s.artFond} ${couverture ? s.artFondNet : ""}`} aria-hidden="true">
+              {/* Largeur fixe : 640 px en mobile, 1 200 en bureau (1 920 pour une couverture nette). */}
               <picture>
-                <source media="(min-width: 768px)" srcSet={`/_next/image?url=${encodeURIComponent(photo)}&w=1200&q=60`} />
+                <source media="(min-width: 768px)" srcSet={optimisee(fond, couverture ? 1920 : 1200)} />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`/_next/image?url=${encodeURIComponent(photo)}&w=640&q=60`} alt="" fetchPriority="high" />
+                <img src={optimisee(fond, couverture ? 828 : 640)} alt="" fetchPriority="high" />
               </picture>
             </div>
           )}
@@ -169,7 +174,7 @@ export default function V2Artiste({ searchParams }: { searchParams: { etat?: str
             </ul>
           </section>
         )}
-        <RubanEtats chemin="/preview-design/v2/artiste" etats={["normal", "sans-dates", "sans-photo", "non-verifie", "connecte", "abonne", "photo-blanche"]} />
+        <RubanEtats chemin="/preview-design/v2/artiste" etats={["normal", "sans-dates", "sans-photo", "non-verifie", "connecte", "abonne", "photo-blanche", "couverture", "couverture-blanche"]} />
         </div>
       </main>
       <Footer />

@@ -1924,8 +1924,8 @@
    global. Le contraste vient d'un dégradé pleine largeur qui remonte du bas
    jusqu'au-dessus du bloc de texte (calé en bas) : au moins 70 %
    d'anthracite sous chaque ligne, quelle que soit la photo. Badge et liens
-   réseaux ont leur propre fond sombre. Repli, seulement sans photo :
-   dégradé anthracite → or (critères de taille et de luminance : tâche à
+   réseaux ont leur propre fond sombre. Fond en cascade : couverture
+   (nette) → photo de profil (floutée) → dégradé anthracite → or (critères de taille et de luminance : tâche à
    part, BUGS_REFONTE A10). */
 .artBandeau {
   position: relative;
@@ -1959,6 +1959,12 @@
   filter: blur(3px) brightness(1.1);
   /* Agrandie : le flou ne laisse pas de bord clair. */
   transform: scale(1.03);
+}
+/* Niveau 1 : couverture fournie, affichée nette (ni flou ni agrandissement). */
+.artFondNet img {
+  filter: none;
+  transform: none;
+  object-position: center;
 }
 .artBandeauRepli {
   background: linear-gradient(120deg, var(--bg) 25%, rgb(228 169 63 / 0.38) 100%), var(--bg);
