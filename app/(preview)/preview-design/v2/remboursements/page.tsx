@@ -45,7 +45,8 @@ export default function V2Remboursements() {
               </ul>
               <p>
                 Notre équipe organise ensuite le remboursement de chaque acheteur, directement vers le numéro Mobile Money utilisé lors de l&apos;achat.{" "}
-                <strong>Aucun frais supplémentaire</strong> n&apos;est prélevé sur le remboursement — tu récupères l&apos;intégralité du prix payé.
+                Tu récupères <strong>le prix de ton billet en entier</strong> : XwézanEvent ne retient rien. Les frais de l&apos;opérateur de paiement,
+                prélevés lors de l&apos;achat, ne sont pas remboursables.
               </p>
             </>
           ),

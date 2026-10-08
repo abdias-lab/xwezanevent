@@ -61,7 +61,8 @@ const questionsAcheteurs = (operateurs: string): Question[] => [
     r: (
       <>
         En dehors d&apos;une annulation de l&apos;événement, les billets ne sont pas remboursables — c&apos;est la politique de XwézanEvent, valable pour tous
-        les événements. En cas d&apos;annulation, vous êtes remboursé intégralement. Pour toute demande, consultez notre page{" "}
+        les événements. En cas d&apos;annulation, le prix de votre billet vous est remboursé en entier, sans retenue de la part de XwézanEvent ; les
+        frais de l&apos;opérateur de paiement prélevés lors de l&apos;achat ne sont pas remboursables. Pour toute demande, consultez notre page{" "}
         <a href="/remboursements">Remboursements</a> ou <a href="/contact">contactez-nous</a>.
       </>
     ),
