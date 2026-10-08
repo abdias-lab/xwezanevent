@@ -34,7 +34,7 @@ const PASSEES = [
  * non connecté par défaut. États : ?etat=sans-dates, sans-photo,
  * non-verifie, connecte (connecté, pas abonné), abonne.
  *
- * Refonte de la page (2026-10-09, en preview seulement) : bandeau avec la
+ * Refonte de la page (2026-10-08, en preview seulement) : bandeau avec la
  * photo floutée en fond (repli : dégradé anthracite → or), dates avant la bio,
  * conteneur resserré (960 px), état vide réduit à une ligne. Photo de
  * démonstration : public/images/artiste-demo.jpg (Unsplash).

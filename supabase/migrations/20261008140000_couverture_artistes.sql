@@ -1,4 +1,4 @@
--- Image de couverture d'un artiste (décision d'Abdias du 2026-10-09).
+-- Image de couverture d'un artiste (décision d'Abdias du 2026-10-08).
 --
 -- Bandeau de la page artiste, repli en cascade : couverture fournie
 -- (affichée nette) → sinon photo de profil floutée → sinon dégradé.

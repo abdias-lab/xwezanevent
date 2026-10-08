@@ -9,7 +9,7 @@ import Icon from "../../Icon";
  * reste en cache : l'état du visiteur (connecté, abonné) et le compteur à
  * jour viennent de /api/abonnements/artistes/[id]. Abonnement avec compte :
  * un visiteur non connecté passe par la connexion et revient sur la page.
- * Refonte 2026-10-09 : le compteur est dans le bandeau, le bouton dessous,
+ * Refonte 2026-10-08 : le compteur est dans le bandeau, le bouton dessous,
  * avant les réseaux. Un seul état partagé (AbonnementArtiste englobe les
  * deux) : le compteur suit le bouton.
  * Preview : copie de components/v2/public/AbonnementArtiste.tsx ; l'appel à

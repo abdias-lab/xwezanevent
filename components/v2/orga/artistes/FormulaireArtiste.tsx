@@ -45,7 +45,7 @@ const RESEAUX: { cle: CleReseau; libelle: string; exemple: string }[] = [
  * d'erreur, les champs restent remplis). La photo est compressée dans le
  * navigateur avant l'envoi (lib/compression-image.ts, Vercel refuse plus de
  * 4,5 Mo par requête). Aucun document demandé ici (design/ARTISTES.md).
- * Couverture (2026-10-09) : même compression ; format paysage exigé
+ * Couverture (2026-10-08) : même compression ; format paysage exigé
  * (refus d'une image verticale ou carrée), aperçu du bandeau en bureau et
  * en mobile avant l'enregistrement.
  */

@@ -7,7 +7,7 @@ import { initialesArtiste } from "../../orga/artistes/_artistes";
 
 /**
  * Artistes en ligne, retirés ou refusés (admin, décisions d'Abdias du
- * 2026-10-08) : corriger le nom affiché (A9), supprimer la couverture seule (2026-10-09), retirer (réversible), remettre en ligne, supprimer
+ * 2026-10-08) : corriger le nom affiché (A9), supprimer la couverture seule (2026-10-08), retirer (réversible), remettre en ligne, supprimer
  * définitivement (seulement sans rattachement ni abonné ; le serveur
  * refait le contrôle sous verrou au moment du clic). Le nombre d'abonnés
  * est affiché sur la carte et annoncé avant un retrait. Une carte traitée

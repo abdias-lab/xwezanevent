@@ -24,7 +24,7 @@ export interface Artiste {
   nom_scene_demande: string | null;
   bio: string | null;
   photo_url: string | null;
-  /** Image de couverture du bandeau (migration 20261010120000). */
+  /** Image de couverture du bandeau (migration 20261008140000). */
   couverture_url: string | null;
   liens: Partial<Record<CleReseau, string>>;
   type_demande: TypeDemande;

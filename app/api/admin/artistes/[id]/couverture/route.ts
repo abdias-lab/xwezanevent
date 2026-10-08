@@ -9,7 +9,7 @@ const MOTIF_MAX = 1000;
 
 /**
  * Supprimer la couverture d'un artiste, seule (décision d'Abdias du
- * 2026-10-09) : image inappropriée retirée tout de suite, sans retirer
+ * 2026-10-08) : image inappropriée retirée tout de suite, sans retirer
  * l'artiste. Le bandeau repasse sur la photo floutée (ou le dégradé).
  * Conditionné à l'image vue par l'admin : une couverture remplacée entre-temps
  * n'est pas supprimée en silence (409). Fichier libéré du stockage, trace au

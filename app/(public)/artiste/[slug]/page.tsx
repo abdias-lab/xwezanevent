@@ -37,7 +37,7 @@ const COLONNES = "id, slug, nom_scene, bio, photo_url, liens, label_id, compte_i
 const lireArtiste = cache(async (slug: string): Promise<ArtistePublic | null> => {
   const lire = (colonnes: string) => supabaseAdmin.from("artistes").select(colonnes).eq("slug", slug).eq("statut", "valide").maybeSingle();
   let { data, error } = await lire(`${COLONNES}, couverture_url`);
-  // Migration 20261010120000 (couverture_url) pas encore appliquée : la page reste servie, sans couverture.
+  // Migration 20261008140000 (couverture_url) pas encore appliquée : la page reste servie, sans couverture.
   if (error?.code === "42703") ({ data, error } = await lire(COLONNES));
   if (!data) return null;
   return { couverture_url: null, ...(data as unknown as Omit<ArtistePublic, "couverture_url">) } as ArtistePublic;
@@ -62,7 +62,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
  * Page artiste (V2), reprise de la preview (v2/artiste) : design/ARTISTES.md.
  * 404 tant que l'artiste n'est pas validé. Badge « Vérifié » quand un compte
  * qui gère l'artiste (label, compte de l'artiste, créateur) est vérifié.
- * Refonte 2026-10-09 : bandeau de couverture pleine largeur, fond en
+ * Refonte 2026-10-08 : bandeau de couverture pleine largeur, fond en
  * cascade (couverture nette → photo de profil floutée → dégradé) ;
  * « S'abonner » et réseaux (logos) sous la bande ; dates avant la bio.
  * « S'abonner » (lot 3) : e-mail à chaque nouvelle date (lib/abonnements.ts).

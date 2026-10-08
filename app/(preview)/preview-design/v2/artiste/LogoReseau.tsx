@@ -1,5 +1,5 @@
 /**
- * Logos des réseaux d'un artiste (page artiste, refonte 2026-10-09) : tracés
+ * Logos des réseaux d'un artiste (page artiste, refonte 2026-10-08) : tracés
  * de Simple Icons (simpleicons.org, licence CC0), pleins, en currentColor.
  * Boomplay n'a pas de tracé chez Simple Icons, et « Site web » n'est pas une
  * marque : pictogrammes au trait du jeu d'icônes (note, globe).
