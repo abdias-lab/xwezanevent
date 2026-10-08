@@ -61,6 +61,7 @@ export default async function ModifierArtiste({ params }: { params: { id: string
           nomDemande: a.nom_scene_demande,
           bio: a.bio ?? "",
           photo: a.photo_url,
+          couverture: a.couverture_url,
           liens: a.liens ?? {},
           type: a.type_demande,
           statut: a.statut,

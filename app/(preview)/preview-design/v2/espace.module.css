@@ -434,6 +434,86 @@
   object-fit: cover;
 }
 
+/* Aperçu de la couverture dans le bandeau de la page artiste (proportions
+   réelles ; même dégradé de lecture que components/v2/v2.module.css). */
+.apercuBandeaux {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: var(--s3);
+  align-items: end;
+  margin-bottom: var(--s3);
+}
+.apercuBandeau {
+  margin: 0;
+  display: grid;
+  gap: var(--s1);
+}
+.apercuBandeau figcaption {
+  font-size: 12px;
+  color: var(--muted);
+}
+.apercuCadre {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1280 / 380;
+  border-radius: var(--r);
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.apercuBandeauMobile .apercuCadre {
+  aspect-ratio: 360 / 340;
+}
+.apercuCadre > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.apercuIdentite {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14% 8% 6%;
+  background: linear-gradient(to top, rgb(28 28 28 / 0.7) 70%, rgb(28 28 28 / 0));
+}
+.apercuAvatar {
+  flex: none;
+  width: 22%;
+  max-width: 40px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--raised);
+  color: var(--or);
+  font: 900 10px/1 var(--display);
+}
+.apercuBandeauMobile .apercuAvatar {
+  width: 26%;
+}
+.apercuAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.apercuNom {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #fff;
+  font: 900 13px/1.1 var(--display);
+}
+.apercuBandeauMobile .apercuNom {
+  font-size: 10px;
+}
+
 /* ---------- Liste = cartes (mobile) / grille (desktop) ---------- */
 .liste {
   display: grid;

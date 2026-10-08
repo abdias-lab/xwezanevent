@@ -9,7 +9,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /**
  * Supprimer définitivement un artiste (décisions d'Abdias du 2026-10-08) :
  * seulement sans aucun rattachement ni abonné. Le contrôle est refait SOUS
- * VERROU par supprimer_artiste (20261009120000) au moment de la suppression :
+ * VERROU par supprimer_artiste (20261008130000) au moment de la suppression :
  * ce que la page affichait ne compte pas, un abonné arrivé entre-temps bloque
  * la suppression. La fiche disparaissant, la trace va au journal (instantané :
  * nom, slug, statut, admin). La photo est retirée du stockage.

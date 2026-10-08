@@ -5,7 +5,7 @@ import { emailUtilisateur } from "@/lib/email";
 
 /**
  * Outils communs au retrait, à la remise en ligne et à la suppression d'un
- * artiste par l'admin (20261009120000_retrait_artistes.sql).
+ * artiste par l'admin (20261008130000_retrait_artistes.sql).
  */
 
 /** Nom figé de l'admin pour la trace : « Nom <e-mail> », lisible même si le compte disparaît. */

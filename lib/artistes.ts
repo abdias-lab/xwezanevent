@@ -12,7 +12,7 @@ import { formatPlageDates } from "@/lib/date";
  * service_role uniquement : les tables n'ont aucun droit d'écriture client.
  */
 
-/** « retire » : retiré par l'équipe après validation, réversible (20261009120000_retrait_artistes.sql). */
+/** « retire » : retiré par l'équipe après validation, réversible (20261008130000_retrait_artistes.sql). */
 export type StatutArtiste = "en_validation" | "valide" | "refuse" | "retire";
 export type TypeDemande = "label" | "auto_produit";
 export type CleReseau = "instagram" | "facebook" | "tiktok" | "youtube" | "spotify" | "audiomack" | "boomplay" | "site";
@@ -24,6 +24,8 @@ export interface Artiste {
   nom_scene_demande: string | null;
   bio: string | null;
   photo_url: string | null;
+  /** Image de couverture du bandeau (migration 20261008140000). */
+  couverture_url: string | null;
   liens: Partial<Record<CleReseau, string>>;
   type_demande: TypeDemande;
   label_id: string | null;
@@ -34,7 +36,7 @@ export interface Artiste {
 }
 
 export const COLONNES_ARTISTE =
-  "id, slug, nom_scene, nom_scene_demande, bio, photo_url, liens, type_demande, label_id, compte_id, cree_par, statut, motif_refus";
+  "id, slug, nom_scene, nom_scene_demande, bio, photo_url, couverture_url, liens, type_demande, label_id, compte_id, cree_par, statut, motif_refus";
 
 export const NOM_SCENE_MAX = 80;
 export const BIO_MAX = 2000;

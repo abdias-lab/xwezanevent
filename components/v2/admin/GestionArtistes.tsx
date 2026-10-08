@@ -8,7 +8,7 @@ import { initialesArtiste } from "../orga/artistes/initiales";
 
 /**
  * Artistes en ligne, retirés ou refusés (admin, décisions d'Abdias du
- * 2026-10-08) : corriger le nom affiché (A9), retirer (réversible), remettre en ligne, supprimer
+ * 2026-10-08) : corriger le nom affiché (A9), supprimer la couverture seule (2026-10-08), retirer (réversible), remettre en ligne, supprimer
  * définitivement (seulement sans rattachement ni abonné ; le serveur
  * refait le contrôle sous verrou au moment du clic). Le nombre d'abonnés
  * est affiché sur la carte et annoncé avant un retrait. Une carte traitée
@@ -19,6 +19,7 @@ export type ArtisteGere = {
   slug: string;
   nom: string;
   photo: string | null;
+  couverture: string | null;
   statut: "valide" | "retire" | "refuse";
   meta: string;
   gestionnaire: string;
@@ -28,7 +29,7 @@ export type ArtisteGere = {
   retrait: { le: string; par: string | null; motif: string | null } | null;
 };
 
-type Action = "retrait" | "remise" | "suppression" | "nom";
+type Action = "retrait" | "remise" | "suppression" | "nom" | "couverture";
 const MOTIF_MAX = 1000;
 const NOM_MAX = 80;
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
@@ -71,23 +72,28 @@ export default function GestionArtistes({ artistes, vide }: { artistes: ArtisteG
     setEnCours(true);
     setErreur(null);
     try {
-      const chemin = action === "retrait" ? "retrait" : action === "remise" ? "remise-en-ligne" : action === "nom" ? "nom" : "suppression";
+      const chemin =
+        action === "retrait" ? "retrait" : action === "remise" ? "remise-en-ligne" : action === "nom" ? "nom" : action === "couverture" ? "couverture" : "suppression";
       const r = await fetch(`/api/admin/artistes/${a.id}/${chemin}`, {
-        method: "POST",
+        method: action === "couverture" ? "DELETE" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(action === "retrait" ? { motif, prevenir } : action === "nom" ? { nom } : {}),
+        body: JSON.stringify(
+          action === "retrait" ? { motif, prevenir } : action === "nom" ? { nom } : action === "couverture" ? { couverture: a.couverture, motif } : {}
+        ),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error ?? "Erreur");
       const texte =
         action === "retrait"
           ? `Retiré : sa page est en 404 et il n'apparaît plus sur les événements.${prevenir ? (d.prevenus ? ` ${a.gestionnaire} est prévenu par e-mail.` : " Aucun e-mail n'a pu partir.") : " Aucun e-mail envoyé."}`
+          : action === "couverture"
+            ? "Couverture supprimée : son bandeau repasse sur sa photo floutée."
           : action === "nom"
             ? `Nom corrigé : « ${(d as { nom?: string }).nom ?? nom.trim()} ». L'adresse de sa page ne change pas.`
           : action === "remise"
             ? `Remis en ligne : sa page, ses dates${a.abonnes ? ` et ses ${pluriel(a.abonnes, "abonné")}` : ""} sont de nouveau actifs.`
             : "Supprimé définitivement.";
-      const vue = action === "nom" ? { ...a, nom: (d as { nom?: string }).nom ?? nom.trim() } : a;
+      const vue = action === "nom" ? { ...a, nom: (d as { nom?: string }).nom ?? nom.trim() } : action === "couverture" ? { ...a, couverture: null } : a;
       setFaits((p) => ({ ...p, [a.id]: { vue, index: affiches.findIndex((x) => x.id === a.id), texte } }));
       setFeuille(null);
       router.refresh();
@@ -126,6 +132,13 @@ export default function GestionArtistes({ artistes, vide }: { artistes: ArtisteG
                     <b style={{ color: a.abonnes ? "var(--or)" : undefined }}>{pluriel(a.abonnes, "abonné")}</b> · rattaché à {pluriel(a.rattachements, "événement")}
                   </p>
                   {a.statut === "refuse" && <p className={s.carteMeta}>Motif du refus : {a.motifRefus || "aucun"}</p>}
+                  {a.couverture && (
+                    <a href={a.couverture} target="_blank" rel="noopener noreferrer" className={s.carteMeta} style={{ display: "inline-grid", gap: 4, marginTop: 4 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={a.couverture} alt={`Couverture de ${a.nom}`} style={{ width: 160, aspectRatio: "1280 / 380", objectFit: "cover", borderRadius: 4 }} />
+                      <span style={{ textDecoration: "underline" }}>Couverture (ouvrir en grand)</span>
+                    </a>
+                  )}
                   {a.retrait && (
                     <p className={s.carteMeta}>
                       Retiré le {dateHeure(a.retrait.le)}
@@ -147,6 +160,11 @@ export default function GestionArtistes({ artistes, vide }: { artistes: ArtisteG
                     <button type="button" className={`${s.btn} ${s.btnGris}`} onClick={() => ouvrir(a, "nom")}>
                       <Icon name="edit" size={16} /> Corriger le nom
                     </button>
+                    {a.couverture && (
+                      <button type="button" className={`${s.btn} ${s.btnGris}`} onClick={() => ouvrir(a, "couverture")}>
+                        <Icon name="image" size={16} /> Supprimer la couverture
+                      </button>
+                    )}
                     {a.statut === "valide" && (
                       <>
                         <a href={`/artiste/${a.slug}`} className={`${s.btn} ${s.btnGris}`}>
@@ -178,7 +196,9 @@ export default function GestionArtistes({ artistes, vide }: { artistes: ArtisteG
         <div className={s.fond} onClick={() => !enCours && setFeuille(null)}>
           <div className={s.feuille} role="dialog" aria-modal="true" aria-labelledby="titre-gestion" onClick={(e) => e.stopPropagation()}>
             <h2 id="titre-gestion" className={s.feuilleTitre}>
-              {feuille.action === "nom"
+              {feuille.action === "couverture"
+                ? `Supprimer la couverture de ${feuille.a.nom} ?`
+                : feuille.action === "nom"
                 ? "Corriger le nom affiché"
                 : feuille.action === "retrait"
                 ? `Retirer ${feuille.a.nom} ?`
@@ -222,6 +242,22 @@ export default function GestionArtistes({ artistes, vide }: { artistes: ArtisteG
                 </label>
               </>
             )}
+            {feuille.action === "couverture" && feuille.a.couverture && (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={feuille.a.couverture} alt="" style={{ width: "100%", aspectRatio: "1280 / 380", objectFit: "cover", borderRadius: 4 }} />
+                <p className={s.feuilleTexte}>
+                  L&apos;image est effacée tout de suite ; l&apos;artiste reste en ligne et son bandeau repasse sur sa photo floutée. Le compte qui le
+                  gère pourra en envoyer une autre. Aucun e-mail n&apos;est envoyé ; la trace reste au journal des actions.
+                </p>
+                <div className={s.champ}>
+                  <label htmlFor="motif-couverture">
+                    Motif <small>(facultatif, pour le journal)</small>
+                  </label>
+                  <textarea id="motif-couverture" rows={2} maxLength={MOTIF_MAX} value={motif} onChange={(e) => setMotif(e.target.value)} />
+                </div>
+              </>
+            )}
             {feuille.action === "nom" && (
               <>
                 <div className={s.champ}>
@@ -255,11 +291,11 @@ export default function GestionArtistes({ artistes, vide }: { artistes: ArtisteG
               </button>
               <button
                 type="button"
-                className={`${s.btn} ${feuille.action === "suppression" ? s.btnDanger : s.btnOr} ${s.btnGrand}`}
+                className={`${s.btn} ${feuille.action === "suppression" || feuille.action === "couverture" ? s.btnDanger : s.btnOr} ${s.btnGrand}`}
                 disabled={enCours || (feuille.action === "nom" && (!nom.trim() || nom.trim() === feuille.a.nom))}
                 onClick={confirmer}
               >
-                {enCours ? "…" : feuille.action === "nom" ? "Enregistrer" : feuille.action === "retrait" ? "Retirer" : feuille.action === "remise" ? "Remettre en ligne" : "Supprimer"}
+                {enCours ? "…" : feuille.action === "couverture" ? "Supprimer la couverture" : feuille.action === "nom" ? "Enregistrer" : feuille.action === "retrait" ? "Retirer" : feuille.action === "remise" ? "Remettre en ligne" : "Supprimer"}
               </button>
             </div>
           </div>

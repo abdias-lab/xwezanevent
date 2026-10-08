@@ -108,19 +108,19 @@ const PROPOSITIONS: PropositionAdmin[] = [
 /** Artistes en ligne et retirés (factices) : retrait, remise en ligne, suppression (décisions du 2026-10-08). */
 const EN_LIGNE: ArtisteGere[] = [
   {
-    id: "g1", slug: "zeynab-habib", nom: "Zeynab Habib", photo: null, statut: "valide",
+    id: "g1", slug: "zeynab-habib", nom: "Zeynab Habib", photo: null, couverture: "/images/couverture-demo.jpg", statut: "valide",
     meta: "Label Ouidah Live · demandé par Ouidah Live · en ligne depuis le 12 septembre 2026",
     gestionnaire: "Ouidah Live", abonnes: 1248, rattachements: 3, motifRefus: null, retrait: null,
   },
   {
-    id: "g2", slug: "page-de-test", nom: "Page de test", photo: null, statut: "valide",
+    id: "g2", slug: "page-de-test", nom: "Page de test", photo: null, couverture: null, statut: "valide",
     meta: "Label Ouidah Live · demandé par Ouidah Live · en ligne depuis le 2 octobre 2026",
     gestionnaire: "Ouidah Live", abonnes: 0, rattachements: 0, motifRefus: null, retrait: null,
   },
 ];
 const RETIRES: ArtisteGere[] = [
   {
-    id: "g3", slug: "dj-shado", nom: "DJ Shado", photo: null, statut: "retire",
+    id: "g3", slug: "dj-shado", nom: "DJ Shado", photo: null, couverture: null, statut: "retire",
     meta: "Label Ouidah Live · demandé par Ouidah Live",
     gestionnaire: "Ouidah Live", abonnes: 86, rattachements: 1, motifRefus: null,
     retrait: { le: "2026-10-05T14:20:00Z", par: "Abdias <contact@xwezan.com>", motif: "Demande de l'artiste" },

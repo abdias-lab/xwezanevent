@@ -1869,7 +1869,7 @@
   color: var(--or);
 }
 .artBio {
-  max-width: 680px;
+  max-width: 70ch;
   color: var(--muted);
   font-size: 16px;
   line-height: 26px;
@@ -1914,6 +1914,170 @@
   .artPassees li {
     grid-template-columns: 160px minmax(0, 1fr) auto;
     align-items: baseline;
+  }
+}
+
+/* ---------- Page artiste : bandeau (refonte 2026-10-08, preview) ----------
+   Bande de couverture : pleine largeur de la fenêtre, 340 px en mobile,
+   380 px en bureau, coupure nette en bas (filet), fond de page en dessous.
+   Photo de profil en cover sur toute la bande, peu floutée, sans voile
+   global. Le contraste vient d'un dégradé pleine largeur qui remonte du bas
+   jusqu'au-dessus du bloc de texte (calé en bas) : au moins 70 %
+   d'anthracite sous chaque ligne, quelle que soit la photo. Badge et liens
+   réseaux ont leur propre fond sombre. Fond en cascade : couverture
+   (nette) → photo de profil (floutée) → dégradé anthracite → or (critères de taille et de luminance : tâche à
+   part, BUGS_REFONTE A10). */
+.artBandeau {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  min-height: 340px;
+  background: var(--raised);
+  border-bottom: 1px solid var(--border);
+  /* Le gris des textes secondaires (#a3a5a8) ne tient pas 4,5:1 sur une photo claire. */
+  --muted: rgb(255 255 255 / 0.85);
+}
+.artBandeau > .cont {
+  flex: 1;
+}
+.artFond {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+}
+.artFond picture {
+  display: block;
+  height: 100%;
+}
+.artFond img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  filter: blur(3px) brightness(1.1);
+  /* Agrandie : le flou ne laisse pas de bord clair. */
+  transform: scale(1.03);
+}
+/* Niveau 1 : couverture fournie, affichée nette (ni flou ni agrandissement). */
+.artFondNet img {
+  filter: none;
+  transform: none;
+  object-position: center;
+}
+.artBandeauRepli {
+  background: linear-gradient(120deg, var(--bg) 25%, rgb(228 169 63 / 0.38) 100%), var(--bg);
+}
+/* Disposition (structure Shotgun) : vignette | identité (badge seul sur sa
+   ligne, nom, nombre d'abonnés), bases alignées. « S'abonner » et les
+   réseaux sont sous la bande. */
+.artBandeau .artTete {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: var(--s4);
+}
+.artBandeau .artInfos {
+  gap: var(--s2);
+  justify-items: start;
+}
+.artBandeau .badgeVerifie {
+  margin-left: 0;
+}
+/* Dégradé de lecture : pleine largeur (la bande coupe ce qui dépasse),
+   70 % plein du bas de la bande jusqu'en haut du texte, puis fondu sur
+   48 px. Sa hauteur suit le texte : un nom sur deux lignes reste couvert. */
+.artBandeau .artInfos {
+  position: relative;
+}
+.artBandeau .artInfos::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -48px;
+  bottom: calc(var(--s6) * -1);
+  left: -100vw;
+  right: -100vw;
+  background: linear-gradient(to top, rgb(28 28 28 / 0.7) calc(100% - 48px), rgb(28 28 28 / 0));
+}
+.artBandeauRepli .artInfos::before {
+  display: none;
+}
+/* Sous la bande : bouton, puis réseaux à la ligne. */
+.artSous {
+  display: grid;
+  justify-items: start;
+  gap: var(--s3);
+  padding-top: var(--s4);
+}
+.artSous .artAbonnementNote:empty {
+  display: none;
+}
+/* Réseaux : logos seuls, ronds, nom en aria-label et infobulle. */
+.artLogos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+.artLogos a {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: #fff;
+  transition: box-shadow var(--d1) var(--ease), color var(--d1) var(--ease);
+}
+.artLogos a:hover {
+  box-shadow: inset 0 0 0 1px var(--or);
+  color: var(--or);
+}
+.artBandeau .badgeVerifie,
+.artBandeau .artReseaux a {
+  background: rgb(28 28 28 / 0.7);
+}
+.artBandeau .artTete {
+  padding: var(--s8) 0 var(--s6);
+}
+.artBandeau .artPhoto {
+  box-shadow: 0 0 0 3px rgb(28 28 28 / 0.6);
+}
+.artCont {
+  max-width: 960px;
+}
+.artFil {
+  padding-top: var(--s2);
+  padding-bottom: var(--s4);
+}
+.artSection {
+  padding-top: var(--s8);
+}
+/* État vide : une ligne, pas un bloc. */
+.artVide {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  color: var(--muted);
+  font-size: 14px;
+}
+.artVide svg {
+  color: var(--or);
+  flex: none;
+}
+@media (max-width: 767px) {
+  .artBandeau .artPhoto {
+    width: 72px;
+    height: 72px;
+    font-size: 26px;
+  }
+}
+@media (min-width: 768px) {
+  .artBandeau {
+    min-height: 380px;
+  }
+  .artBandeau .artTete {
+    column-gap: var(--s8);
   }
 }
 
@@ -1987,12 +2151,12 @@ a.avecArtiste:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--s2);
-  height: 44px;
-  padding: 0 var(--s4);
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
   border: 0;
   border-radius: var(--r);
-  font: 700 12px/16px var(--corps);
+  font: 700 10px/14px var(--corps);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;

@@ -6,16 +6,20 @@ import Icon from "../../Icon";
 import { RubanEtats } from "../Coquille";
 import { EVENEMENTS, jour, mois } from "../../_data";
 import { initialesArtiste } from "../orga/artistes/_artistes";
-import AbonnementArtiste from "./AbonnementArtiste";
+import LogoReseau from "./LogoReseau";
+import AbonnementArtiste, { BoutonAbonner, CompteurAbonnes } from "./AbonnementArtiste";
 
 export const metadata: Metadata = { title: "Zeynab Habib — XwézanEvent" };
 
 const DETAIL = "/preview-design/v2/evenement";
+// Boomplay : pas de tracé de marque disponible, pictogramme générique (voir LogoReseau).
 const RESEAUX = [
-  { libelle: "Instagram", url: "https://instagram.com/zeynab" },
-  { libelle: "YouTube", url: "https://youtube.com/@zeynab" },
-  { libelle: "Spotify", url: "https://open.spotify.com/artist/zeynab" },
-  { libelle: "Audiomack", url: "https://audiomack.com/zeynab" },
+  { cle: "instagram", libelle: "Instagram", url: "https://instagram.com/zeynab" },
+  { cle: "tiktok", libelle: "TikTok", url: "https://tiktok.com/@zeynab" },
+  { cle: "youtube", libelle: "YouTube", url: "https://youtube.com/@zeynab" },
+  { cle: "spotify", libelle: "Spotify", url: "https://open.spotify.com/artist/zeynab" },
+  { cle: "audiomack", libelle: "Audiomack", url: "https://audiomack.com/zeynab" },
+  { cle: "boomplay", libelle: "Boomplay", url: "https://boomplay.com/artists/zeynab" },
 ];
 const PASSEES = [
   { date: "2026-08-15", titre: "Zeynab en acoustique", lieu: "Institut français", ville: "Cotonou" },
@@ -29,79 +33,103 @@ const PASSEES = [
  * relié au compte organisateur du label. « S'abonner » (lot 3) : visiteur
  * non connecté par défaut. États : ?etat=sans-dates, sans-photo,
  * non-verifie, connecte (connecté, pas abonné), abonne.
+ *
+ * Refonte de la page (2026-10-08, en preview seulement) : bandeau avec la
+ * photo floutée en fond (repli : dégradé anthracite → or), dates avant la bio,
+ * conteneur resserré (960 px), état vide réduit à une ligne. Photo de
+ * démonstration : public/images/artiste-demo.jpg (Unsplash).
  */
 export default function V2Artiste({ searchParams }: { searchParams: { etat?: string } }) {
   const etat = searchParams.etat;
   const nom = "Zeynab Habib";
   const verifie = etat !== "non-verifie";
-  const photo = etat === "sans-photo" ? null : EVENEMENTS[4].image;
+  // Photo de démonstration libre de droits (Unsplash, Keagan Henman, licence Unsplash) ;
+  // photo-blanche : pire cas du contraste (image entièrement blanche).
+  const photo = etat === "sans-photo" ? null : etat === "photo-blanche" ? "/images/preview-blanc.png" : "/images/artiste-demo.jpg";
+  // Couverture (Unsplash, Tony Pham) : niveau 1 du bandeau, affichée nette. couverture-blanche : pire cas.
+  const couverture = etat === "couverture" ? "/images/couverture-demo.jpg" : etat === "couverture-blanche" ? "/images/preview-blanc.png" : null;
+  // Fond du bandeau : couverture (nette) → photo de profil (floutée) → dégradé.
+  const fond = couverture ?? photo;
+  const optimisee = (url: string, largeur: number) => `/_next/image?url=${encodeURIComponent(url)}&w=${largeur}&q=${largeur > 1000 ? 70 : 60}`;
   const aVenir = etat === "sans-dates" ? [] : [EVENEMENTS[1], EVENEMENTS[3], EVENEMENTS[0]];
   const passees = etat === "sans-dates" ? [] : PASSEES;
+  const reseaux = RESEAUX.map((r) => (
+    <a key={r.url} href={r.url} target="_blank" rel="noopener noreferrer" aria-label={r.libelle} title={r.libelle}>
+      <LogoReseau cle={r.cle} />
+    </a>
+  ));
 
   return (
     <div className={s.racine}>
       <Header />
-      <main className={s.cont}>
-        <nav className={s.fil} aria-label="Fil d'Ariane">
-          <a href="/preview-design/v2/evenements">Événements</a>
-          <Icon name="chevron-right" />
-          <span>{nom}</span>
-        </nav>
-
-        <section className={s.artTete}>
-          <div className={s.artPhoto}>
-            {photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photo} alt={`Photo : ${nom}`} />
-            ) : (
-              <span aria-hidden="true">{initialesArtiste(nom)}</span>
-            )}
-          </div>
-          <div className={s.artInfos}>
-            <h1 className={s.h1}>
-              {nom}
-              {verifie && (
-                <span className={s.badgeVerifie}>
-                  <Icon name="check" /> Vérifié
-                </span>
-              )}
-            </h1>
-            <AbonnementArtiste
-              artisteId="a1"
-              slug="zeynab-habib"
-              nom={nom}
-              nomLabel="Ouidah Live"
-              abonnesInitial={etat === "abonne" ? 1249 : 1248}
-              initial={{ connecte: etat === "connecte" || etat === "abonne", abonne: etat === "abonne" }}
-            />
-            <div className={s.artReseaux}>
-              {RESEAUX.map((r) => (
-                <a key={r.url} href={r.url} target="_blank" rel="noopener noreferrer">
-                  <Icon name="link" /> {r.libelle}
-                </a>
-              ))}
+      <main>
+        <div className={`${s.cont} ${s.artCont} ${s.artFil}`}>
+          <nav className={s.fil} aria-label="Fil d'Ariane">
+            <a href="/preview-design/v2/evenements">Événements</a>
+            <Icon name="chevron-right" />
+            <span>{nom}</span>
+          </nav>
+        </div>
+        {/* Bandeau : photo de profil peu floutée en fond (WebP, largeur fixe), voile local sous le texte.
+            Sans photo : dégradé anthracite → or. */}
+        {/* Compteur (bandeau) et bouton (sous le bandeau) partagent un même état. */}
+        <AbonnementArtiste
+          slug="zeynab-habib"
+          abonnesInitial={etat === "abonne" ? 1249 : 1248}
+          initial={{ connecte: etat === "connecte" || etat === "abonne", abonne: etat === "abonne" }}
+        >
+        <section className={`${s.artBandeau} ${fond ? "" : s.artBandeauRepli}`}>
+          {fond && (
+            <div className={`${s.artFond} ${couverture ? s.artFondNet : ""}`} aria-hidden="true">
+              {/* Largeur fixe : 640 px en mobile, 1 200 en bureau (1 920 pour une couverture nette). */}
+              <picture>
+                <source media="(min-width: 768px)" srcSet={optimisee(fond, couverture ? 1920 : 1200)} />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={optimisee(fond, couverture ? 828 : 640)} alt="" fetchPriority="high" />
+              </picture>
+            </div>
+          )}
+          <div className={`${s.cont} ${s.artCont}`}>
+            <div className={s.artTete}>
+              <div className={s.artPhoto}>
+                {photo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={photo} alt={`Photo : ${nom}`} />
+                ) : (
+                  <span aria-hidden="true">{initialesArtiste(nom)}</span>
+                )}
+              </div>
+              {/* Identité : badge seul sur sa ligne, nom, nombre d'abonnés ; base alignée sur la vignette. */}
+              <div className={s.artInfos}>
+                {verifie && (
+                  <span className={s.badgeVerifie}>
+                    <Icon name="check" /> Vérifié
+                  </span>
+                )}
+                <h1 className={s.h1}>{nom}</h1>
+                <CompteurAbonnes />
+              </div>
             </div>
           </div>
         </section>
+        {/* Sous la bande : « S'abonner », puis les réseaux à la ligne. */}
+        <div className={`${s.cont} ${s.artCont} ${s.artSous}`}>
+          <BoutonAbonner />
+          <div className={s.artLogos}>{reseaux}</div>
+        </div>
+        </AbonnementArtiste>
 
-        <p className={s.artBio}>
-          Voix du Bénin moderne, Zeynab mêle afro-pop et chants fon hérités de sa grand-mère. Trois albums, des scènes de Cotonou à Paris, et une
-          tournée 2026 qui passe par les grandes villes du pays.
-          {"\n\n"}Son dernier single, « Gbè », a dépassé le million d&apos;écoutes sur Audiomack.
-        </p>
-
-        <section className={s.section} aria-labelledby="a-venir">
+        <div className={`${s.cont} ${s.artCont}`}>
+        <section className={s.artSection} aria-labelledby="a-venir">
           <div className={s.tete}>
             <h2 id="a-venir" className={s.h2}>
               Prochaines dates
             </h2>
           </div>
           {aVenir.length === 0 ? (
-            <div className={s.vide}>
-              <Icon name="calendar" size={32} className={s.videIco} />
-              <h3 className={s.videTitre}>Aucune date annoncée pour l&apos;instant</h3>
-              <p className={s.videTexte}>Les prochains concerts de {nom} apparaîtront ici dès qu&apos;ils seront en vente.</p>
-            </div>
+            <p className={s.artVide}>
+              <Icon name="calendar" size={16} /> Aucune date annoncée pour l&apos;instant.
+            </p>
           ) : (
             <div className={s.grille}>
               {aVenir.map((e) => (
@@ -109,6 +137,19 @@ export default function V2Artiste({ searchParams }: { searchParams: { etat?: str
               ))}
             </div>
           )}
+        </section>
+
+        <section className={s.section} aria-labelledby="bio">
+          <div className={s.tete}>
+            <h2 id="bio" className={s.h2}>
+              À propos
+            </h2>
+          </div>
+          <p className={s.artBio}>
+            Voix du Bénin moderne, Zeynab mêle afro-pop et chants fon hérités de sa grand-mère. Trois albums, des scènes de Cotonou à Paris, et une
+            tournée 2026 qui passe par les grandes villes du pays.
+            {"\n\n"}Son dernier single, « Gbè », a dépassé le million d&apos;écoutes sur Audiomack.
+          </p>
         </section>
 
         {passees.length > 0 && (
@@ -133,7 +174,8 @@ export default function V2Artiste({ searchParams }: { searchParams: { etat?: str
             </ul>
           </section>
         )}
-        <RubanEtats chemin="/preview-design/v2/artiste" etats={["normal", "sans-dates", "sans-photo", "non-verifie", "connecte", "abonne"]} />
+        <RubanEtats chemin="/preview-design/v2/artiste" etats={["normal", "sans-dates", "sans-photo", "non-verifie", "connecte", "abonne", "photo-blanche", "couverture", "couverture-blanche"]} />
+        </div>
       </main>
       <Footer />
     </div>
