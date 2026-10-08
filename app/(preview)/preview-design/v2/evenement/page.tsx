@@ -139,7 +139,20 @@ export default function V2Detail({ searchParams }: { searchParams: { etat?: stri
               <div className={s.tete}>
                 <h2 className={s.h2}>Billets</h2>
               </div>
-              <BilletPicker tarifs={ev.tarifs} s={s} commande="/preview-design/v2/commande" />
+              <BilletPicker
+                tarifs={
+                  // ?etat=fin-de-vente (BUGS_REFONTE n°10) : une prévente close (grisée), un tarif avec sa date de fin.
+                  etat === "fin-de-vente"
+                    ? [
+                        { id: "pre", nom: "Prévente", detail: "Vente terminée", prix: 3000, venteTerminee: true },
+                        { ...ev.tarifs[0], detail: `En vente jusqu'au 10 nov. · ${ev.tarifs[0].detail}` },
+                        ...ev.tarifs.slice(1),
+                      ]
+                    : ev.tarifs
+                }
+                s={s}
+                commande="/preview-design/v2/commande"
+              />
             </section>
 
             <Reveal>
@@ -226,7 +239,7 @@ export default function V2Detail({ searchParams }: { searchParams: { etat?: stri
           </>
         )}
         <div className={s.espaceBarre} />
-        <RubanEtats chemin="/preview-design/v2/evenement" etats={["normal", "sans-artiste", "auto-produit", "non-verifie", "chargement"]} />
+        <RubanEtats chemin="/preview-design/v2/evenement" etats={["normal", "sans-artiste", "auto-produit", "non-verifie", "fin-de-vente", "chargement"]} />
       </main>
       <Footer />
     </div>

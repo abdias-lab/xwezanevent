@@ -32,3 +32,11 @@ export function venteTerminee(venteJusqua: string | null | undefined, maintenant
 
 /** Message de refus commun aux trois contrôles serveur. */
 export const messageVenteTerminee = (nomTarif: string) => `La vente du tarif « ${nomTarif} » est terminée.`;
+
+/** « jusqu'au 1er oct. », « jusqu'au 20 déc. » : jour de fin lu à l'heure de Porto-Novo. */
+export function libelleFinVente(venteJusqua: string): string {
+  const fin = new Date(venteJusqua);
+  const jour = Number(fin.toLocaleDateString("fr-FR", { day: "numeric", timeZone: "Africa/Porto-Novo" }));
+  const mois = fin.toLocaleDateString("fr-FR", { month: "short", timeZone: "Africa/Porto-Novo" });
+  return `jusqu'au ${jour === 1 ? "1er" : jour} ${mois}`;
+}

@@ -6,7 +6,7 @@ import Icon from "../Icon";
 import { fcfa, MAX_PAR_TARIF } from "./evenement";
 import { aidePays, exemplePays, normaliserNumero } from "@/lib/telephone";
 
-export type TarifCommande = { id: string; nom: string; prix: number; disponibles: number };
+export type TarifCommande = { id: string; nom: string; prix: number; disponibles: number; venteTerminee?: boolean; finVente?: string | null };
 type Compte = { nom: string; email: string } | null;
 type Phase = "saisie" | "envoi" | "redirection";
 // info : message rassurant (rien n'a été débité), encadré neutre plutôt que rouge.
@@ -53,7 +53,7 @@ export default function Commande({
   const nb = lignes.reduce((n, t) => n + q[t.id], 0);
   const total = lignes.reduce((n, t) => n + q[t.id] * t.prix, 0);
   const gratuit = nb > 0 && total === 0;
-  const plafond = (t: TarifCommande) => Math.min(MAX_PAR_TARIF, t.disponibles);
+  const plafond = (t: TarifCommande) => (t.venteTerminee ? 0 : Math.min(MAX_PAR_TARIF, t.disponibles));
   const change = (t: TarifCommande, d: number) => setQ((p) => ({ ...p, [t.id]: Math.max(0, Math.min(plafond(t), (p[t.id] ?? 0) + d)) }));
 
   const invite = mode === "invite";
@@ -171,17 +171,19 @@ export default function Commande({
             {tarifs.map((t) => {
               const n = q[t.id] ?? 0;
               const epuise = t.disponibles === 0;
+              const indisponible = epuise || !!t.venteTerminee;
               return (
                 <li key={t.id} className={s.verrou} style={{ justifyContent: "space-between", color: "inherit", boxShadow: n > 0 ? "inset 0 0 0 1.5px var(--or)" : undefined }}>
                   <span>
                     <b>{t.nom}</b>
                     <span className={s.chiffre} style={{ display: "block", fontWeight: 700 }}>
                       {fcfa(t.prix)}
-                      {!epuise && t.disponibles <= 10 && <span className={s.note}> · plus que {t.disponibles}</span>}
+                      {!indisponible && t.finVente && <span className={s.note}> · {t.finVente}</span>}
+                      {!indisponible && t.disponibles <= 10 && <span className={s.note}> · plus que {t.disponibles}</span>}
                     </span>
                   </span>
-                  {epuise ? (
-                    <span className={`${s.statut} ${s.stBarre}`}>Épuisé</span>
+                  {indisponible ? (
+                    <span className={`${s.statut} ${s.stBarre}`}>{t.venteTerminee ? "Vente terminée" : "Épuisé"}</span>
                   ) : (
                     <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <button type="button" className={`${s.btn} ${s.btnGris}`} style={{ width: 44, padding: 0 }} aria-label={`Retirer un billet ${t.nom}`} disabled={n === 0 || envoi} onClick={() => change(t, -1)}>

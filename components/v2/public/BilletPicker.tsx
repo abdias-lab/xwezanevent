@@ -4,7 +4,7 @@ import { useState } from "react";
 import Icon from "../Icon";
 import { fcfa, MAX_PAR_TARIF } from "./evenement";
 
-type Tarif = { id: string; nom: string; prix: number; disponibles: number };
+type Tarif = { id: string; nom: string; prix: number; disponibles: number; venteTerminee?: boolean; finVente?: string | null };
 type Styles = Record<string, string>;
 
 /**
@@ -12,13 +12,14 @@ type Styles = Record<string, string>;
  * (preview-design/BilletPicker.tsx). État local seulement : le panier part
  * dans l'adresse de /evenement/[slug]/commande, où tout est revérifié par
  * le serveur. Sous le prix : « Épuisé », ou « Plus que N » à 10 places ou
- * moins. « Partager » est dans les actions du haut de la page (Partager.tsx).
+ * moins. Tarif dont la vente est close (BUGS_REFONTE n°10) : grisé, « Vente
+ * terminée », non achetable ; tarif ouvert avec une date de fin : « jusqu'au … ». « Partager » est dans les actions du haut de la page (Partager.tsx).
  */
 export default function BilletPicker({ tarifs, s, commande }: { tarifs: Tarif[]; s: Styles; commande: string }) {
   const [q, setQ] = useState<Record<string, number>>({});
   const total = tarifs.reduce((somme, t) => somme + (q[t.id] ?? 0) * t.prix, 0);
   const n = Object.values(q).reduce((a, b) => a + b, 0);
-  const plafond = (t: Tarif) => Math.min(MAX_PAR_TARIF, t.disponibles);
+  const plafond = (t: Tarif) => (t.venteTerminee ? 0 : Math.min(MAX_PAR_TARIF, t.disponibles));
   const change = (t: Tarif, d: number) => setQ((p) => ({ ...p, [t.id]: Math.max(0, Math.min(plafond(t), (p[t.id] ?? 0) + d)) }));
   const gratuit = n > 0 && total === 0;
   const libelle = gratuit ? "Réserver gratuitement" : "Payer en Mobile Money";
@@ -33,10 +34,19 @@ export default function BilletPicker({ tarifs, s, commande }: { tarifs: Tarif[];
           {tarifs.map((t) => {
             const epuise = t.disponibles === 0;
             return (
-              <li key={t.id} className={`${s.ligneTarif} ${(q[t.id] ?? 0) > 0 ? s.ligneOn : ""}`}>
+              <li key={t.id} className={`${s.ligneTarif} ${(q[t.id] ?? 0) > 0 ? s.ligneOn : ""} ${t.venteTerminee ? s.ligneOff : ""}`}>
                 <div>
                   <div className={s.tarifNom}>{t.nom}</div>
-                  {epuise ? <div className={s.tarifDetail}>Épuisé</div> : t.disponibles <= 10 && <div className={s.tarifDetail}>Plus que {t.disponibles}</div>}
+                  {t.venteTerminee ? (
+                    <div className={s.tarifDetail}>Vente terminée</div>
+                  ) : epuise ? (
+                    <div className={s.tarifDetail}>Épuisé</div>
+                  ) : (
+                    <>
+                      {t.finVente && <div className={s.tarifDetail}>En vente {t.finVente}</div>}
+                      {t.disponibles <= 10 && <div className={s.tarifDetail}>Plus que {t.disponibles}</div>}
+                    </>
+                  )}
                   <div className={s.tarifPrix}>{fcfa(t.prix)}</div>
                 </div>
                 <div className={s.stepper}>

@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { aujourdhuiPortoNovo, plagePeriode, formatPlageDates, formatEnTeteJour } from "@/lib/date";
+import { libelleFinVente, venteTerminee } from "@/lib/vente";
 
 const MOIS_COURTS = [
   "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
@@ -17,7 +18,7 @@ interface EventRow {
   heure: string | null;
   affiche_url: string | null;
   est_demo: boolean;
-  ticket_types: { prix: number; quantite_totale: number; quantite_vendue: number }[];
+  ticket_types: { prix: number; quantite_totale: number; quantite_vendue: number; vente_jusqua: string | null }[];
   event_categories: { categorie: string; ordre: number }[];
 }
 
@@ -50,6 +51,8 @@ export interface CarteData {
   categories: string[];
   /** Places restantes quand le stock s'épuise (voir placesRestantesAffichees), sinon null. */
   restantes: number | null;
+  /** Remplace le prix sur la carte : « Vente terminée » quand tous les tarifs sont clos. */
+  prixLibelle: string | null;
 }
 
 /**
@@ -91,9 +94,11 @@ function calculerGroupeDate(dateDebut: string, dateFin: string | null): { cle: s
 
 function mapRow(ev: EventRow): CarteData {
   const [, mois, jour] = ev.date_debut.split("-");
-  const prix = ev.ticket_types.length
-    ? Math.min(...ev.ticket_types.map((t) => t.prix))
-    : 0;
+  // Tarifs dont la vente est terminée (BUGS_REFONTE n°10) : ignorés pour le
+  // prix « à partir de » et le badge « Plus que N places ». Tous terminés :
+  // la carte affiche « Vente terminée » au lieu d'un prix.
+  const ouverts = ev.ticket_types.filter((t) => !venteTerminee(t.vente_jusqua));
+  const prix = ouverts.length ? Math.min(...ouverts.map((t) => t.prix)) : 0;
 
   return {
     id: ev.slug,
@@ -117,7 +122,8 @@ function mapRow(ev: EventRow): CarteData {
     nomLieu: ev.lieu,
     ville: ev.ville,
     categories: [...ev.event_categories].sort((a, b) => a.ordre - b.ordre).map((c) => c.categorie),
-    restantes: placesRestantesAffichees(ev.ticket_types),
+    restantes: placesRestantesAffichees(ouverts),
+    prixLibelle: ev.ticket_types.length > 0 && ouverts.length === 0 ? "Vente terminée" : null,
   };
 }
 
@@ -185,7 +191,7 @@ export async function getEvenementsPublies(
   let query = supabase
     .from("events")
     .select(
-      `slug, titre, ville, lieu, date_debut, date_fin, heure, affiche_url, est_demo, ticket_types(prix, quantite_totale, quantite_vendue), ${relationCategories}`
+      `slug, titre, ville, lieu, date_debut, date_fin, heure, affiche_url, est_demo, ticket_types(prix, quantite_totale, quantite_vendue, vente_jusqua), ${relationCategories}`
     )
     .eq("statut", "publie")
     .eq("est_demo", false)
@@ -226,6 +232,10 @@ export interface TicketTypeDetail {
   nom: string;
   prix: number;
   disponibles: number;
+  /** Vente close (BUGS_REFONTE n°10) : tarif affiché grisé, non achetable. */
+  venteTerminee: boolean;
+  /** « jusqu'au 1er oct. » pour un tarif encore en vente avec une date de fin, sinon null. */
+  finVente: string | null;
 }
 
 export interface EvenementDetail {
@@ -278,6 +288,7 @@ interface EventDetailRow {
     prix: number;
     quantite_totale: number;
     quantite_vendue: number;
+    vente_jusqua: string | null;
   }[];
   event_categories: { categorie: string; ordre: number }[];
   event_images: { url: string; principale: boolean; ordre: number }[];
@@ -308,7 +319,7 @@ export async function getEvenementParSlug(
   const { data, error } = await supabase
     .from("events")
     .select(
-      "id, organisateur_id, slug, titre, description, ville, lieu, date_debut, date_fin, heure, affiche_url, pays_code, statut, est_demo, organisateur:profiles!organisateur_id(nom, nom_public), ticket_types(id, nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale, ordre)"
+      "id, organisateur_id, slug, titre, description, ville, lieu, date_debut, date_fin, heure, affiche_url, pays_code, statut, est_demo, organisateur:profiles!organisateur_id(nom, nom_public), ticket_types(id, nom, prix, quantite_totale, quantite_vendue, vente_jusqua), event_categories(categorie, ordre), event_images(url, principale, ordre)"
     )
     .eq("slug", slug)
     .in("statut", ["publie", "termine"])
@@ -349,8 +360,11 @@ export async function getEvenementParSlug(
         nom: t.nom,
         prix: t.prix,
         disponibles: Math.max(0, t.quantite_totale - t.quantite_vendue),
+        venteTerminee: venteTerminee(t.vente_jusqua),
+        finVente: t.vente_jusqua && !venteTerminee(t.vente_jusqua) ? libelleFinVente(t.vente_jusqua) : null,
       }))
-      .sort((a, b) => a.prix - b.prix),
+      // Tarifs clos en dernier, grisés ; les autres par prix croissant.
+      .sort((a, b) => Number(a.venteTerminee) - Number(b.venteTerminee) || a.prix - b.prix),
   };
 }
 
@@ -637,7 +651,7 @@ export async function getDatesArtiste(artisteId: string): Promise<{ aVenir: Cart
 
   const { data, error } = await supabaseAdmin
     .from("events")
-    .select("slug, titre, ville, lieu, date_debut, date_fin, heure, affiche_url, est_demo, statut, ticket_types(prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre)")
+    .select("slug, titre, ville, lieu, date_debut, date_fin, heure, affiche_url, est_demo, statut, ticket_types(prix, quantite_totale, quantite_vendue, vente_jusqua), event_categories(categorie, ordre)")
     .in("id", ids)
     .eq("est_demo", false)
     .in("statut", ["publie", "termine"])

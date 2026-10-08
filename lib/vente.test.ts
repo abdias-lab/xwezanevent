@@ -21,3 +21,11 @@ test("sans date de fin, ou date illisible : jamais terminée", () => {
   assert.equal(venteTerminee(""), false);
   assert.equal(venteTerminee("pas une date"), false);
 });
+
+test("libellé de fin de vente, jour lu à Porto-Novo", async () => {
+  const { libelleFinVente } = await import("./vente");
+  assert.equal(libelleFinVente(finDeVenteDepuisDate("2026-10-01")), "jusqu'au 1er oct.");
+  assert.equal(libelleFinVente(finDeVenteDepuisDate("2026-12-20")), "jusqu'au 20 déc.");
+  // Ancienne valeur décalée (23:59:59 UTC = 00:59 le lendemain à Porto-Novo) : lue le lendemain, d'où le recalage.
+  assert.equal(libelleFinVente("2026-12-20T23:59:59+00:00"), "jusqu'au 21 déc.");
+});

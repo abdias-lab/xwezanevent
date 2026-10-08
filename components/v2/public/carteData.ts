@@ -19,6 +19,7 @@ export function versCarte(e: CarteData): EvenementCarte {
     tags: e.categories,
     image: e.image,
     restantes: e.restantes ?? undefined,
+    prixLibelle: e.prixLibelle ?? undefined,
   };
 }
 

@@ -2024,3 +2024,11 @@ a.avecArtiste:hover {
   line-height: 18px;
   color: var(--muted);
 }
+
+/* Tarif dont la vente est close (BUGS_REFONTE n°10) : visible, grisé, non achetable. */
+.ligneOff {
+  opacity: 0.5;
+}
+.ligneOff:hover {
+  background: var(--surface);
+}
