@@ -17,13 +17,14 @@ export const SE_CONNECTER: Espace = { libelle: "Se connecter", href: "/connexion
 
 /**
  * Dessin de l'en-tête public V2, repris de la preview (v2/chrome.tsx) : logo,
- * recherche, « Publier un événement » (organisateur ou admin seulement :
- * un acheteur est venu acheter, pas gérer une billetterie) et bouton de
- * l'espace. Sans accès à la session : utilisable côté serveur (Chrome.tsx)
+ * recherche et bouton de l'espace. Plus de « Publier un événement » ici
+ * (décision d'Abdias du 2026-10-08 : trop de place dans la barre) ; il reste
+ * sous le sous-titre de l'accueil, dans le pied de page et dans l'espace
+ * organisateur. Sans accès à la session : utilisable côté serveur (Chrome.tsx)
  * comme côté client (EnteteClient.tsx, pour app/error.tsx). La recherche
  * envoie sur /evenements?q=.
  */
-export function Entete({ espace, publier }: { espace: Espace; publier: boolean }) {
+export function Entete({ espace }: { espace: Espace }) {
   return (
     <header className={v.header}>
       <div className={`${v.cont} ${v.nav}`}>
@@ -34,14 +35,6 @@ export function Entete({ espace, publier }: { espace: Espace; publier: boolean }
           <Icon name="search" size={20} />
           <input type="search" name="q" placeholder="Artiste, lieu, ville" aria-label="Rechercher un événement" />
         </form>
-        {publier && (
-          <Link href="/creer" aria-label="Publier un événement" className={v.btnPublier}>
-            <Icon name="plus" size={16} />
-            <span>
-              Publier<span className={v.libelleLong}> un événement</span>
-            </span>
-          </Link>
-        )}
         <Link href={espace.href} className={v.btnBlanc}>
           {espace.libelle}
         </Link>
@@ -53,7 +46,7 @@ export function Entete({ espace, publier }: { espace: Espace; publier: boolean }
 /** Rôle lu dans profiles.role ; null pour un visiteur non connecté. */
 export type RolePied = "visiteur" | "organisateur" | "admin" | null;
 
-/** Organisateur ou admin : « Publier », scanner, espace organisateur. */
+/** Organisateur ou admin : scanner, espace organisateur. */
 export const estOrganisateur = (role: RolePied) => role === "organisateur" || role === "admin";
 
 /** Réseaux de XwézanEvent (repris de l'ancien pied de page). */

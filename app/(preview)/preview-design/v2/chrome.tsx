@@ -22,15 +22,7 @@ export function Header({ connecte }: { connecte?: RoleConnecte }) {
           <Icon name="search" size={20} />
           <input type="search" name="q" placeholder="Artiste, lieu, ville" aria-label="Rechercher un événement" />
         </form>
-        {/* « Publier » dans l'en-tête seulement pour un organisateur ou un admin (un acheteur est venu acheter). */}
-        {(connecte === "organisateur" || connecte === "admin") && (
-          <a href="/preview-design/v2/creer" aria-label="Publier un événement" className={s.btnPublier}>
-            <Icon name="plus" size={16} />
-            <span>
-              Publier<span className={s.libelleLong}> un événement</span>
-            </span>
-          </a>
-        )}
+        {/* Plus de « Publier » dans l'en-tête (2026-10-08) : accueil, pied de page et espace organisateur. */}
         <a href={espace.href} className={s.btnBlanc}>
           {espace.libelle}
         </a>

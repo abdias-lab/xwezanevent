@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { creerClientNavigateur } from "@/lib/supabase-browser";
-import { Entete, ESPACES, PiedDePage, SE_CONNECTER, estOrganisateur, type Espace, type RolePied } from "./Entete";
+import { Entete, ESPACES, PiedDePage, SE_CONNECTER, type Espace, type RolePied } from "./Entete";
 
 /**
  * En-tête public V2 pour les composants client (app/error.tsx, qui ne peut
@@ -11,17 +11,15 @@ import { Entete, ESPACES, PiedDePage, SE_CONNECTER, estOrganisateur, type Espace
  */
 export function HeaderClient() {
   const [espace, setEspace] = useState<Espace>(SE_CONNECTER);
-  const [publier, setPublier] = useState(false);
   useEffect(() => {
     const supabase = creerClientNavigateur();
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return;
       const { data: profil } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
       setEspace(ESPACES[profil?.role ?? "visiteur"] ?? ESPACES.visiteur);
-      setPublier(estOrganisateur((profil?.role as RolePied) ?? "visiteur"));
     });
   }, []);
-  return <Entete espace={espace} publier={publier} />;
+  return <Entete espace={espace} />;
 }
 
 /** Pied de page public V2 pour les composants client (pages d'erreur), rôle lu dans le navigateur. */
