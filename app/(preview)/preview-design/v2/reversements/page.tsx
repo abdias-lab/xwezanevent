@@ -9,8 +9,9 @@ export const metadata: Metadata = { title: "Reversements — XwézanEvent" };
 
 /**
  * Reversements (preview V2). Texte repris mot pour mot de app/(public)/reversements.
- * La section « Si l'événement est annulé » sera réécrite avec le chantier
- * « annulation » (design/BUGS_REFONTE.md), pas avant.
+ * Section « Si l'événement est annulé » réécrite le 2026-10-08 (BUGS_REFONTE
+ * n°7), comme en prod : les fonds servent au remboursement des acheteurs, les
+ * demandes en attente sont gelées, aucun déblocage promis.
  */
 export default function V2Reversements() {
   return (
@@ -81,9 +82,16 @@ export default function V2Reversements() {
           contenu: (
             <>
               <p>
-                En cas d&apos;annulation d&apos;un événement (par toi ou par notre équipe), les demandes de virement <strong>en attente</strong> liées à cet
-                événement sont automatiquement <strong>gelées</strong>. Elles restent visibles dans ton tableau de bord et sont débloquées manuellement par notre
-                équipe une fois la situation vérifiée — voir notre <a href={`${B}/remboursements`}>politique de remboursement</a>.
+                Si un événement est annulé (par toi ou par notre équipe), l&apos;argent de ses ventes sert à <strong>rembourser les acheteurs</strong> : chacun
+                est remboursé en entier, sous 14 jours, directement par XwézanEvent. Voir notre <a href={`${B}/remboursements`}>politique de remboursement</a>.
+              </p>
+              <p>
+                Pour toi, cela veut dire : plus aucune demande de virement possible pour cet événement, et tes demandes <strong>en attente</strong> sont{" "}
+                <strong>gelées</strong> : elles restent visibles dans ton tableau de bord, mais ne sont pas versées.
+              </p>
+              <p>
+                Un cas particulier (virement déjà reçu avant l&apos;annulation, par exemple) ? Écris-nous à{" "}
+                <a href="mailto:contact@xwezan.com">contact@xwezan.com</a>.
               </p>
               <p>
                 <a href={`${B}/orga`} className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} style={{ textDecoration: "none", color: "var(--inverse)" }}>

@@ -10,9 +10,12 @@ export const metadata: Metadata = {
 };
 
 /**
- * Reversements (V2), reprise de la preview (v2/reversements). Texte identique
- * à la version en service avant la V2. La section « Si l'événement est
- * annulé » sera réécrite avec le chantier « annulation » (BUGS_REFONTE n°7).
+ * Reversements (V2), reprise de la preview (v2/reversements). Section « Si
+ * l'événement est annulé » réécrite le 2026-10-08 (BUGS_REFONTE n°7) : elle
+ * promettait le déblocage des virements gelés, qui n'existe pas ; les fonds
+ * servent au remboursement des acheteurs (CGU §6), aucune nouvelle demande
+ * n'est possible (api/orga/events/[id]/payouts) et les demandes en attente
+ * sont gelées (annuler_evenement).
  */
 export default function Reversements() {
   return (
@@ -83,9 +86,16 @@ export default function Reversements() {
           contenu: (
             <>
               <p>
-                En cas d&apos;annulation d&apos;un événement (par toi ou par notre équipe), les demandes de virement <strong>en attente</strong> liées à cet
-                événement sont automatiquement <strong>gelées</strong>. Elles restent visibles dans ton tableau de bord et sont débloquées manuellement par notre
-                équipe une fois la situation vérifiée — voir notre <a href="/remboursements">politique de remboursement</a>.
+                Si un événement est annulé (par toi ou par notre équipe), l&apos;argent de ses ventes sert à <strong>rembourser les acheteurs</strong> : chacun
+                est remboursé en entier, sous 14 jours, directement par XwézanEvent. Voir notre <a href="/remboursements">politique de remboursement</a>.
+              </p>
+              <p>
+                Pour toi, cela veut dire : plus aucune demande de virement possible pour cet événement, et tes demandes <strong>en attente</strong> sont{" "}
+                <strong>gelées</strong> : elles restent visibles dans ton tableau de bord, mais ne sont pas versées.
+              </p>
+              <p>
+                Un cas particulier (virement déjà reçu avant l&apos;annulation, par exemple) ? Écris-nous à{" "}
+                <a href="mailto:contact@xwezan.com">contact@xwezan.com</a>.
               </p>
               <p>
                 <a href="/orga" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} style={{ textDecoration: "none", color: "var(--inverse)" }}>
