@@ -11,6 +11,7 @@ export const NAV_ORGA: Nav = {
     { cle: "accueil", libelle: "Tableau de bord", court: "Accueil", href: "/orga", icone: "home" },
     { cle: "scan", libelle: "Scanner les billets", court: "Scanner", href: "/scan", icone: "qr" },
     { cle: "reversements", libelle: "Mes reversements", court: "Virements", href: "/orga/reversements", icone: "wallet" },
+    { cle: "artistes", libelle: "Mes artistes", court: "Artistes", href: "/orga/artistes", icone: "users" },
     { cle: "parametres", libelle: "Paramètres", court: "Réglages", href: "/orga/parametres", icone: "settings" },
   ],
   creer: { cle: "creer", libelle: "Créer un événement", court: "Créer", href: "/creer", icone: "plus" },

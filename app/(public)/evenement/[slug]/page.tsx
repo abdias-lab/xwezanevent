@@ -9,7 +9,9 @@ import Partager from "@/components/v2/public/Partager";
 import { dateLongue } from "@/components/v2/public/evenement";
 import { POLICES_V2 } from "@/components/v2/polices";
 import s from "@/components/v2/v2.module.css";
-import { getEvenementParSlug } from "@/lib/events";
+import { getArtistesEvenement, getEvenementParSlug } from "@/lib/events";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { initialesArtiste } from "@/components/v2/orga/artistes/initiales";
 import { listeOperateursCourt, operateursPays } from "@/lib/telephone";
 
 export const revalidate = 60;
@@ -53,6 +55,15 @@ export default async function EvenementDetail({ params }: { params: { slug: stri
   const ev = await getEvenementParSlug(params.slug);
   if (!ev) notFound();
 
+  // « Avec » et badge « Vérifié » (design/ARTISTES.md). Artiste auto-produit :
+  // l'organisateur est le compte de l'artiste, « Organisé par » est masqué.
+  const [artistes, { data: orgaVerifieLigne }] = await Promise.all([
+    getArtistesEvenement(ev.id),
+    supabaseAdmin.from("comptes_verifies").select("user_id").eq("user_id", ev.organisateurId).maybeSingle(),
+  ]);
+  const orgaVerifie = !!orgaVerifieLigne;
+  const afficherOrga = !!ev.organisateurNom && !artistes.some((a) => a.compteId === ev.organisateurId);
+
   const heure = ev.heure ? ev.heure.slice(0, 5) : null;
   const lieu = `${ev.lieu}, ${ev.ville}`;
   const itineraire = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lieu)}`;
@@ -91,9 +102,43 @@ export default async function EvenementDetail({ params }: { params: { slug: stri
         <div className={s.evTete}>
           <div className={s.evInfos}>
             <h1 className={s.dTitre}>{ev.titre}</h1>
-            {ev.organisateurNom && (
+            {artistes.length > 0 && (
+              <div className={s.evAvec}>
+                <span className={s.evAvecLibelle}>Avec</span>
+                {artistes.map((a) => {
+                  const contenu = (
+                    <>
+                      <span className={s.avecAvatar} aria-hidden="true">
+                        {a.photo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={a.photo} alt="" />
+                        ) : (
+                          initialesArtiste(a.nom)
+                        )}
+                      </span>
+                      {a.nom}
+                    </>
+                  );
+                  return a.slug ? (
+                    <a key={a.nom} href={`/artiste/${a.slug}`} className={s.avecArtiste}>
+                      {contenu}
+                    </a>
+                  ) : (
+                    <span key={a.nom} className={s.avecArtiste}>
+                      {contenu}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            {afficherOrga && (
               <p className={s.evOrga}>
                 Organisé par <b>{ev.organisateurNom}</b>
+                {orgaVerifie && (
+                  <span className={`${s.badgeVerifie} ${s.badgeVerifiePetit}`}>
+                    <Icon name="check" /> Vérifié
+                  </span>
+                )}
               </p>
             )}
             <ul className={s.evListe}>
@@ -162,7 +207,7 @@ export default async function EvenementDetail({ params }: { params: { slug: stri
           </Reveal>
         )}
 
-        {ev.organisateurNom && (
+        {afficherOrga && ev.organisateurNom && (
           <Reveal>
             <section className={s.evSection}>
               <div className={s.tete}>
@@ -173,6 +218,11 @@ export default async function EvenementDetail({ params }: { params: { slug: stri
                   {initialesOrga(ev.organisateurNom)}
                 </span>
                 <b>{ev.organisateurNom}</b>
+                {orgaVerifie && (
+                  <span className={`${s.badgeVerifie} ${s.badgeVerifiePetit}`}>
+                    <Icon name="check" /> Vérifié
+                  </span>
+                )}
               </div>
             </section>
           </Reveal>

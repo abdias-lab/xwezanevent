@@ -8,8 +8,28 @@ import { uploaderImageEvenement } from "@/lib/images-evenement";
 import { MAX_IMAGES } from "@/lib/affiche";
 import { MAX_CATEGORIES } from "@/lib/categories";
 import { aujourdhuiPortoNovo } from "@/lib/date";
+import { headers } from "next/headers";
+import {
+  enregistrerArtistes,
+  estVerifie,
+  notifierPropositions,
+  preparerArtistes,
+  rechercherArtistes,
+  surveillerArtistesPublies,
+  surveillerEvenementPublie,
+  type ArtisteTrouve,
+} from "@/lib/artistes";
+import { journaliserAction } from "@/lib/journal";
+import { notifierNouvelleDate } from "@/lib/nouvelle-date";
 
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+function origine(): string {
+  const h = headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
 
 interface TicketSaisi {
   nom?: string;
@@ -87,6 +107,12 @@ export async function publierEvenement(formData: FormData) {
   if (date_debut < aujourdhuiPortoNovo()) {
     redirect("/creer?erreur=date_passee");
   }
+
+  // Artistes à l'affiche (design/ARTISTES.md, lot 2) : validés ici, avant
+  // tout envoi d'image ou écriture, comme les champs ci-dessus.
+  const verifie = await estVerifie(user.id);
+  const artistes = await preparerArtistes(formData.get("artistes"), user.id, verifie);
+  if ("erreur" in artistes) redirect(`/creer?erreur=${artistes.erreur}`);
 
   const fichiersImages = formData
     .getAll("images_nouvelles")
@@ -184,8 +210,9 @@ export async function publierEvenement(formData: FormData) {
       heure,
       affiche_url,
       // Statut TOUJOURS forcé côté serveur, jamais lu depuis le formulaire :
-      // la modération admin est obligatoire avant publication (voir
-      // /api/admin/events/[id]/valider, seule route habilitée à passer 'publie').
+      // en validation à la création. Seuls passent ensuite à 'publie' la
+      // validation admin (/api/admin/events/[id]/valider) et, pour un compte
+      // vérifié (comptes_verifies), la publication directe en fin d'action.
       statut: "en_validation",
     })
     .select("id, slug")
@@ -232,12 +259,54 @@ export async function publierEvenement(formData: FormData) {
     if (e2) throw new Error(`Création billets impossible : ${e2.message}`);
   }
 
+  const { publies, proposes } = await enregistrerArtistes(ev.id, artistes.plan, user.id, verifie);
+  // Compte vérifié : ses nouveaux artistes sont en ligne sans validation,
+  // l'équipe reçoit l'e-mail de surveillance (comme depuis /orga/artistes).
+  await surveillerArtistesPublies(publies, user, origine());
+  // Artistes d'autres comptes : leur label ou leur compte est prévenu, avec un lien direct.
+  await notifierPropositions(ev.id, proposes, user, origine());
+
+  // Compte vérifié (design/ARTISTES.md) : publié sans validation admin, par la
+  // même transition que /api/admin/events/[id]/valider (en_validation →
+  // publie), une fois billets, images et artistes enregistrés : la page n'est
+  // jamais en ligne incomplète. En cas d'échec, l'événement reste en
+  // validation et suit le circuit habituel (l'écran de confirmation lit le
+  // statut réel). L'équipe reçoit l'e-mail de surveillance, sans blocage.
+  if (verifie) {
+    const { data: publie, error: erreurPublication } = await supabaseAdmin
+      .from("events")
+      .update({ statut: "publie" })
+      .eq("id", ev.id)
+      .eq("statut", "en_validation")
+      .select("id")
+      .maybeSingle();
+    if (erreurPublication) console.error("[creer] publication directe impossible :", erreurPublication.message);
+    if (publie) {
+      await journaliserAction(user.id, "organisateur", "publication directe (compte vérifié)", { event_id: ev.id, titre });
+      await surveillerEvenementPublie({ titre, slug: ev.slug }, user, origine());
+      // « Nouvelle date » aux abonnés des artistes de l'affiche (lot 3).
+      await notifierNouvelleDate(ev.id, origine());
+      revalidatePath("/");
+      revalidatePath("/evenements");
+    }
+  }
+
   // Rafraîchit le tableau de bord organisateur, où l'événement apparaît
-  // immédiatement avec le badge « En validation ».
+  // immédiatement (« En validation », ou « En vente » pour un compte vérifié).
   revalidatePath("/orga");
 
-  // Écran « Envoyé pour validation » (refonte V2) : l'organisateur sait que
-  // son événement attend l'équipe, au lieu d'un retour muet sur /orga
+  // Écran de confirmation (refonte V2) : « Envoyé pour validation », ou
+  // « Publié » pour un compte vérifié, au lieu d'un retour muet sur /orga
   // (design/BUGS_REFONTE.md n°1). La page revérifie qu'il en est bien l'auteur.
   redirect(`/creer?envoye=${ev.id}`);
+}
+
+/** Recherche du sélecteur d'artistes (components/v2/orga/creer/Artistes.tsx). */
+export async function chercherArtistes(q: string): Promise<ArtisteTrouve[]> {
+  const supabase = creerClientServeur();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  return rechercherArtistes(user.id, String(q ?? ""));
 }

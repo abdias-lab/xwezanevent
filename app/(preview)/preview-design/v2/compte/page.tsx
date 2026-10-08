@@ -6,6 +6,7 @@ import { Header, Footer } from "../chrome";
 import { B, RubanEtats } from "../Coquille";
 import { EVENEMENTS, dateCourte, type Evenement } from "../../_data";
 import { AUJOURDHUI } from "../orga/_orga";
+import { initialesArtiste } from "../orga/artistes/_artistes";
 
 export const metadata: Metadata = { title: "Mes billets — XwézanEvent", robots: { index: false } };
 
@@ -183,6 +184,33 @@ export default function V2Compte({ searchParams }: { searchParams: { etat?: stri
               )}
             </>
           )}
+
+          {/* Abonnements aux artistes (design/ARTISTES.md, lot 3). En prod : abonnementsUtilisateur (lib/abonnements.ts). */}
+          <section id="abonnements" aria-labelledby="abonnements-titre" style={{ marginTop: 32 }}>
+            <h2 id="abonnements-titre" className={s.intertitre} style={{ marginTop: 0 }}>
+              Mes abonnements
+            </h2>
+            <p className={s.aide} style={{ marginBottom: 12 }}>
+              Tu reçois un e-mail à chaque nouvelle date de ces artistes.
+            </p>
+            <ul className={s.pile} style={{ gap: 8 }}>
+              {["Zeynab Habib", "Kpanlogo Crew"].map((nom) => (
+                <li key={nom} className={`${s.carte} ${s.carteRangee}`}>
+                  <a href={`${B}/artiste`} style={{ display: "flex", gap: 12, alignItems: "center", minWidth: 0 }}>
+                    <span className={`${s.avatarArtiste} ${s.avatarPetit}`} aria-hidden="true">
+                      {initialesArtiste(nom)}
+                    </span>
+                    <span className={s.carteTitre} style={{ overflowWrap: "anywhere" }}>
+                      {nom}
+                    </span>
+                  </a>
+                  <a href={`${B}/desabonnement?etat=fait`} className={`${s.btn} ${s.btnGris}`}>
+                    Se désabonner
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
 
           <section className={s.bloc} aria-labelledby="profil" style={{ marginTop: 32 }}>
             <div className={s.blocTete}>

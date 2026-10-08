@@ -10,6 +10,11 @@ import FormulaireModif from "@/components/v2/orga/modifier/FormulaireModif";
 import { NAV_ORGA } from "@/components/v2/navOrga";
 import { STATUTS, StatutEvt, type Statut } from "@/components/v2/statuts";
 import s from "@/components/v2/espace.module.css";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { MESSAGES_ERREUR_ARTISTES, estVerifie, rattachementsEvenement } from "@/lib/artistes";
+import { dateAnnee } from "@/components/v2/format";
+import type { ArtisteChoisi } from "@/components/v2/orga/creer/Artistes";
+import { chercherArtistes } from "@/app/(orga)/creer/actions";
 import { modifierEvenement } from "./actions";
 
 export const metadata: Metadata = {
@@ -32,6 +37,7 @@ const MESSAGES_ERREUR: Record<string, ReactNode> = {
   ),
   verification: "Vérification impossible pour le moment. Aucune modification n'a été enregistrée, réessaie dans un instant.",
   affiche: "L'envoi d'une image a échoué. Aucune modification n'a été enregistrée, réessaie.",
+  ...MESSAGES_ERREUR_ARTISTES,
 };
 
 interface EventRow {
@@ -98,6 +104,20 @@ export default async function ModifierEvenementPage({
   const vendus = tarifs.reduce((n, t) => n + t.vendus, 0);
   const heure = event.heure ? event.heure.slice(0, 5) : "";
 
+  // Artistes déjà rattachés, dans l'ordre (lecture service_role : aucun accès
+  // client à evenement_artistes), et ce qu'il faut au sélecteur.
+  const [rattaches, verifie, { data: pagePerso }] = await Promise.all([
+    rattachementsEvenement(event.id, user.id),
+    estVerifie(user.id),
+    supabaseAdmin.from("artistes").select("id").eq("compte_id", user.id).maybeSingle(),
+  ]);
+  const artistes: ArtisteChoisi[] = rattaches.map((r) => ({
+    cle: r.id,
+    rattache: r.statut,
+    le: r.le ? dateAnnee(r.le) : null,
+    trouve: { id: r.id, nom: r.nom, photo: r.photo, statut: r.statutArtiste, gere: r.gere },
+  }));
+
   return (
     <Coquille nav={NAV_ORGA} actif="accueil" compte={{ nom, email: user.email ?? "" }}>
       <Link href={fiche} className={s.retour}>
@@ -109,7 +129,7 @@ export default async function ModifierEvenementPage({
             <StatutEvt statut={event.statut} />
           </div>
           <h1 className={s.titre}>Modifier l&apos;événement</h1>
-          <p className={s.sousTitre}>Description, catégories, date et images. Les changements sont visibles dès l&apos;enregistrement.</p>
+          <p className={s.sousTitre}>Description, artistes, catégories, date et images. Les changements sont visibles dès l&apos;enregistrement.</p>
         </div>
       </div>
 
@@ -117,7 +137,7 @@ export default async function ModifierEvenementPage({
         <FormulaireModif
           // Remonte le formulaire quand la ligne en base change (après
           // enregistrement) : l'état local repart des valeurs enregistrées.
-          key={JSON.stringify([event.description, event.date_debut, event.date_fin, heure, categories, images])}
+          key={JSON.stringify([event.description, event.date_debut, event.date_fin, heure, categories, images, rattaches.map((r) => `${r.id}:${r.statut}`)])}
           action={modifierEvenement.bind(null, event.id)}
           e={{
             id: event.id,
@@ -138,6 +158,10 @@ export default async function ModifierEvenementPage({
           aujourdhui={aujourdhuiPortoNovo()}
           erreurServeur={searchParams.erreur ? (MESSAGES_ERREUR[searchParams.erreur] ?? null) : null}
           enregistre={searchParams.enregistre === "1"}
+          artistes={artistes}
+          chercherArtistes={chercherArtistes}
+          verifie={verifie}
+          peutMoiMeme={!pagePerso}
         />
       ) : (
         <div className={s.vide}>

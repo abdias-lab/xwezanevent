@@ -14,6 +14,7 @@ export const NAV_ADMIN: Nav = {
     { cle: "evenements", libelle: "Événements", court: "Événements", href: `${A}/evenements`, icone: "shield" },
     { cle: "virements", libelle: "Virements", court: "Virements", href: `${A}/virements`, icone: "wallet" },
     { cle: "organisateurs", libelle: "Organisateurs", court: "Orgas", href: `${A}/organisateurs`, icone: "users", secondaire: true },
+    { cle: "artistes", libelle: "Artistes", court: "Artistes", href: `${A}/artistes`, icone: "image", secondaire: true },
     { cle: "billets", libelle: "Billets et remboursements", court: "Billets", href: `${A}/billets`, icone: "ticket", secondaire: true },
     { cle: "commissions", libelle: "Commissions", court: "Commissions", href: `${A}/commissions`, icone: "percent", secondaire: true },
   ],
@@ -47,13 +48,14 @@ export type Organisateur = {
   id: string;
   nom: string; // nom personnel (profiles.nom), jamais public
   nomPublic: string | null;
+  verifieLe?: string; // comptes_verifies.verifie_le (label ou artiste auto-produit)
   email: string;
   tel: string;
   inscritLe: string;
 };
 
 export const ORGANISATEURS: Organisateur[] = [
-  { id: "o1", nom: "Rodrigue Houngbédji", nomPublic: "Ouidah Live", email: "contact@ouidahlive.bj", tel: "01 97 42 18 63", inscritLe: "2026-07-14" },
+  { id: "o1", nom: "Rodrigue Houngbédji", nomPublic: "Ouidah Live", email: "contact@ouidahlive.bj", tel: "01 97 42 18 63", inscritLe: "2026-07-14", verifieLe: "2026-09-02" },
   { id: "o2", nom: "Mariam Adjovi", nomPublic: "Lagune Sessions", email: "mariam.adjovi@exemple.bj", tel: "01 95 30 77 12", inscritLe: "2026-08-02" },
   { id: "o3", nom: "Codjo Tossou", nomPublic: null, email: "codjo.tossou@exemple.bj", tel: "01 96 11 48 20", inscritLe: "2026-09-20" },
   { id: "o4", nom: "Esther Kpadonou", nomPublic: "Rire Bénin", email: "esther@rirebenin.bj", tel: "01 91 73 05 44", inscritLe: "2026-08-28" },

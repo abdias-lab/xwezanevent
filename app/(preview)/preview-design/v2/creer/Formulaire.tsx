@@ -10,6 +10,8 @@ import { AUJOURDHUI, CATEGORIES_ORGA, ORGA, VILLES } from "../orga/_orga";
 import { B } from "../Coquille";
 import Images, { type ImageLocale } from "./Images";
 import Billets, { nouveauTarif, tarifValide, type TarifSaisi } from "./Billets";
+import Artistes, { type ArtisteChoisi } from "./Artistes";
+import { chercherDemo } from "./artistesDemo";
 
 const MAX_CATEGORIES = 3; // lib/categories.ts
 
@@ -21,13 +23,14 @@ const MAX_CATEGORIES = 3; // lib/categories.ts
  *
  * `erreurServeur` : refus renvoyé par le serveur (?etat=erreur).
  * `envoyeDemo` : ouvre directement l'écran de confirmation (?etat=envoye).
+ * `verifie` : compte vérifié (?etat=verifie) : événement et nouveaux artistes publiés sans validation.
  */
 // Saisie de démonstration pour ?etat=envoye.
 const DEMO = { titre: "Nuit Zinli : Cotonou by Night", categories: ["Concert"], dateDebut: "2026-10-24", heure: "20:00", lieu: "Palais des Congrès", ville: "Cotonou" };
 
 type Etape = "saisie" | "envoi" | "envoye";
 
-export default function Formulaire({ erreurServeur = false, envoyeDemo = false }: { erreurServeur?: boolean; envoyeDemo?: boolean }) {
+export default function Formulaire({ erreurServeur = false, envoyeDemo = false, verifie = false }: { erreurServeur?: boolean; envoyeDemo?: boolean; verifie?: boolean }) {
   const d = envoyeDemo ? DEMO : null;
   const [etape, setEtape] = useState<Etape>(envoyeDemo ? "envoye" : "saisie");
   const [titre, setTitre] = useState(d?.titre ?? "");
@@ -43,6 +46,7 @@ export default function Formulaire({ erreurServeur = false, envoyeDemo = false }
     d ? [{ ...nouveauTarif("Standard"), prix: "3000", quantite: "400" }, { ...nouveauTarif("Carré Or"), prix: "10000", quantite: "50" }] : [nouveauTarif("Standard")],
   );
   const [images, setImages] = useState<ImageLocale[]>([]);
+  const [artistes, setArtistes] = useState<ArtisteChoisi[]>([]);
   const [principale, setPrincipale] = useState<string | null>(null);
   const [tente, setTente] = useState(false); // erreurs affichées après une tentative d'envoi
   // Aperçu non interactif : `inert` n'est pas typé en React 18, posé à la main.
@@ -107,7 +111,7 @@ export default function Formulaire({ erreurServeur = false, envoyeDemo = false }
     .map(([l]) => l);
 
   if (etape === "envoye") {
-    return <Confirmation titre={apercu.titre} apercu={apercu} />;
+    return <Confirmation titre={apercu.titre} apercu={apercu} publie={verifie} />;
   }
 
   return (
@@ -193,6 +197,9 @@ export default function Formulaire({ erreurServeur = false, envoyeDemo = false }
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
+
+          {/* « Ouidah Live » est un label sans page personnelle : « Moi-même » reste possible. */}
+          <Artistes choisis={artistes} setChoisis={setArtistes} chercher={chercherDemo} verifie={verifie} peutMoiMeme />
 
           <div className={s.champ}>
             <span className={s.etiquette} id="cat-label">
@@ -393,7 +400,7 @@ export default function Formulaire({ erreurServeur = false, envoyeDemo = false }
           <p className={s.panneauTitre}>Avant l&apos;envoi</p>
           <Checklist check={check} />
         </div>
-        <Envoi valide={valide} enCours={etape === "envoi"} />
+        <Envoi valide={valide} enCours={etape === "envoi"} verifie={verifie} />
       </aside>
 
       {/* Barre d'envoi collée en bas sur mobile. */}
@@ -402,7 +409,7 @@ export default function Formulaire({ erreurServeur = false, envoyeDemo = false }
           {faits}/{requis.length} obligatoires
         </span>
         <button type="submit" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} style={{ flex: 1 }} aria-disabled={!valide || etape === "envoi"}>
-          {etape === "envoi" ? "Envoi…" : "Envoyer pour validation"}
+          {etape === "envoi" ? (verifie ? "Publication…" : "Envoi…") : verifie ? "Publier l'événement" : "Envoyer pour validation"}
         </button>
       </div>
       <div className={s.espaceBarreBas} aria-hidden="true" />
@@ -436,19 +443,23 @@ function Checklist({ check }: { check: Record<"titre" | "description" | "categor
   );
 }
 
-function Envoi({ valide, enCours }: { valide: boolean; enCours: boolean }) {
+function Envoi({ valide, enCours, verifie }: { valide: boolean; enCours: boolean; verifie: boolean }) {
   return (
     <div style={{ display: "grid", gap: 8 }}>
       <button type="submit" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} aria-disabled={!valide || enCours}>
-        {enCours ? "Envoi…" : "Envoyer pour validation"}
+        {enCours ? (verifie ? "Publication…" : "Envoi…") : verifie ? "Publier l'événement" : "Envoyer pour validation"}
       </button>
-      <p className={s.note}>L&apos;équipe Xwézan vérifie chaque événement avant sa mise en ligne. Tu reçois un e-mail dès qu&apos;il est validé.</p>
+      <p className={s.note}>
+        {verifie
+          ? "Ton compte est vérifié : l'événement est en ligne dès l'envoi, sans attendre l'équipe."
+          : "L'équipe Xwézan vérifie chaque événement avant sa mise en ligne. Tu reçois un e-mail dès qu'il est validé."}
+      </p>
     </div>
   );
 }
 
-/** Écran après envoi : l'événement part en validation (statut en_validation en prod). */
-function Confirmation({ titre, apercu }: { titre: string; apercu: Evenement }) {
+/** Écran après envoi : l'événement part en validation (statut en_validation en prod), ou `publie` pour un compte vérifié. */
+function Confirmation({ titre, apercu, publie }: { titre: string; apercu: Evenement; publie: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const titreRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -460,10 +471,16 @@ function Confirmation({ titre, apercu }: { titre: string; apercu: Evenement }) {
       <div style={{ display: "grid", gap: 12, justifyItems: "start" }} role="status">
         <Icon name="check" size={48} className={s.montantOr} />
         <h2 ref={titreRef} tabIndex={-1} className={s.titre} style={{ outline: "none" }}>
-          Envoyé pour validation
+          {publie ? "Publié" : "Envoyé pour validation"}
         </h2>
         <p className={s.sousTitre} style={{ marginTop: 0 }}>
-          L&apos;équipe Xwézan vérifie « {titre} » avant sa mise en ligne. Tu reçois un e-mail à <b>{ORGA.email}</b> dès qu&apos;il est validé.
+          {publie ? (
+            <>« {titre} » est en ligne et en vente. Ton compte est vérifié : il n&apos;attend pas la validation de l&apos;équipe.</>
+          ) : (
+            <>
+              L&apos;équipe Xwézan vérifie « {titre} » avant sa mise en ligne. Tu reçois un e-mail à <b>{ORGA.email}</b> dès qu&apos;il est validé.
+            </>
+          )}
         </p>
       </div>
 
@@ -474,20 +491,38 @@ function Confirmation({ titre, apercu }: { titre: string; apercu: Evenement }) {
       <div className={s.panneau}>
         <p className={s.panneauTitre}>Et ensuite ?</p>
         <ol className={s.checklist} style={{ listStyle: "none", padding: 0 }}>
-          <li className={s.fait}>
-            <Icon name="check" size={16} /> Il apparaît déjà dans ton tableau de bord, statut « En validation »
-          </li>
-          <li>
-            <Icon name="clock" size={16} /> Après validation par l&apos;équipe, il est mis en vente et tu reçois un e-mail
-          </li>
-          <li>
-            <Icon name="link" size={16} /> Partage alors le lien de ta page pour lancer les ventes
-          </li>
+          {publie ? (
+            <>
+              <li className={s.fait}>
+                <Icon name="check" size={16} /> Il est en vente : statut « En vente » dans ton tableau de bord
+              </li>
+              <li>
+                <Icon name="link" size={16} /> Partage le lien de ta page pour lancer les ventes
+              </li>
+            </>
+          ) : (
+            <>
+              <li className={s.fait}>
+                <Icon name="check" size={16} /> Il apparaît déjà dans ton tableau de bord, statut « En validation »
+              </li>
+              <li>
+                <Icon name="clock" size={16} /> Après validation par l&apos;équipe, il est mis en vente et tu reçois un e-mail
+              </li>
+              <li>
+                <Icon name="link" size={16} /> Partage alors le lien de ta page pour lancer les ventes
+              </li>
+            </>
+          )}
         </ol>
       </div>
 
       <div style={{ display: "grid", gap: 8 }}>
-        <a href={`${B}/orga`} className={`${s.btn} ${s.btnOr} ${s.btnGrand}`}>
+        {publie && (
+          <a href={`${B}/evenement`} className={`${s.btn} ${s.btnOr} ${s.btnGrand}`}>
+            <Icon name="eye" /> Voir la page
+          </a>
+        )}
+        <a href={`${B}/orga`} className={`${s.btn} ${publie ? s.btnGris : s.btnOr} ${s.btnGrand}`}>
           Voir mon tableau de bord
         </a>
         <a href={`${B}/creer`} className={`${s.btn} ${s.btnGris} ${s.btnGrand}`}>

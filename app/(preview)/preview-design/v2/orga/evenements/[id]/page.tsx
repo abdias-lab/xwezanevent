@@ -6,6 +6,15 @@ import DemandeVirement from "../../DemandeVirement";
 import { Jauge, SqueletteListe, StatutEvt } from "../../ui";
 import { COMMISSION, MODIFIABLE, billetsDe, chiffres, dateAnnee, dateCourteOrga, etatPage, evenementOrga, montant, nombre, pourcent } from "../../_orga";
 import { Annuler, ListeBillets, LienScan } from "./Interactifs";
+import ArtistesEvenement, { type ArtisteFiche } from "./ArtistesEvenement";
+
+/** Artistes à l'affiche (factices) : un de chaque état de rattachement (design/ARTISTES.md, lot 2). */
+const ARTISTES_FICHE: ArtisteFiche[] = [
+  { id: "a1", nom: "Zeynab Habib", photo: null, statutArtiste: "valide", gere: true, statut: "accepte", le: "20 sept. 2026" },
+  { id: "x2", nom: "Sèna Melody", photo: null, statutArtiste: "valide", gere: false, statut: "accepte", le: "22 sept. 2026" },
+  { id: "x3", nom: "Kpanlogo Crew", photo: null, statutArtiste: "valide", gere: false, statut: "propose", le: "24 sept. 2026" },
+  { id: "x4", nom: "DJ Gbêtô", photo: null, statutArtiste: "valide", gere: false, statut: "refuse", le: "25 sept. 2026" },
+];
 
 /**
  * NOUVELLE FONCTIONNALITÉ (pas seulement une refonte) : fiche de gestion d'un
@@ -133,6 +142,7 @@ export default function V2FicheEvenement({ params, searchParams }: { params: { i
                 </p>
               )}
             </section>
+            {MODIFIABLE.has(e.statut) && <ArtistesEvenement artistes={ARTISTES_FICHE} lienModifier={`${B}/orga/evenements/${e.id}/modifier`} />}
             {e.statut === "publie" && <LienScan initial={e.lienScan} />}
             {MODIFIABLE.has(e.statut) && <Annuler titre={e.titre} />}
           </aside>

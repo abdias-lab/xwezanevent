@@ -10,6 +10,7 @@ import type { EvenementCarte } from "../../public/evenement";
 import { CATEGORIES, MAX_CATEGORIES, valeurCategorie } from "@/lib/categories";
 import Images, { type ImageLocale } from "./Images";
 import Billets, { nouveauTarif, tarifValide, type TarifSaisi } from "./Billets";
+import Artistes, { valeurArtistes, type ArtisteChoisi, type ArtisteTrouve } from "./Artistes";
 
 /** Villes proposées (même liste que l'ancien formulaire de création). */
 const VILLES = ["Cotonou", "Porto-Novo", "Ouidah", "Abomey", "Parakou", "Grand-Popo"];
@@ -19,11 +20,11 @@ const CATEGORIES_V2 = CATEGORIES.map(valeurCategorie);
 /** `taux` : pays.taux_commission_defaut, le taux appliqué à l'événement créé. */
 type Pays = { code: string; nom: string; taux: number };
 
-function BoutonEnvoi({ valide, pleine = false }: { valide: boolean; pleine?: boolean }) {
+function BoutonEnvoi({ valide, pleine = false, verifie }: { valide: boolean; pleine?: boolean; verifie: boolean }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} style={pleine ? { flex: 1 } : undefined} aria-disabled={!valide || pending}>
-      {pending ? "Envoi…" : "Envoyer pour validation"}
+      {pending ? (verifie ? "Publication…" : "Envoi…") : verifie ? "Publier l'événement" : "Envoyer pour validation"}
     </button>
   );
 }
@@ -39,11 +40,20 @@ export default function Formulaire({
   pays,
   aujourdhui,
   erreurServeur,
+  chercherArtistes,
+  verifie,
+  peutMoiMeme,
 }: {
   action: (formData: FormData) => void;
   pays: Pays[];
   aujourdhui: string;
   erreurServeur: string | null;
+  /** Recherche du sélecteur d'artistes (action serveur chercherArtistes). */
+  chercherArtistes: (q: string) => Promise<ArtisteTrouve[]>;
+  /** Compte vérifié : ses nouveaux artistes sont publiés sans validation. */
+  verifie: boolean;
+  /** Le compte n'a pas encore sa propre page artiste. */
+  peutMoiMeme: boolean;
 }) {
   const [titre, setTitre] = useState("");
   const [description, setDescription] = useState("");
@@ -58,6 +68,7 @@ export default function Formulaire({
   const [ville, setVille] = useState("");
   const [tarifs, setTarifs] = useState<TarifSaisi[]>(() => [nouveauTarif("Standard")]);
   const [images, setImages] = useState<ImageLocale[]>([]);
+  const [artistes, setArtistes] = useState<ArtisteChoisi[]>([]);
   const [principale, setPrincipale] = useState<string | null>(null);
   const [tente, setTente] = useState(false); // erreurs affichées après une tentative d'envoi
   // Aperçu non interactif : `inert` n'est pas typé en React 18, posé à la main.
@@ -153,6 +164,7 @@ export default function Formulaire({
       <input type="hidden" name="categories" value={JSON.stringify(categories)} />
       <input type="hidden" name="tickets" value={JSON.stringify(tarifs.map((t) => ({ nom: t.nom, prix: t.prix, quantite: t.quantite, venteJusqua: t.venteJusqua })))} />
       <input type="hidden" name="pays_code" value={paysCode} />
+      <input type="hidden" name="artistes" value={valeurArtistes(artistes)} />
       {multiJours && dateFin && <input type="hidden" name="date_fin" value={dateFin} />}
       <input type="hidden" name="image_principale_type" value={images.length ? "nouvelle" : ""} />
       <input type="hidden" name="image_principale_valeur" value={String(indexPrincipale)} />
@@ -215,6 +227,8 @@ export default function Formulaire({
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
+
+          <Artistes choisis={artistes} setChoisis={setArtistes} chercher={chercherArtistes} verifie={verifie} peutMoiMeme={peutMoiMeme} />
 
           <div className={s.champ}>
             <span className={s.etiquette} id="cat-label">
@@ -433,8 +447,12 @@ export default function Formulaire({
           <Checklist check={check} />
         </div>
         <div style={{ display: "grid", gap: 8 }}>
-          <BoutonEnvoi valide={valide} />
-          <p className={s.note}>L&apos;équipe Xwézan vérifie chaque événement avant sa mise en ligne. Tu reçois un e-mail dès qu&apos;il est validé.</p>
+          <BoutonEnvoi valide={valide} verifie={verifie} />
+          <p className={s.note}>
+            {verifie
+              ? "Ton compte est vérifié : l'événement est en ligne dès l'envoi, sans attendre l'équipe."
+              : "L'équipe Xwézan vérifie chaque événement avant sa mise en ligne. Tu reçois un e-mail dès qu'il est validé."}
+          </p>
         </div>
       </aside>
 
@@ -443,7 +461,7 @@ export default function Formulaire({
         <span className={s.barreBasInfo}>
           {faits}/{requis.length} obligatoires
         </span>
-        <BoutonEnvoi valide={valide} pleine />
+        <BoutonEnvoi valide={valide} pleine verifie={verifie} />
       </div>
       <div className={s.espaceBarreBas} aria-hidden="true" />
     </form>

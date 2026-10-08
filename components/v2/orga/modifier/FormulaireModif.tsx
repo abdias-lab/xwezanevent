@@ -11,6 +11,7 @@ import type { EvenementCarte } from "../../public/evenement";
 import { montant, nombre } from "../../format";
 import { CATEGORIES, MAX_CATEGORIES, valeurCategorie } from "@/lib/categories";
 import Images, { type ImageLocale } from "../creer/Images";
+import Artistes, { valeurArtistes, type ArtisteChoisi, type ArtisteTrouve } from "../creer/Artistes";
 
 /** Valeurs enregistrées en base (libellé sans emoji), comme la preview les affiche. */
 const CATEGORIES_V2 = CATEGORIES.map(valeurCategorie);
@@ -54,6 +55,10 @@ export default function FormulaireModif({
   aujourdhui,
   erreurServeur,
   enregistre,
+  artistes: artistesInitiaux,
+  chercherArtistes,
+  verifie,
+  peutMoiMeme,
 }: {
   action: (formData: FormData) => void;
   e: EvenementModif;
@@ -61,6 +66,11 @@ export default function FormulaireModif({
   aujourdhui: string;
   erreurServeur: ReactNode | null;
   enregistre: boolean;
+  /** Artistes déjà rattachés, dans l'ordre (design/ARTISTES.md, lot 2). */
+  artistes: ArtisteChoisi[];
+  chercherArtistes: (q: string) => Promise<ArtisteTrouve[]>;
+  verifie: boolean;
+  peutMoiMeme: boolean;
 }) {
   const initial = { description: e.description, categories: e.categories, dateDebut: e.debut, dateFin: e.fin ?? "", heure: e.heure };
   const [description, setDescription] = useState(initial.description);
@@ -73,6 +83,7 @@ export default function FormulaireModif({
   const [images, setImages] = useState<ImageLocale[]>(() => e.images.map((i) => ({ cle: i.url, nom: "déjà en ligne", url: i.url, fichier: null })));
   const [principale, setPrincipale] = useState<string | null>(() => e.images.find((i) => i.principale)?.url ?? null);
   const [imagesTouchees, setImagesTouchees] = useState(false);
+  const [artistes, setArtistes] = useState<ArtisteChoisi[]>(artistesInitiaux);
   const [tente, setTente] = useState(false);
 
   const apercuRef = useRef<HTMLDivElement>(null);
@@ -112,6 +123,7 @@ export default function FormulaireModif({
 
   const modifie =
     imagesTouchees ||
+    valeurArtistes(artistes) !== valeurArtistes(artistesInitiaux) ||
     description !== initial.description ||
     heure !== initial.heure ||
     dateChangee ||
@@ -167,6 +179,7 @@ export default function FormulaireModif({
     >
       {/* Champs attendus par modifierEvenement (app/(orga)/orga/evenements/[id]/modifier/actions.ts). */}
       <input type="hidden" name="categories" value={JSON.stringify(categories)} />
+      <input type="hidden" name="artistes" value={valeurArtistes(artistes)} />
       <input type="hidden" name="images_conservees" value={JSON.stringify(conservees.map((i) => i.url))} />
       {multiJours && dateFin && <input type="hidden" name="date_fin" value={dateFin} />}
       <input type="hidden" name="image_principale_type" value={imagePrincipale ? (imagePrincipale.fichier ? "nouvelle" : "existante") : ""} />
@@ -234,6 +247,7 @@ export default function FormulaireModif({
             <label htmlFor="description">Description</label>
             <textarea id="description" name="description" rows={5} value={description} onChange={(ev) => setDescription(ev.target.value)} />
           </div>
+          <Artistes choisis={artistes} setChoisis={setArtistes} chercher={chercherArtistes} verifie={verifie} peutMoiMeme={peutMoiMeme} />
           <div className={s.champ}>
             <span className={s.etiquette} id="cat-label">
               Catégories <small>(jusqu&apos;à {MAX_CATEGORIES})</small>

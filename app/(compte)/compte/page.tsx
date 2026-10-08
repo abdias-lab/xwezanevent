@@ -14,6 +14,9 @@ import { dateAnnee } from "@/components/v2/format";
 import { dateCarte, fcfa } from "@/components/v2/public/evenement";
 import v from "@/components/v2/v2.module.css";
 import s from "@/components/v2/espace.module.css";
+import { initialesArtiste } from "@/components/v2/orga/artistes/initiales";
+import { abonnementsUtilisateur } from "@/lib/abonnements";
+import { seDesabonner } from "./actions";
 
 export const metadata: Metadata = { title: "Mes billets — XwézanEvent", robots: { index: false } };
 
@@ -71,9 +74,10 @@ function compteDe(nom: string) {
 /**
  * Mes billets (V2), repris de la preview (v2/compte). Prochain événement mis
  * en avant, paiements en attente séparés (« ne repaie pas »), événements
- * annulés avec l'état du remboursement (BUGS_REFONTE n°14), profil.
+ * annulés avec l'état du remboursement (BUGS_REFONTE n°14), abonnements aux
+ * artistes (design/ARTISTES.md, lot 3), profil.
  */
-export default async function Compte() {
+export default async function Compte({ searchParams }: { searchParams: { desabonne?: string } }) {
   const supabase = creerClientServeur();
   const {
     data: { user },
@@ -82,7 +86,7 @@ export default async function Compte() {
 
   // Commandes de l'utilisateur (client de session + filtre explicite : la RLS
   // laisse aussi un organisateur lire les commandes de ses événements).
-  const [{ data: ordersData }, { data: profil }] = await Promise.all([
+  const [{ data: ordersData }, { data: profil }, abonnements] = await Promise.all([
     supabase
       .from("orders")
       .select("id, total, statut, created_at, updated_at, event_id, panier, tickets(ticket_type_id)")
@@ -91,6 +95,7 @@ export default async function Compte() {
     // Téléphone : plus lisible par le rôle authenticated (20260929120000_audit_n20_droits.sql),
     // donc lu côté serveur, pour l'utilisateur connecté uniquement.
     supabaseAdmin.from("profiles").select("nom, telephone, role").eq("id", user.id).maybeSingle(),
+    abonnementsUtilisateur(user.id),
   ]);
   const orders = (ordersData as unknown as OrderRow[] | null) ?? [];
 
@@ -285,6 +290,48 @@ export default async function Compte() {
                 </details>
               )}
             </>
+          )}
+
+          {(abonnements.length > 0 || searchParams.desabonne) && (
+            <section id="abonnements" aria-labelledby="abonnements-titre" style={{ marginTop: 32 }}>
+              <h2 id="abonnements-titre" className={s.intertitre} style={{ marginTop: 0 }}>
+                Mes abonnements
+              </h2>
+              {searchParams.desabonne && (
+                <p className={s.alerte} role="status">
+                  <Icon name="check" />
+                  <span>Désabonnement fait : tu ne recevras plus ses nouvelles dates.</span>
+                </p>
+              )}
+              {abonnements.length > 0 && (
+                <>
+                  <p className={s.aide} style={{ marginBottom: 12 }}>
+                    Tu reçois un e-mail à chaque nouvelle date de ces artistes.
+                  </p>
+                  <ul className={s.pile} style={{ gap: 8 }}>
+                    {abonnements.map((a) => (
+                      <li key={a.artisteId} className={`${s.carte} ${s.carteRangee}`}>
+                        <Link href={`/artiste/${a.slug}`} style={{ display: "flex", gap: 12, alignItems: "center", minWidth: 0 }}>
+                          <span className={`${s.avatarArtiste} ${s.avatarPetit}`} aria-hidden="true">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            {a.photo ? <img src={a.photo} alt="" /> : initialesArtiste(a.nom)}
+                          </span>
+                          <span className={s.carteTitre} style={{ overflowWrap: "anywhere" }}>
+                            {a.nom}
+                          </span>
+                        </Link>
+                        <form action={seDesabonner}>
+                          <input type="hidden" name="artiste" value={a.artisteId} />
+                          <button type="submit" className={`${s.btn} ${s.btnGris}`}>
+                            Se désabonner
+                          </button>
+                        </form>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </section>
           )}
 
           <section className={s.bloc} aria-labelledby="profil" style={{ marginTop: 32 }}>

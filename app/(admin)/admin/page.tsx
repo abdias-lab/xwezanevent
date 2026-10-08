@@ -142,9 +142,15 @@ export default async function AdminPage() {
 
   // Paiement tardif d'une tentative abandonnée + nouvel achat (BUGS_REFONTE n°25).
   const doubles = await getAchatsEnDouble();
+  // Pages artistes à vérifier : nouvelles pages et changements de nom (design/ARTISTES.md).
+  const [{ count: nbArtistesNouveaux }, { count: nbArtistesNoms }] = await Promise.all([
+    supabaseAdmin.from("artistes").select("id", { count: "exact", head: true }).eq("statut", "en_validation"),
+    supabaseAdmin.from("artistes").select("id", { count: "exact", head: true }).eq("statut", "valide").not("nom_scene_demande", "is", null),
+  ]);
+  const artistesAVerifier = (nbArtistesNouveaux ?? 0) + (nbArtistesNoms ?? 0);
 
   const plusAncien = aValider[0];
-  const rien = aValider.length === 0 && prets.length === 0 && doubles.length === 0;
+  const rien = aValider.length === 0 && prets.length === 0 && doubles.length === 0 && artistesAVerifier === 0;
   const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
 
   return (
@@ -163,7 +169,7 @@ export default async function AdminPage() {
         <div className={s.vide}>
           <Icon name="check" size={32} />
           <p className={s.videTitre}>Rien à traiter</p>
-          <p className={s.videTexte}>Aucun événement en attente de validation, aucun virement prêt à envoyer, aucun achat payé en double.</p>
+          <p className={s.videTexte}>Aucun événement ni artiste à valider, aucun virement prêt à envoyer, aucun achat payé en double.</p>
         </div>
       ) : (
         <ul className={s.pile} style={{ gap: 8 }}>
@@ -187,6 +193,27 @@ export default async function AdminPage() {
               <AchatDouble commandes={d.commandes} telephone={d.telephone ? formaterTelephone(d.telephone) : null} />
             </li>
           ))}
+          {artistesAVerifier > 0 && (
+            <li className={`${s.carte} ${s.carteRangee}`}>
+              <div className={s.carteHaut}>
+                <div>
+                  <p className={s.carteTitre}>{artistesAVerifier} {artistesAVerifier > 1 ? "pages artistes" : "page artiste"} à vérifier</p>
+                  <p className={s.carteMeta}>
+                    {[
+                      nbArtistesNouveaux ? `${nbArtistesNouveaux} ${nbArtistesNouveaux > 1 ? "nouvelles pages" : "nouvelle page"}` : null,
+                      nbArtistesNoms ? `${nbArtistesNoms} ${nbArtistesNoms > 1 ? "changements de nom" : "changement de nom"}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    . Contacte le demandeur pour ses pièces.
+                  </p>
+                </div>
+              </div>
+              <Link href="/admin/artistes" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`}>
+                <Icon name="shield" /> Vérifier
+              </Link>
+            </li>
+          )}
           {plusAncien && (
             <li className={`${s.carte} ${s.carteRangee}`}>
               <div className={s.carteHaut}>

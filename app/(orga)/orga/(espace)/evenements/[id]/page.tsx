@@ -11,6 +11,8 @@ import DemandeVirement from "@/components/v2/orga/DemandeVirement";
 import LienScan from "@/components/v2/orga/LienScan";
 import Annuler from "@/components/v2/orga/Annuler";
 import ListeBillets, { type BilletOrga } from "@/components/v2/orga/ListeBillets";
+import ArtistesEvenement from "@/components/v2/orga/ArtistesEvenement";
+import { rattachementsEvenement } from "@/lib/artistes";
 import { NAV_ORGA } from "@/components/v2/navOrga";
 import { dateAnnee, dateCourte, dateHeureCourte, heureBenin, montant, nombre, pourcent } from "@/components/v2/format";
 import { StatutEvt, type Statut, type StatutBillet } from "@/components/v2/statuts";
@@ -79,7 +81,7 @@ export default async function FicheEvenement({ params }: { params: { id: string 
 
   // supabaseAdmin, APRÈS la preuve de propriété ci-dessus : nom de l'acheteur
   // (compte ou invité). Jamais son téléphone ni son e-mail (décision du 2026-09-28).
-  const [{ data: ticketsData }, { data: payoutsData }] = await Promise.all([
+  const [{ data: ticketsData }, { data: payoutsData }, rattaches] = await Promise.all([
     supabaseAdmin
       .from("tickets")
       .select("id, statut, created_at, utilise_le, ticket_types!inner(nom, event_id), orders!inner(id, acheteur_nom, profiles(nom))")
@@ -87,7 +89,10 @@ export default async function FicheEvenement({ params }: { params: { id: string 
       .order("created_at", { ascending: false })
       .limit(LIMITE_BILLETS),
     supabase.from("payouts").select("montant").eq("event_id", e.id).eq("organisateur_id", user.id).in("statut", ["demande", "traite"]),
+    // Artistes à l'affiche et état des propositions (design/ARTISTES.md, lot 2).
+    rattachementsEvenement(e.id, user.id),
   ]);
+  const artistes = rattaches.map((r) => ({ ...r, le: r.le ? dateAnnee(r.le) : null }));
 
   const billets: BilletOrga[] = ((ticketsData as unknown as TicketLigne[]) ?? []).map((t) => ({
     id: t.id,
@@ -217,6 +222,9 @@ export default async function FicheEvenement({ params }: { params: { id: string 
               </p>
             )}
           </section>
+          {(artistes.length > 0 || MODIFIABLE.has(e.statut)) && (
+            <ArtistesEvenement artistes={artistes} lienModifier={MODIFIABLE.has(e.statut) ? `/orga/evenements/${e.id}/modifier` : null} />
+          )}
           {e.statut === "publie" && <LienScan eventId={e.id} initial={e.lien_scan_token} />}
           {MODIFIABLE.has(e.statut) && <Annuler eventId={e.id} titre={e.titre} />}
         </aside>

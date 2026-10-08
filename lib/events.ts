@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { aujourdhuiPortoNovo, plagePeriode, formatPlageDates, formatEnTeteJour } from "@/lib/date";
 
 const MOIS_COURTS = [
@@ -247,12 +248,17 @@ export interface EvenementDetail {
   estTermine: boolean;
   /** Nom affiché publiquement (profiles.nom_public si renseigné, sinon repli sur profiles.nom — voir 20260822120000_nom_public_organisateurs.sql). */
   organisateurNom: string | null;
+  /** Identifiants de l'événement et de son organisateur (« Avec », badge « Vérifié », design/ARTISTES.md). */
+  id: string;
+  organisateurId: string;
   /** Événement vitrine (démo) : billetterie désactivée côté serveur, voir /api/orders. */
   estDemo: boolean;
   ticketTypes: TicketTypeDetail[];
 }
 
 interface EventDetailRow {
+  id: string;
+  organisateur_id: string;
   slug: string;
   titre: string;
   description: string | null;
@@ -302,7 +308,7 @@ export async function getEvenementParSlug(
   const { data, error } = await supabase
     .from("events")
     .select(
-      "slug, titre, description, ville, lieu, date_debut, date_fin, heure, affiche_url, pays_code, statut, est_demo, organisateur:profiles!organisateur_id(nom, nom_public), ticket_types(id, nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale, ordre)"
+      "id, organisateur_id, slug, titre, description, ville, lieu, date_debut, date_fin, heure, affiche_url, pays_code, statut, est_demo, organisateur:profiles!organisateur_id(nom, nom_public), ticket_types(id, nom, prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre), event_images(url, principale, ordre)"
     )
     .eq("slug", slug)
     .in("statut", ["publie", "termine"])
@@ -334,6 +340,8 @@ export async function getEvenementParSlug(
     images: row.event_images.map((i) => ({ url: i.url, principale: i.principale })),
     estTermine,
     organisateurNom: row.organisateur?.nom_public || row.organisateur?.nom || null,
+    id: row.id,
+    organisateurId: row.organisateur_id,
     estDemo: row.est_demo,
     ticketTypes: row.ticket_types
       .map((t) => ({
@@ -598,4 +606,89 @@ export async function getCompteursVilles(pays: string): Promise<Record<string, n
     compteurs[cle] = (compteurs[cle] ?? 0) + 1;
   }
   return compteurs;
+}
+
+/** Date passée d'un artiste (page /artiste/[slug]) : liste compacte, sans carte. */
+export interface DatePasseeArtiste {
+  slug: string;
+  titre: string;
+  date: string;
+  lieu: string;
+  ville: string;
+}
+
+/**
+ * Dates d'un artiste (design/ARTISTES.md) : événements où il est rattaché
+ * et accepté (evenement_artistes, statut « accepte » : un rattachement
+ * proposé par un autre organisateur n'apparaît jamais avant l'accord),
+ * publiés ou terminés, hors démo. À venir : publiés et pas encore
+ * terminés, par date croissante ; passées : les autres, les plus récentes
+ * d'abord. evenement_artistes n'a aucun accès client : lu via service_role.
+ */
+export async function getDatesArtiste(artisteId: string): Promise<{ aVenir: CarteData[]; passees: DatePasseeArtiste[] }> {
+  const { data: liens, error: e1 } = await supabaseAdmin
+    .from("evenement_artistes")
+    .select("event_id")
+    .eq("artiste_id", artisteId)
+    .eq("statut", "accepte");
+  if (e1) console.error("[events] dates artiste (liens) :", e1.message);
+  const ids = (liens ?? []).map((l) => l.event_id as string);
+  if (ids.length === 0) return { aVenir: [], passees: [] };
+
+  const { data, error } = await supabaseAdmin
+    .from("events")
+    .select("slug, titre, ville, lieu, date_debut, date_fin, heure, affiche_url, est_demo, statut, ticket_types(prix, quantite_totale, quantite_vendue), event_categories(categorie, ordre)")
+    .in("id", ids)
+    .eq("est_demo", false)
+    .in("statut", ["publie", "termine"])
+    .order("date_debut", { ascending: true });
+  if (error) {
+    console.error("[events] dates artiste :", error.message);
+    return { aVenir: [], passees: [] };
+  }
+  const aujourdhui = aujourdhuiPortoNovo();
+  const lignes = (data ?? []) as unknown as (EventRow & { statut: string })[];
+  const estAVenir = (e: EventRow & { statut: string }) => e.statut === "publie" && (e.date_fin ?? e.date_debut) >= aujourdhui;
+  return {
+    aVenir: lignes.filter(estAVenir).map(mapRow),
+    passees: lignes
+      .filter((e) => !estAVenir(e))
+      .reverse()
+      .map((e) => ({ slug: e.slug, titre: e.titre, date: e.date_fin ?? e.date_debut, lieu: e.lieu, ville: e.ville })),
+  };
+}
+
+/** Artiste affiché dans « Avec » sur la page événement. */
+export interface ArtisteEvenement {
+  nom: string;
+  /** Slug seulement si l'artiste est validé : sinon texte simple, sans lien. */
+  slug: string | null;
+  photo: string | null;
+  /** Compte de l'artiste (auto-produit) : sert à masquer « Organisé par » quand c'est l'organisateur. */
+  compteId: string | null;
+}
+
+/**
+ * Artistes d'un événement, dans l'ordre d'affichage (design/ARTISTES.md) :
+ * rattachements acceptés seulement (un rattachement « proposé » attend
+ * l'accord du label ou du compte de l'artiste). Artiste validé : avec lien ;
+ * en validation : texte simple ; refusé : absent. Lu via service_role
+ * (aucun accès client sur evenement_artistes ni sur les artistes non validés).
+ */
+export async function getArtistesEvenement(eventId: string): Promise<ArtisteEvenement[]> {
+  const { data, error } = await supabaseAdmin
+    .from("evenement_artistes")
+    .select("ordre, artiste:artistes(nom_scene, slug, photo_url, statut, compte_id)")
+    .eq("event_id", eventId)
+    .eq("statut", "accepte")
+    .order("ordre", { ascending: true });
+  if (error) {
+    console.error("[events] artistes de l'événement :", error.message);
+    return [];
+  }
+  type Ligne = { artiste: { nom_scene: string; slug: string; photo_url: string | null; statut: string; compte_id: string | null } | null };
+  return ((data ?? []) as unknown as Ligne[])
+    .map((l) => l.artiste)
+    .filter((a): a is NonNullable<Ligne["artiste"]> => !!a && a.statut !== "refuse")
+    .map((a) => ({ nom: a.nom_scene, slug: a.statut === "valide" ? a.slug : null, photo: a.statut === "valide" ? a.photo_url : null, compteId: a.compte_id }));
 }

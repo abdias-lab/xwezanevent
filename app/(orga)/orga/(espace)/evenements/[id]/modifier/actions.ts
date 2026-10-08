@@ -10,8 +10,18 @@ import { MAX_CATEGORIES } from "@/lib/categories";
 import { envoyerEmail, emailUtilisateur } from "@/lib/email";
 import { emailEvenementDateModifiee } from "@/lib/emails/evenement-edition";
 import { aujourdhuiPortoNovo, formatPlageDates } from "@/lib/date";
+import { headers } from "next/headers";
+import { enregistrerArtistes, estVerifie, notifierPropositions, preparerArtistes, surveillerArtistesPublies } from "@/lib/artistes";
+import { notifierNouvelleDate } from "@/lib/nouvelle-date";
 
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+function origine(): string {
+  const h = headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
 /** Statuts modifiables par l'organisateur (même liste que le bouton « Modifier » de sa fiche). */
 const STATUTS_MODIFIABLES = new Set(["brouillon", "en_validation", "publie"]);
 
@@ -122,6 +132,24 @@ export async function modifierEvenement(eventId: string, formData: FormData) {
     }
   }
 
+  // Artistes à l'affiche (design/ARTISTES.md, lot 2) : validés avant tout
+  // envoi d'image ou écriture. Champ absent (formulaire d'une version
+  // antérieure encore ouvert) : rattachements laissés intacts, jamais vidés.
+  const artistesBrut = formData.get("artistes");
+  let artistes: { plan: Parameters<typeof enregistrerArtistes>[1]; existants: Set<string>; verifie: boolean } | null = null;
+  if (artistesBrut !== null) {
+    const { data: rattaches, error: erreurRattaches } = await supabaseAdmin.from("evenement_artistes").select("artiste_id").eq("event_id", eventId);
+    if (erreurRattaches) {
+      console.error("[modifier] lecture des artistes impossible :", erreurRattaches.message);
+      redirect(`/orga/evenements/${eventId}/modifier?erreur=verification`);
+    }
+    const existants = new Set((rattaches ?? []).map((r) => r.artiste_id as string));
+    const verifie = await estVerifie(user.id);
+    const prepares = await preparerArtistes(artistesBrut, user.id, verifie, existants);
+    if ("erreur" in prepares) redirect(`/orga/evenements/${eventId}/modifier?erreur=${prepares.erreur}`);
+    artistes = { plan: prepares.plan, existants, verifie };
+  }
+
   const categories = parserCategories(formData);
   const imagesConservees = parserImagesConservees(formData);
 
@@ -195,6 +223,17 @@ export async function modifierEvenement(eventId: string, formData: FormData) {
       imagesFinales.map((url, i) => ({ event_id: eventId, url, principale: i === indexPrincipale, ordre: i }))
     );
     if (eImg) throw new Error(`Enregistrement des images impossible : ${eImg.message}`);
+  }
+
+  if (artistes) {
+    const { publies, proposes, acceptes } = await enregistrerArtistes(eventId, artistes.plan, user.id, artistes.verifie, artistes.existants);
+    // Compte vérifié : nouveaux artistes en ligne sans validation, e-mail de surveillance.
+    await surveillerArtistesPublies(publies, user, origine());
+    // Nouvelles propositions : label ou compte de l'artiste prévenu, avec un lien direct.
+    await notifierPropositions(eventId, proposes, user, origine());
+    // Artiste géré ajouté à un événement déjà en ligne : « nouvelle date » à
+    // ses abonnés (lot 3 ; notifierNouvelleDate vérifie en ligne, à venir, en vente).
+    if (acceptes.length) await notifierNouvelleDate(eventId, origine(), acceptes);
   }
 
   // Nettoyage Storage des images retirées — best-effort, après l'écriture

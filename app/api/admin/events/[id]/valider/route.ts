@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { verifierAdmin, journaliserActionAdmin } from "@/lib/admin-auth";
 import { envoyerEmail, emailUtilisateur } from "@/lib/email";
 import { emailEvenementValide } from "@/lib/emails/evenement-statut";
+import { notifierNouvelleDate } from "@/lib/nouvelle-date";
 
 /**
  * Fait passer un événement 'en_validation' → 'publie'.
@@ -10,7 +11,7 @@ import { emailEvenementValide } from "@/lib/emails/evenement-statut";
  * tout rôle autre que service_role : on doit donc passer par supabaseAdmin.
  */
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const { adminId, erreur } = await verifierAdmin();
@@ -55,6 +56,12 @@ export async function POST(
   } catch (e) {
     console.error("[api/admin/events/valider] échec envoi email :", e);
   }
+
+  // « Nouvelle date » aux abonnés des artistes de l'affiche (design/ARTISTES.md,
+  // lot 3) : si l'événement est à venir et en vente. Best-effort, dans la requête.
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "localhost:3000";
+  const proto = req.headers.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  await notifierNouvelleDate(data.id, `${proto}://${host}`);
 
   return NextResponse.json({ ok: true });
 }

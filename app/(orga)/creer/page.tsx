@@ -9,7 +9,9 @@ import Formulaire from "@/components/v2/orga/creer/Formulaire";
 import Confirmation from "@/components/v2/orga/creer/Confirmation";
 import { NAV_ORGA } from "@/components/v2/navOrga";
 import s from "@/components/v2/espace.module.css";
-import { publierEvenement } from "./actions";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { MESSAGES_ERREUR_ARTISTES, estVerifie } from "@/lib/artistes";
+import { chercherArtistes, publierEvenement } from "./actions";
 
 export const metadata: Metadata = {
   title: "Créer un événement — XwézanEvent",
@@ -22,6 +24,7 @@ const MESSAGES_ERREUR: Record<string, string> = {
   date_passee: "La date de l'événement est déjà passée. Choisis une date à partir d'aujourd'hui.",
   pays: "Ce pays n'est pas disponible pour le moment.",
   affiche: "L'envoi d'une image a échoué. Rien n'a été enregistré, réessaie.",
+  ...MESSAGES_ERREUR_ARTISTES,
 };
 
 /**
@@ -36,9 +39,11 @@ export default async function Creer({ searchParams }: { searchParams: { erreur?:
   } = await supabase.auth.getUser();
   if (!user) redirect("/connexion?redirect=/creer");
 
-  const [{ data: profil }, { data: paysData }] = await Promise.all([
+  const [{ data: profil }, { data: paysData }, verifie, { data: pagePerso }] = await Promise.all([
     supabase.from("profiles").select("nom, nom_public").eq("id", user.id).maybeSingle(),
     supabase.from("pays").select("code, nom, taux_commission_defaut").eq("actif", true).order("ordre", { ascending: true }),
+    estVerifie(user.id),
+    supabaseAdmin.from("artistes").select("id").eq("compte_id", user.id).maybeSingle(),
   ]);
   const nom = profil?.nom_public || profil?.nom || user.email || "organisateur";
 
@@ -47,7 +52,7 @@ export default async function Creer({ searchParams }: { searchParams: { erreur?:
   if (searchParams.envoye) {
     const { data: ev } = await supabase
       .from("events")
-      .select("slug, titre, date_debut, date_fin, heure, lieu, ville, affiche_url, event_categories(categorie, ordre), ticket_types(prix)")
+      .select("slug, titre, statut, date_debut, date_fin, heure, lieu, ville, affiche_url, event_categories(categorie, ordre), ticket_types(prix)")
       .eq("id", searchParams.envoye)
       .eq("organisateur_id", user.id)
       .maybeSingle();
@@ -57,6 +62,8 @@ export default async function Creer({ searchParams }: { searchParams: { erreur?:
       confirmation = (
         <Confirmation
           email={user.email ?? ""}
+          // Compte vérifié : publié directement (statut réel relu en base).
+          publie={ev.statut === "publie"}
           apercu={{
             slug: ev.slug,
             titre: ev.titre,
@@ -94,6 +101,9 @@ export default async function Creer({ searchParams }: { searchParams: { erreur?:
           pays={(paysData ?? []).map((p) => ({ code: p.code, nom: p.nom, taux: Number(p.taux_commission_defaut) }))}
           aujourdhui={aujourdhuiPortoNovo()}
           erreurServeur={searchParams.erreur ? (MESSAGES_ERREUR[searchParams.erreur] ?? null) : null}
+          chercherArtistes={chercherArtistes}
+          verifie={verifie}
+          peutMoiMeme={!pagePerso}
         />
       )}
     </Coquille>
