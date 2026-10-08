@@ -256,7 +256,9 @@ export default function Artistes({
               onKeyDown={(e) => entreeSansEnvoi(e, () => (visibles[0] ? ajouter({ cle: visibles[0].id, trouve: visibles[0] }) : q.trim() && ouvrirDemande()))}
             />
           </div>
-          {ouvert && (resultats !== null || q.trim()) && (
+          {/* Liste seulement si elle a quelque chose à montrer : sans artiste en base, une
+              requête vide ne renvoie rien et laissait une barre vide sous le champ. */}
+          {ouvert && (visibles.length > 0 || q.trim()) && (
             <ul id="artiste-resultats" className={s.artisteResultats} aria-label="Résultats">
               {!q.trim() && visibles.length > 0 && <li className={s.artisteResultatsTitre}>Tes artistes</li>}
               {visibles.map((r) => (
