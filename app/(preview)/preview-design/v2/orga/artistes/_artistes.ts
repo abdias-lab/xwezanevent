@@ -11,6 +11,7 @@ export type ArtisteOrga = {
   nomDemande?: string; // nom_scene_demande : changement de nom en vérification
   bio: string;
   photo: string | null;
+  couverture: string | null; // couverture_url : bandeau de la page artiste (format paysage)
   liens: Partial<Record<CleReseau, string>>;
   type: TypeDemande;
   statut: StatutArtiste;
@@ -38,6 +39,7 @@ export const ARTISTES_ORGA: ArtisteOrga[] = [
     nom: "Zeynab Habib",
     bio: "Voix du Bénin moderne, entre afro-pop et chants fon. Trois albums, des scènes de Cotonou à Paris.",
     photo: null,
+    couverture: "/images/couverture-demo.jpg",
     liens: { instagram: "https://instagram.com/zeynab", youtube: "https://youtube.com/@zeynab", audiomack: "https://audiomack.com/zeynab" },
     type: "label",
     statut: "valide",
@@ -48,6 +50,7 @@ export const ARTISTES_ORGA: ArtisteOrga[] = [
     nom: "Kemi Sound",
     bio: "",
     photo: null,
+    couverture: null,
     liens: { tiktok: "https://tiktok.com/@kemisound" },
     type: "label",
     statut: "en_validation",
@@ -59,6 +62,7 @@ export const ARTISTES_ORGA: ArtisteOrga[] = [
     nomDemande: "Shado",
     bio: "DJ résident du Ganhi Rooftop, amapiano et afrohouse.",
     photo: null,
+    couverture: null,
     liens: { instagram: "https://instagram.com/djshado" },
     type: "label",
     statut: "valide",
@@ -69,6 +73,7 @@ export const ARTISTES_ORGA: ArtisteOrga[] = [
     nom: "Les Tambours d'Abomey",
     bio: "",
     photo: null,
+    couverture: null,
     liens: {},
     type: "label",
     statut: "refuse",
