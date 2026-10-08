@@ -10,7 +10,7 @@ import Confirmation from "@/components/v2/orga/creer/Confirmation";
 import { NAV_ORGA } from "@/components/v2/navOrga";
 import s from "@/components/v2/espace.module.css";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { MESSAGES_ERREUR_ARTISTES, estVerifie } from "@/lib/artistes";
+import { MESSAGES_ERREUR_ARTISTES, artistePourCreation, estVerifie } from "@/lib/artistes";
 import { chercherArtistes, publierEvenement } from "./actions";
 
 export const metadata: Metadata = {
@@ -30,20 +30,22 @@ const MESSAGES_ERREUR: Record<string, string> = {
 /**
  * Créer un événement (V2), repris de la preview (v2/creer) et branché sur
  * l'action serveur de prod `publierEvenement`. L'événement part en
- * validation ; ?envoye=<id> affiche l'écran de confirmation.
+ * validation ; ?envoye=<id> affiche l'écran de confirmation. ?artiste=<id>
+ * (« Ajouter une date » de la page artiste) : artiste déjà sélectionné.
  */
-export default async function Creer({ searchParams }: { searchParams: { erreur?: string; envoye?: string } }) {
+export default async function Creer({ searchParams }: { searchParams: { erreur?: string; envoye?: string; artiste?: string } }) {
   const supabase = creerClientServeur();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/connexion?redirect=/creer");
+  if (!user) redirect(`/connexion?redirect=${encodeURIComponent(searchParams.artiste ? `/creer?artiste=${searchParams.artiste}` : "/creer")}`);
 
-  const [{ data: profil }, { data: paysData }, verifie, { data: pagePerso }] = await Promise.all([
+  const [{ data: profil }, { data: paysData }, verifie, { data: pagePerso }, artisteInitial] = await Promise.all([
     supabase.from("profiles").select("nom, nom_public").eq("id", user.id).maybeSingle(),
     supabase.from("pays").select("code, nom, taux_commission_defaut").eq("actif", true).order("ordre", { ascending: true }),
     estVerifie(user.id),
     supabaseAdmin.from("artistes").select("id").eq("compte_id", user.id).maybeSingle(),
+    searchParams.artiste ? artistePourCreation(user.id, searchParams.artiste) : Promise.resolve(null),
   ]);
   const nom = profil?.nom_public || profil?.nom || user.email || "organisateur";
 
@@ -104,6 +106,7 @@ export default async function Creer({ searchParams }: { searchParams: { erreur?:
           chercherArtistes={chercherArtistes}
           verifie={verifie}
           peutMoiMeme={!pagePerso}
+          artisteInitial={artisteInitial}
         />
       )}
     </Coquille>

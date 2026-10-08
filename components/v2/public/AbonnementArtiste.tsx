@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import v from "../v2.module.css";
 import Icon from "../Icon";
@@ -11,12 +12,15 @@ import Icon from "../Icon";
  * un visiteur non connecté passe par la connexion et revient sur la page.
  * Refonte 2026-10-08 : le compteur est dans le bandeau, le bouton dessous,
  * avant les réseaux. Un seul état partagé (AbonnementArtiste englobe les
- * deux) : le compteur suit le bouton.
+ * deux) : le compteur suit le bouton. « Ajouter une date » (2026-10-08) :
+ * seulement pour un compte qui gère l'artiste ou un admin, à côté de
+ * « Prochaines dates ».
  * Copie dans la preview (v2/artiste).
  */
 interface Abonnement {
+  artisteId: string;
   slug: string;
-  etat: { connecte: boolean; abonne: boolean } | null;
+  etat: { connecte: boolean; abonne: boolean; gere: boolean } | null;
   abonnes: number;
   enCours: boolean;
   erreur: string | null;
@@ -42,7 +46,7 @@ export default function AbonnementArtiste({
   abonnesInitial: number;
   children: ReactNode;
 }) {
-  const [etat, setEtat] = useState<{ connecte: boolean; abonne: boolean } | null>(null);
+  const [etat, setEtat] = useState<{ connecte: boolean; abonne: boolean; gere: boolean } | null>(null);
   const [abonnes, setAbonnes] = useState(abonnesInitial);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -53,10 +57,10 @@ export default function AbonnementArtiste({
       .then((r) => r.json())
       .then((d) => {
         if (!actif) return;
-        setEtat({ connecte: !!d.connecte, abonne: !!d.abonne });
+        setEtat({ connecte: !!d.connecte, abonne: !!d.abonne, gere: !!d.gere });
         if (typeof d.abonnes === "number") setAbonnes(d.abonnes);
       })
-      .catch(() => actif && setEtat({ connecte: false, abonne: false }));
+      .catch(() => actif && setEtat({ connecte: false, abonne: false, gere: false }));
     return () => {
       actif = false;
     };
@@ -70,7 +74,7 @@ export default function AbonnementArtiste({
       const r = await fetch(`/api/abonnements/artistes/${artisteId}`, { method: etat.abonne ? "DELETE" : "POST" });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error ?? "Erreur");
-      setEtat({ connecte: true, abonne: !!d.abonne });
+      setEtat((e) => ({ connecte: true, abonne: !!d.abonne, gere: !!e?.gere }));
       if (typeof d.abonnes === "number") setAbonnes(d.abonnes);
     } catch {
       setErreur("Impossible pour le moment, réessaie.");
@@ -78,7 +82,7 @@ export default function AbonnementArtiste({
     setEnCours(false);
   }
 
-  return <Contexte.Provider value={{ slug, etat, abonnes, enCours, erreur, basculer }}>{children}</Contexte.Provider>;
+  return <Contexte.Provider value={{ artisteId, slug, etat, abonnes, enCours, erreur, basculer }}>{children}</Contexte.Provider>;
 }
 
 /** Nombre d'abonnés, dans le bandeau. */
@@ -110,5 +114,16 @@ export function BoutonAbonner() {
         {erreur}
       </span>
     </div>
+  );
+}
+
+/** « Ajouter une date » : ouvre /creer avec l'artiste présélectionné. Compte qui gère l'artiste ou admin seulement. */
+export function AjouterDate() {
+  const { artisteId, etat } = useAbonnement();
+  if (!etat?.gere) return null;
+  return (
+    <Link href={`/creer?artiste=${artisteId}`}>
+      <Icon name="plus" /> Ajouter une date
+    </Link>
   );
 }

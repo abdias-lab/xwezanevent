@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
 import { creerClientServeur } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { abonner, desabonner, estAbonne, nombreAbonnes } from "@/lib/abonnements";
+import { gere } from "@/lib/artistes";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +11,9 @@ export const dynamic = "force-dynamic";
  * Bouton « S'abonner » de la page artiste (components/v2/public/AbonnementArtiste.tsx,
  * design/ARTISTES.md, lot 3). La page artiste reste en cache (revalidate 60) :
  * l'état propre au visiteur est lu ici.
- * GET : { connecte, abonne, abonnes } ; POST : s'abonner ; DELETE : se désabonner.
+ * GET : { connecte, abonne, abonnes, gere } ; POST : s'abonner ; DELETE : se désabonner.
+ * `gere` : le compte gère l'artiste (label, compte de l'artiste, créateur) ou
+ * est admin ; affiche « Ajouter une date » (2026-10-08).
  */
 async function utilisateur() {
   const {
@@ -20,8 +24,22 @@ async function utilisateur() {
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const user = await utilisateur();
-  const [abonne, abonnes] = await Promise.all([user ? estAbonne(user.id, params.id) : Promise.resolve(false), nombreAbonnes(params.id)]);
-  return NextResponse.json({ connecte: !!user, abonne, abonnes }, { headers: { "Cache-Control": "no-store" } });
+  const [abonne, abonnes, gestion] = await Promise.all([
+    user ? estAbonne(user.id, params.id) : Promise.resolve(false),
+    nombreAbonnes(params.id),
+    user ? peutGerer(user.id, params.id) : Promise.resolve(false),
+  ]);
+  return NextResponse.json({ connecte: !!user, abonne, abonnes, gere: gestion }, { headers: { "Cache-Control": "no-store" } });
+}
+
+/** Le compte gère l'artiste, ou est admin. */
+async function peutGerer(userId: string, artisteId: string): Promise<boolean> {
+  if (!/^[0-9a-f-]{36}$/i.test(artisteId)) return false;
+  const [{ data: a }, { data: p }] = await Promise.all([
+    supabaseAdmin.from("artistes").select("cree_par, label_id, compte_id").eq("id", artisteId).maybeSingle(),
+    supabaseAdmin.from("profiles").select("role").eq("id", userId).maybeSingle(),
+  ]);
+  return !!a && (gere(a, userId) || p?.role === "admin");
 }
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
