@@ -4,6 +4,7 @@ import { emailConfirmationCommande, type BilletEmail } from "@/lib/emails/confir
 import { emailRecapitulatifBillets, type CommandeRecap } from "@/lib/emails/recapitulatif-billets";
 import { creerTransactionEtLien, recupererTransaction } from "@/lib/fedapay";
 import { aujourdhuiPortoNovo } from "@/lib/date";
+import { messageVenteTerminee, venteTerminee } from "@/lib/vente";
 import { issueTransaction } from "@/lib/statut-paiement";
 import QRCode from "qrcode";
 import { LARGEUR_QR_PNG, OPTIONS_QR_BILLET } from "@/lib/qr-billet";
@@ -454,7 +455,7 @@ export async function recommencerCommande(params: {
 
   const { data: ev } = await supabaseAdmin
     .from("events")
-    .select("id, titre, statut, date_debut, date_fin, est_demo, ticket_types(id, nom, prix, quantite_totale, quantite_vendue)")
+    .select("id, titre, statut, date_debut, date_fin, est_demo, ticket_types(id, nom, prix, quantite_totale, quantite_vendue, vente_jusqua)")
     .eq("id", ancienne.event_id)
     .maybeSingle();
   if (!ev || ev.statut !== "publie" || (ev.date_fin ?? ev.date_debut) < aujourdhuiPortoNovo()) {
@@ -466,7 +467,7 @@ export async function recommencerCommande(params: {
 
   // Prix et stock ACTUELS (jamais ceux du panier enregistré) : ils ont pu changer.
   const parId = new Map(
-    (ev.ticket_types as { id: string; nom: string; prix: number; quantite_totale: number; quantite_vendue: number }[]).map((tt) => [tt.id, tt])
+    (ev.ticket_types as { id: string; nom: string; prix: number; quantite_totale: number; quantite_vendue: number; vente_jusqua: string | null }[]).map((tt) => [tt.id, tt])
   );
   const panier: { ticket_type_id: string; nom: string; prix: number; quantite: number }[] = [];
   let total = 0;
@@ -475,6 +476,8 @@ export async function recommencerCommande(params: {
     if (!tt) {
       return { type: "erreur", status: 409, message: "Un des billets choisis n'est plus en vente. Reviens à la page de l'événement." };
     }
+    // Fin de vente (BUGS_REFONTE n°10) : même contrôle que /api/orders et « Réessayer ».
+    if (venteTerminee(tt.vente_jusqua)) return { type: "erreur", status: 409, message: messageVenteTerminee(tt.nom) };
     const dispo = tt.quantite_totale - tt.quantite_vendue;
     if (l.quantite > dispo) {
       return { type: "erreur", status: 409, message: `Stock insuffisant pour « ${tt.nom} » (${dispo} restant)` };

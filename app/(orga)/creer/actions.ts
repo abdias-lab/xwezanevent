@@ -8,6 +8,7 @@ import { uploaderImageEvenement } from "@/lib/images-evenement";
 import { MAX_IMAGES } from "@/lib/affiche";
 import { MAX_CATEGORIES } from "@/lib/categories";
 import { aujourdhuiPortoNovo } from "@/lib/date";
+import { finDeVenteDepuisDate } from "@/lib/vente";
 import { headers } from "next/headers";
 import {
   enregistrerArtistes,
@@ -249,9 +250,8 @@ export async function publierEvenement(formData: FormData) {
       nom: String(t.nom).trim(),
       prix: Math.round(Number(t.prix)),
       quantite_totale: Math.round(Number(t.quantite)),
-      vente_jusqua: t.venteJusqua
-        ? new Date(`${t.venteJusqua}T23:59:59`).toISOString()
-        : null,
+      // Fin du jour choisi à Porto-Novo, jamais au fuseau du serveur (BUGS_REFONTE n°10).
+      vente_jusqua: t.venteJusqua && /^\d{4}-\d{2}-\d{2}$/.test(t.venteJusqua) ? finDeVenteDepuisDate(t.venteJusqua) : null,
     }));
 
   if (rows.length > 0) {

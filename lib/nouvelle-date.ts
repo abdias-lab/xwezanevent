@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { emailUtilisateur, envoyerLotEmails } from "@/lib/email";
 import { emailNouvelleDate } from "@/lib/emails/nouvelle-date";
 import { aujourdhuiPortoNovo, formatPlageDates } from "@/lib/date";
+import { venteTerminee } from "@/lib/vente";
 
 /**
  * E-mail « nouvelle date » aux abonnés des artistes d'un événement
@@ -51,7 +52,7 @@ type Evenement = {
 
 /** Vente ouverte : au moins un tarif avec des places et une vente non close. */
 export function venteOuverte(tarifs: Evenement["ticket_types"], maintenant = new Date()): boolean {
-  return tarifs.some((t) => t.quantite_vendue < t.quantite_totale && (!t.vente_jusqua || new Date(t.vente_jusqua) > maintenant));
+  return tarifs.some((t) => t.quantite_vendue < t.quantite_totale && !venteTerminee(t.vente_jusqua, maintenant));
 }
 
 async function enParallele<T, R>(elements: T[], n: number, f: (x: T) => Promise<R>): Promise<R[]> {
