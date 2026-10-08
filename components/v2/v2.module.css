@@ -1996,6 +1996,15 @@
 .artSection {
   padding-top: var(--s8);
 }
+/* « Prochaines dates » + « Ajouter une date » : le lien ne se coupe pas ;
+   faute de place (360 px), il passe sous le titre. */
+.artTeteDates {
+  flex-wrap: wrap;
+  row-gap: var(--s2);
+}
+.artTeteDates a {
+  white-space: nowrap;
+}
 /* État vide : une ligne, pas un bloc. */
 .artVide {
   display: flex;

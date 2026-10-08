@@ -11,13 +11,16 @@ import Icon from "../../Icon";
  * un visiteur non connecté passe par la connexion et revient sur la page.
  * Refonte 2026-10-08 : le compteur est dans le bandeau, le bouton dessous,
  * avant les réseaux. Un seul état partagé (AbonnementArtiste englobe les
- * deux) : le compteur suit le bouton.
+ * deux) : le compteur suit le bouton. « Ajouter une date » (2026-10-08) :
+ * seulement pour un compte qui gère l'artiste ou un admin, à côté de
+ * « Prochaines dates ».
  * Preview : copie de components/v2/public/AbonnementArtiste.tsx ; l'appel à
  * l'API est remplacé par un état simulé (`initial`, piloté par ?etat=).
  */
 interface Abonnement {
+  artisteId: string;
   slug: string;
-  etat: { connecte: boolean; abonne: boolean } | null;
+  etat: { connecte: boolean; abonne: boolean; gere: boolean } | null;
   abonnes: number;
   enCours: boolean;
   erreur: string | null;
@@ -33,17 +36,19 @@ function useAbonnement(): Abonnement {
 }
 
 export default function AbonnementArtiste({
+  artisteId,
   slug,
   abonnesInitial,
   initial,
   children,
 }: {
+  artisteId: string;
   slug: string;
   abonnesInitial: number;
-  initial: { connecte: boolean; abonne: boolean };
+  initial: { connecte: boolean; abonne: boolean; gere: boolean };
   children: ReactNode;
 }) {
-  const [etat, setEtat] = useState<{ connecte: boolean; abonne: boolean } | null>(initial);
+  const [etat, setEtat] = useState<{ connecte: boolean; abonne: boolean; gere: boolean } | null>(initial);
   const [abonnes, setAbonnes] = useState(abonnesInitial);
   const [enCours, setEnCours] = useState(false);
   const erreur: string | null = null;
@@ -53,11 +58,11 @@ export default function AbonnementArtiste({
     setEnCours(true);
     await new Promise((r) => setTimeout(r, 400));
     setAbonnes((n) => n + (etat.abonne ? -1 : 1));
-    setEtat({ connecte: true, abonne: !etat.abonne });
+    setEtat({ ...etat, connecte: true, abonne: !etat.abonne });
     setEnCours(false);
   }
 
-  return <Contexte.Provider value={{ slug, etat, abonnes, enCours, erreur, basculer }}>{children}</Contexte.Provider>;
+  return <Contexte.Provider value={{ artisteId, slug, etat, abonnes, enCours, erreur, basculer }}>{children}</Contexte.Provider>;
 }
 
 /** Nombre d'abonnés, dans le bandeau. */
@@ -89,5 +94,16 @@ export function BoutonAbonner() {
         {erreur}
       </span>
     </div>
+  );
+}
+
+/** « Ajouter une date » : ouvre /creer avec l'artiste présélectionné. Compte qui gère l'artiste ou admin seulement. */
+export function AjouterDate() {
+  const { artisteId, etat } = useAbonnement();
+  if (!etat?.gere) return null;
+  return (
+    <a href={`/preview-design/v2/creer?artiste=${artisteId}`}>
+      <Icon name="plus" /> Ajouter une date
+    </a>
   );
 }

@@ -43,6 +43,7 @@ export default function Formulaire({
   chercherArtistes,
   verifie,
   peutMoiMeme,
+  artisteInitial = null,
 }: {
   action: (formData: FormData) => void;
   pays: Pays[];
@@ -54,6 +55,8 @@ export default function Formulaire({
   verifie: boolean;
   /** Le compte n'a pas encore sa propre page artiste. */
   peutMoiMeme: boolean;
+  /** Artiste déjà sélectionné (?artiste=, « Ajouter une date » de la page artiste). */
+  artisteInitial?: ArtisteTrouve | null;
 }) {
   const [titre, setTitre] = useState("");
   const [description, setDescription] = useState("");
@@ -68,7 +71,7 @@ export default function Formulaire({
   const [ville, setVille] = useState("");
   const [tarifs, setTarifs] = useState<TarifSaisi[]>(() => [nouveauTarif("Standard")]);
   const [images, setImages] = useState<ImageLocale[]>([]);
-  const [artistes, setArtistes] = useState<ArtisteChoisi[]>([]);
+  const [artistes, setArtistes] = useState<ArtisteChoisi[]>(() => (artisteInitial ? [{ cle: artisteInitial.id, trouve: artisteInitial }] : []));
   const [principale, setPrincipale] = useState<string | null>(null);
   const [tente, setTente] = useState(false); // erreurs affichées après une tentative d'envoi
   // Aperçu non interactif : `inert` n'est pas typé en React 18, posé à la main.

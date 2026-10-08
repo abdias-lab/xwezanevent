@@ -12,6 +12,12 @@ const AUTRES: ArtisteTrouve[] = [
   { id: "x5", nom: "Nanawa", photo: null, statut: "valide", gere: false },
 ];
 
+/** Artiste présélectionné (?artiste=, « Ajouter une date » de la page artiste) : un des siens, comme artistePourCreation. */
+export function artisteDemo(id: string | undefined): ArtisteTrouve | null {
+  const a = ARTISTES_ORGA.find((x) => x.id === id && x.statut !== "refuse");
+  return a ? { id: a.id, nom: a.nom, photo: a.photo, statut: a.statut, gere: true } : null;
+}
+
 /** Mêmes règles que rechercherArtistes : les siens (sauf refusés) d'abord, puis les validés des autres. */
 export async function chercherDemo(q: string): Promise<ArtisteTrouve[]> {
   await new Promise((r) => setTimeout(r, 300));

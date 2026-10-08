@@ -165,6 +165,25 @@ export async function rechercherArtistes(userId: string, q: string): Promise<Art
   return [...geres, ...autres].slice(0, 8).map(vers);
 }
 
+/**
+ * Artiste présélectionné dans /creer (?artiste=, bouton « Ajouter une date »
+ * de la page artiste) : mêmes règles que le sélecteur. Un artiste validé, ou
+ * un artiste que le compte gère (sauf refusé ou retiré) ; sinon null.
+ */
+export async function artistePourCreation(userId: string, artisteId: string): Promise<ArtisteTrouve | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(artisteId)) return null;
+  const { data } = await supabaseAdmin
+    .from("artistes")
+    .select("id, nom_scene, photo_url, statut, cree_par, label_id, compte_id")
+    .eq("id", artisteId)
+    .maybeSingle();
+  const a = data as Pick<Artiste, "id" | "nom_scene" | "photo_url" | "statut" | "cree_par" | "label_id" | "compte_id"> | null;
+  if (!a) return null;
+  const sienne = gere(a, userId);
+  if (a.statut !== "valide" && !(sienne && a.statut === "en_validation")) return null;
+  return { id: a.id, nom: a.nom_scene, photo: a.statut === "valide" ? a.photo_url : null, statut: a.statut, gere: sienne };
+}
+
 /** Choix envoyé par le formulaire d'événement (champ caché « artistes »). */
 export type ChoixArtiste = { id: string } | { nouveau: { nom: string; type: TypeDemande; whatsapp: string } };
 

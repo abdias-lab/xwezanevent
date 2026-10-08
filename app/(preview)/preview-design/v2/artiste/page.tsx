@@ -7,7 +7,7 @@ import { RubanEtats } from "../Coquille";
 import { EVENEMENTS, jour, mois } from "../../_data";
 import { initialesArtiste } from "../orga/artistes/_artistes";
 import LogoReseau from "./LogoReseau";
-import AbonnementArtiste, { BoutonAbonner, CompteurAbonnes } from "./AbonnementArtiste";
+import AbonnementArtiste, { AjouterDate, BoutonAbonner, CompteurAbonnes } from "./AbonnementArtiste";
 
 export const metadata: Metadata = { title: "Zeynab Habib — XwézanEvent" };
 
@@ -73,10 +73,12 @@ export default function V2Artiste({ searchParams }: { searchParams: { etat?: str
         {/* Bandeau : photo de profil peu floutée en fond (WebP, largeur fixe), voile local sous le texte.
             Sans photo : dégradé anthracite → or. */}
         {/* Compteur (bandeau) et bouton (sous le bandeau) partagent un même état. */}
+        {/* ?etat=gere : compte qui gère l'artiste (ou admin) : « Ajouter une date » à côté de « Prochaines dates ». */}
         <AbonnementArtiste
+          artisteId="a1"
           slug="zeynab-habib"
           abonnesInitial={etat === "abonne" ? 1249 : 1248}
-          initial={{ connecte: etat === "connecte" || etat === "abonne", abonne: etat === "abonne" }}
+          initial={{ connecte: etat === "connecte" || etat === "abonne" || etat === "gere", abonne: etat === "abonne", gere: etat === "gere" }}
         >
         <section className={`${s.artBandeau} ${fond ? "" : s.artBandeauRepli}`}>
           {fond && (
@@ -117,14 +119,14 @@ export default function V2Artiste({ searchParams }: { searchParams: { etat?: str
           <BoutonAbonner />
           <div className={s.artLogos}>{reseaux}</div>
         </div>
-        </AbonnementArtiste>
 
         <div className={`${s.cont} ${s.artCont}`}>
         <section className={s.artSection} aria-labelledby="a-venir">
-          <div className={s.tete}>
+          <div className={`${s.tete} ${s.artTeteDates}`}>
             <h2 id="a-venir" className={s.h2}>
               Prochaines dates
             </h2>
+            <AjouterDate />
           </div>
           {aVenir.length === 0 ? (
             <p className={s.artVide}>
@@ -174,8 +176,9 @@ export default function V2Artiste({ searchParams }: { searchParams: { etat?: str
             </ul>
           </section>
         )}
-        <RubanEtats chemin="/preview-design/v2/artiste" etats={["normal", "sans-dates", "sans-photo", "non-verifie", "connecte", "abonne", "photo-blanche", "couverture", "couverture-blanche"]} />
+        <RubanEtats chemin="/preview-design/v2/artiste" etats={["normal", "sans-dates", "sans-photo", "non-verifie", "connecte", "abonne", "photo-blanche", "couverture", "couverture-blanche", "gere"]} />
         </div>
+        </AbonnementArtiste>
       </main>
       <Footer />
     </div>

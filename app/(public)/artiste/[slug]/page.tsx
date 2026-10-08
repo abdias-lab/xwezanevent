@@ -7,7 +7,7 @@ import { RESEAUX, type CleReseau } from "@/lib/artistes";
 import { getDatesArtiste } from "@/lib/events";
 import Icon from "@/components/v2/Icon";
 import Carte from "@/components/v2/public/Carte";
-import AbonnementArtiste, { BoutonAbonner, CompteurAbonnes } from "@/components/v2/public/AbonnementArtiste";
+import AbonnementArtiste, { AjouterDate, BoutonAbonner, CompteurAbonnes } from "@/components/v2/public/AbonnementArtiste";
 import LogoReseau from "@/components/v2/public/LogoReseau";
 import { Header, Footer } from "@/components/v2/public/Chrome";
 import { versCarte } from "@/components/v2/public/carteData";
@@ -145,14 +145,15 @@ export default async function PageArtiste({ params }: { params: { slug: string }
               </div>
             )}
           </div>
-        </AbonnementArtiste>
 
         <div className={`${v.cont} ${v.artCont}`}>
           <section className={v.artSection} aria-labelledby="a-venir">
-            <div className={v.tete}>
+            <div className={`${v.tete} ${v.artTeteDates}`}>
               <h2 id="a-venir" className={v.h2}>
                 Prochaines dates
               </h2>
+              {/* Compte qui gère l'artiste ou admin seulement (état lu côté client). */}
+              <AjouterDate />
             </div>
             {aVenir.length === 0 ? (
               <p className={v.artVide}>
@@ -203,6 +204,7 @@ export default async function PageArtiste({ params }: { params: { slug: string }
             </section>
           )}
         </div>
+        </AbonnementArtiste>
       </main>
       <Footer />
     </div>

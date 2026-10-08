@@ -9,7 +9,7 @@ import Formulaire from "./Formulaire";
  * directement : le texte de la prod (« publié immédiatement ») est un bug, voir
  * design/BUGS_REFONTE.md #1.
  */
-export default function V2Creer({ searchParams }: { searchParams: { etat?: string } }) {
+export default function V2Creer({ searchParams }: { searchParams: { etat?: string; artiste?: string } }) {
   return (
     <Coquille actif="creer">
       <a href={`${B}/orga`} className={s.retour}>
@@ -21,7 +21,7 @@ export default function V2Creer({ searchParams }: { searchParams: { etat?: strin
           <p className={s.sousTitre}>Quatre blocs à remplir, l&apos;aperçu se met à jour au fil de la saisie.</p>
         </div>
       </div>
-      <Formulaire erreurServeur={searchParams.etat === "erreur"} envoyeDemo={searchParams.etat === "envoye"} verifie={searchParams.etat === "verifie"} />
+      <Formulaire erreurServeur={searchParams.etat === "erreur"} envoyeDemo={searchParams.etat === "envoye"} verifie={searchParams.etat === "verifie"} artiste={searchParams.artiste} />
       <RubanEtats chemin={`${B}/creer`} etats={["normal", "erreur", "envoye", "verifie"]} />
     </Coquille>
   );

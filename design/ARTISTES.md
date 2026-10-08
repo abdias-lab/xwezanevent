@@ -38,6 +38,11 @@ Décisions d'Abdias du 2026-10-01. Schéma : `supabase/migrations/20261001120000
 - Rattachement : libre pour les artistes qu'on gère (créateur, label, compte de l'artiste) ;
   « proposé » pour les autres, invisible sur la page de l'artiste et non notifié jusqu'à l'accord
   du label, du compte de l'artiste ou de l'admin.
+- **Pas de passe-droit pour l'admin** (décision d'Abdias du 2026-10-08) : une date qu'il crée pour
+  un artiste qu'il ne gère pas reste « proposée », y compris depuis « Ajouter une date » de la page
+  artiste. C'est volontaire : la promesse faite aux artistes est que personne ne peut les afficher
+  sans leur accord, et l'admin ne fait pas exception. Quand un label ne répond pas, la file des
+  propositions de `/admin/artistes` suffit pour trancher.
 - Revendication d'une page par un artiste : rattachement de son compte par l'admin (phase 1).
 
 ## Retrait et suppression par l'admin

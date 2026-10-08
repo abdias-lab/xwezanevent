@@ -11,7 +11,7 @@ import { B } from "../Coquille";
 import Images, { type ImageLocale } from "./Images";
 import Billets, { nouveauTarif, tarifValide, type TarifSaisi } from "./Billets";
 import Artistes, { type ArtisteChoisi } from "./Artistes";
-import { chercherDemo } from "./artistesDemo";
+import { artisteDemo, chercherDemo } from "./artistesDemo";
 
 const MAX_CATEGORIES = 3; // lib/categories.ts
 
@@ -30,7 +30,18 @@ const DEMO = { titre: "Nuit Zinli : Cotonou by Night", categories: ["Concert"], 
 
 type Etape = "saisie" | "envoi" | "envoye";
 
-export default function Formulaire({ erreurServeur = false, envoyeDemo = false, verifie = false }: { erreurServeur?: boolean; envoyeDemo?: boolean; verifie?: boolean }) {
+export default function Formulaire({
+  erreurServeur = false,
+  envoyeDemo = false,
+  verifie = false,
+  artiste,
+}: {
+  erreurServeur?: boolean;
+  envoyeDemo?: boolean;
+  verifie?: boolean;
+  /** ?artiste=<id> : artiste déjà sélectionné (« Ajouter une date » de la page artiste). */
+  artiste?: string;
+}) {
   const d = envoyeDemo ? DEMO : null;
   const [etape, setEtape] = useState<Etape>(envoyeDemo ? "envoye" : "saisie");
   const [titre, setTitre] = useState(d?.titre ?? "");
@@ -46,7 +57,10 @@ export default function Formulaire({ erreurServeur = false, envoyeDemo = false, 
     d ? [{ ...nouveauTarif("Standard"), prix: "3000", quantite: "400" }, { ...nouveauTarif("Carré Or"), prix: "10000", quantite: "50" }] : [nouveauTarif("Standard")],
   );
   const [images, setImages] = useState<ImageLocale[]>([]);
-  const [artistes, setArtistes] = useState<ArtisteChoisi[]>([]);
+  const [artistes, setArtistes] = useState<ArtisteChoisi[]>(() => {
+    const a = artisteDemo(artiste);
+    return a ? [{ cle: a.id, trouve: a }] : [];
+  });
   const [principale, setPrincipale] = useState<string | null>(null);
   const [tente, setTente] = useState(false); // erreurs affichées après une tentative d'envoi
   // Aperçu non interactif : `inert` n'est pas typé en React 18, posé à la main.
