@@ -18,7 +18,7 @@ export type ArtisteFormulaire = {
   photo: string | null;
   liens: Partial<Record<CleReseau, string>>;
   type: TypeDemande;
-  statut: "en_validation" | "valide" | "refuse";
+  statut: "en_validation" | "valide" | "refuse" | "retire";
 };
 
 const NOM_MAX = 80;
@@ -158,7 +158,7 @@ export default function FormulaireArtiste({
           <label htmlFor="nom">Nom de scène</label>
           <input id="nom" name="nom" value={nom} maxLength={NOM_MAX} onChange={(e) => setNom(e.target.value)} placeholder="Ex. Zeynab Habib" />
           {tente && !nom.trim() && <span className={s.erreur}>Indique le nom de scène.</span>}
-          {artiste && !verifie && artiste.statut === "valide" && (
+          {artiste && !verifie && (artiste.statut === "valide" || artiste.statut === "retire") && (
             <p className={s.aide}>
               {artiste.nomDemande
                 ? `« ${artiste.nomDemande} » est en vérification ; « ${artiste.nom} » reste affiché d'ici là.`

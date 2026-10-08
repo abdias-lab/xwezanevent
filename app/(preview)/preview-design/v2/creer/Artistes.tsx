@@ -22,7 +22,7 @@ import { initialesArtiste } from "../orga/artistes/_artistes";
 export const MAX_ARTISTES = 10; // lib/artistes.ts, MAX_ARTISTES_EVENEMENT
 const NOM_MAX = 80;
 
-export type ArtisteTrouve = { id: string; nom: string; photo: string | null; statut: "en_validation" | "valide" | "refuse"; gere: boolean };
+export type ArtisteTrouve = { id: string; nom: string; photo: string | null; statut: "en_validation" | "valide" | "refuse" | "retire"; gere: boolean };
 type TypeDemande = "label" | "auto_produit";
 export type ArtisteChoisi = { cle: string } & (
   // `rattache` : déjà sur l'événement (modification), avec son statut en base
@@ -53,6 +53,8 @@ function sousTitre(c: ArtisteChoisi, verifie: boolean): string {
       : "Nouvelle page : l'équipe te contacte sur WhatsApp pour la vérifier. Son nom s'affiche en attendant.";
   }
   const a = c.trouve;
+  // Retiré par l'équipe : la ligne reste, l'artiste est masqué, réversible.
+  if (a.statut === "retire") return "Retiré par l'équipe : il n'apparaît pas sur l'événement.";
   // Refusé après son rattachement : la ligne reste, l'artiste est masqué (design/ARTISTES.md).
   if (a.statut === "refuse") return a.gere ? "Page refusée : il n'apparaît pas. Corrige sa page dans Mes artistes, ou retire-le." : "Page indisponible : il n'apparaît pas sur l'événement.";
   if (c.rattache === "refuse") return `Refusé par son label ou l'artiste${c.le ? ` le ${c.le}` : ""} : il n'apparaît pas. Retire-le de la liste.`;

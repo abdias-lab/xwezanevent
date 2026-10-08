@@ -12,7 +12,8 @@ import { formatPlageDates } from "@/lib/date";
  * service_role uniquement : les tables n'ont aucun droit d'écriture client.
  */
 
-export type StatutArtiste = "en_validation" | "valide" | "refuse";
+/** « retire » : retiré par l'équipe après validation, réversible (20261009120000_retrait_artistes.sql). */
+export type StatutArtiste = "en_validation" | "valide" | "refuse" | "retire";
 export type TypeDemande = "label" | "auto_produit";
 export type CleReseau = "instagram" | "facebook" | "tiktok" | "youtube" | "spotify" | "audiomack" | "boomplay" | "site";
 
@@ -147,7 +148,7 @@ export async function rechercherArtistes(userId: string, q: string): Promise<Art
     statut: a.statut,
     gere: gere(a, userId),
   });
-  const geres = (await artistesGeres(userId)).filter((a) => a.statut !== "refuse" && (!terme || a.nom_scene.toLowerCase().includes(terme.toLowerCase())));
+  const geres = (await artistesGeres(userId)).filter((a) => a.statut !== "refuse" && a.statut !== "retire" && (!terme || a.nom_scene.toLowerCase().includes(terme.toLowerCase())));
   if (!terme) return geres.slice(0, 8).map(vers);
   const { data, error } = await supabaseAdmin
     .from("artistes")
@@ -237,7 +238,7 @@ export async function preparerArtistes(
     for (const p of plan) {
       if (!("id" in p) || dejaRattaches.has(p.id)) continue;
       const a = lus.get(p.id);
-      if (!a || a.statut === "refuse") return { erreur: "artiste_indisponible" };
+      if (!a || a.statut === "refuse" || a.statut === "retire") return { erreur: "artiste_indisponible" };
       p.gere = gere(a, userId);
       // Un artiste en validation n'est visible que de ceux qui le gèrent.
       if (!p.gere && a.statut !== "valide") return { erreur: "artiste_indisponible" };
@@ -355,7 +356,7 @@ export async function surveillerArtistesPublies(publies: { nom: string; slug: st
 export type StatutRattachement = "accepte" | "propose" | "refuse";
 
 /** Destinataires d'une proposition : le label et le compte de l'artiste, à défaut son créateur. */
-function decideurs(a: Pick<Artiste, "label_id" | "compte_id" | "cree_par">): string[] {
+export function decideurs(a: Pick<Artiste, "label_id" | "compte_id" | "cree_par">): string[] {
   const ids = [a.label_id, a.compte_id].filter((x): x is string => !!x);
   if (!ids.length && a.cree_par) ids.push(a.cree_par);
   return Array.from(new Set(ids));
@@ -448,7 +449,7 @@ export async function lirePropositions(
     return [];
   }
   return ((data ?? []) as unknown as LigneProposition[]).flatMap((l) =>
-    l.artiste && l.evenement
+    l.artiste && l.evenement && l.artiste.statut !== "retire"
       ? [
           {
             cle: cleProposition(l.event_id, l.artiste_id),
@@ -480,6 +481,9 @@ export async function lirePropositions(
  * pour la revalidation, ou null si rien n'a changé.
  */
 export async function deciderProposition(eventId: string, artisteId: string, decision: "accepter" | "refuser", parId: string): Promise<{ evenement: string; artiste: string } | null> {
+  // Artiste retiré par l'équipe : plus aucune décision possible sur ses propositions.
+  const { data: artiste } = await supabaseAdmin.from("artistes").select("statut").eq("id", artisteId).maybeSingle();
+  if (!artiste || artiste.statut === "retire") return null;
   const maintenant = new Date().toISOString();
   const { data, error } = await supabaseAdmin
     .from("evenement_artistes")

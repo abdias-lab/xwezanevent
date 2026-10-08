@@ -40,6 +40,25 @@ Décisions d'Abdias du 2026-10-01. Schéma : `supabase/migrations/20261001120000
   du label, du compte de l'artiste ou de l'admin.
 - Revendication d'une page par un artiste : rattachement de son compte par l'admin (phase 1).
 
+## Retrait et suppression par l'admin
+
+Décisions d'Abdias du 2026-10-08 (migration `20261009120000_retrait_artistes.sql`).
+
+- **Retirer** un artiste en ligne : statut `retire`. Page en 404, absent des sections « Avec »,
+  plus d'abonnement possible ni d'e-mail « nouvelle date », plus proposé dans le sélecteur ni
+  acceptable en proposition. Fiche, rattachements et abonnements restent en base : **réversible**
+  (« Remettre en ligne »). Côté organisateur, la fiche de l'événement affiche « Retiré par
+  l'équipe » ; le label voit « Retiré par l'équipe » dans Mes artistes et ne peut pas le remettre
+  en ligne lui-même.
+- Trace sur la fiche (`retire_le`, `retire_par` sans clé étrangère, `retire_par_nom` figé,
+  `motif_retrait`) et au journal. E-mail au compte qui gère l'artiste seulement si la case
+  « prévenir » reste cochée ; motif envoyé seulement s'il est saisi.
+- L'admin voit le nombre d'abonnés sur chaque carte ; la confirmation du retrait l'annonce en clair.
+- **Supprimer définitivement** : seulement sans aucun rattachement (proposé, accepté ou refusé) ni
+  abonné. Contrôle refait sous verrou par `supprimer_artiste` au moment du clic : rattachements et
+  abonnements sont supprimés en cascade avec l'artiste, ce contrôle est le seul garde-fou. Trace au
+  journal (instantané nom, slug, statut, admin) ; photo retirée du stockage.
+
 ## Demande de création
 
 Nom de scène, label ou moi-même, réseaux (Instagram, Facebook, TikTok, YouTube, Spotify,

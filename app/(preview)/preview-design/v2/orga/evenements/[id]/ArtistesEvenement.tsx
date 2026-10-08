@@ -13,7 +13,7 @@ export type ArtisteFiche = {
   id: string;
   nom: string;
   photo: string | null;
-  statutArtiste: "en_validation" | "valide" | "refuse";
+  statutArtiste: "en_validation" | "valide" | "refuse" | "retire";
   gere: boolean;
   statut: "accepte" | "propose" | "refuse";
   /** Date lisible de la proposition, de l'accord ou du refus. */
@@ -27,6 +27,7 @@ const PASTILLE = {
 };
 
 function etat(a: ArtisteFiche): string {
+  if (a.statutArtiste === "retire") return "Retiré par l'équipe : il n'apparaît pas sur l'événement.";
   if (a.statut === "propose") return `Proposé${a.le ? ` le ${a.le}` : ""} à son label ou à l'artiste. Il s'affichera après leur accord.`;
   if (a.statut === "refuse") return `Refusé${a.le ? ` le ${a.le}` : ""} par son label ou l'artiste : il n'apparaît pas.`;
   if (a.statutArtiste === "refuse") return "Page artiste refusée : il n'apparaît pas.";
@@ -54,7 +55,11 @@ export default function ArtistesEvenement({ artistes, lienModifier }: { artistes
                 <b>{a.nom}</b>
                 <small>{etat(a)}</small>
               </span>
-              <span className={`${s.statut} ${PASTILLE[a.statut].classe}`}>{PASTILLE[a.statut].libelle}</span>
+              {a.statutArtiste === "retire" ? (
+                <span className={`${s.statut} ${s.stNeutre}`}>Retiré</span>
+              ) : (
+                <span className={`${s.statut} ${PASTILLE[a.statut].classe}`}>{PASTILLE[a.statut].libelle}</span>
+              )}
             </li>
           ))}
         </ul>
