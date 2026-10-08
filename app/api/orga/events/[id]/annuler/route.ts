@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { verifierProprietaireEvenement } from "@/lib/orga-auth";
 import { annulerEvenement } from "@/lib/annulation";
 import { revalidatePath } from "next/cache";
+import { notifierAnnulation } from "@/lib/annulation-emails";
 
 /**
  * Un organisateur annule l'un de ses propres événements. Même effet que
@@ -30,6 +31,12 @@ export async function POST(
   }
 
   revalidatePath("/orga");
+
+  // E-mail d'annulation à chaque commande payée (BUGS_REFONTE n°7) : remboursement
+  // sous 14 jours. Best-effort, registre écrit après envoi réussi.
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "localhost:3000";
+  const proto = req.headers.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  await notifierAnnulation(params.id, `${proto}://${host}`);
 
   return NextResponse.json(resultat);
 }

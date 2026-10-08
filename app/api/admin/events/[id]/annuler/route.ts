@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifierAdmin } from "@/lib/admin-auth";
 import { annulerEvenement } from "@/lib/annulation";
+import { notifierAnnulation } from "@/lib/annulation-emails";
 
 /**
  * Annule (dépublie) n'importe quel événement, quel que soit son statut
@@ -29,6 +30,12 @@ export async function POST(
 
   // Pas d'appel à journaliserActionAdmin ici : annuler_evenement() journalise
   // déjà l'action dans la même transaction que le changement de statut.
+
+  // E-mail d'annulation à chaque commande payée (BUGS_REFONTE n°7) : remboursement
+  // sous 14 jours. Best-effort, registre écrit après envoi réussi.
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "localhost:3000";
+  const proto = req.headers.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  await notifierAnnulation(params.id, `${proto}://${host}`);
 
   return NextResponse.json(resultat);
 }
