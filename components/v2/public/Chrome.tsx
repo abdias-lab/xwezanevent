@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { creerClientServeur } from "@/lib/supabase-server";
-import { Entete, ESPACES, SE_CONNECTER, PiedDePage, estOrganisateur, type RolePied } from "./Entete";
+import { Entete, ESPACES, SE_CONNECTER, PiedDePage, type RolePied } from "./Entete";
 
 /** Rôle de l'utilisateur connecté (profiles.role), null sans session. Lu une fois par requête (en-tête et pied). */
 export const lireRole = cache(async (): Promise<RolePied> => {
@@ -15,13 +15,12 @@ export const lireRole = cache(async (): Promise<RolePied> => {
 
 /**
  * En-tête public V2 (Server Component) : lit la session pour choisir le
- * bouton de droite et afficher « Publier » (organisateur ou admin), puis
- * dessine l'en-tête commun (Entete.tsx).
+ * bouton de droite, puis dessine l'en-tête commun (Entete.tsx).
  */
 export async function Header() {
   const role = await lireRole();
   const espace = role ? (ESPACES[role] ?? ESPACES.visiteur) : SE_CONNECTER;
-  return <Entete espace={espace} publier={estOrganisateur(role)} />;
+  return <Entete espace={espace} />;
 }
 
 /** Pied de page public V2 (Server Component) : colonne Organisateurs selon le rôle. */
