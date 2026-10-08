@@ -4,12 +4,13 @@ import { useState } from "react";
 import Icon from "./Icon";
 import { fcfa } from "./_data";
 
-type Tarif = { id: string; nom: string; detail: string; prix: number };
+type Tarif = { id: string; nom: string; detail: string; prix: number; venteTerminee?: boolean };
 type Styles = Record<string, string>;
 
 /**
  * Sélecteur de billets : état local uniquement, aucun appel réseau.
  * `commande` (facultatif, V2) : page de commande, le panier y est passé en paramètres.
+ * `venteTerminee` (V2, BUGS_REFONTE n°10) : tarif clos, grisé et non achetable.
  */
 export default function BilletPicker({ tarifs, s, commande }: { tarifs: Tarif[]; s: Styles; commande?: string }) {
   const [q, setQ] = useState<Record<string, number>>({});
@@ -21,7 +22,7 @@ export default function BilletPicker({ tarifs, s, commande }: { tarifs: Tarif[];
     <>
       <ul className={s.liste}>
         {tarifs.map((t) => (
-          <li key={t.id} className={`${s.ligneTarif} ${(q[t.id] ?? 0) > 0 ? s.ligneOn : ""}`}>
+          <li key={t.id} className={`${s.ligneTarif} ${(q[t.id] ?? 0) > 0 ? s.ligneOn : ""} ${t.venteTerminee ? s.ligneOff ?? "" : ""}`}>
             <div>
               <div className={s.tarifNom}>{t.nom}</div>
               <div className={s.tarifDetail}>{t.detail}</div>
@@ -34,7 +35,7 @@ export default function BilletPicker({ tarifs, s, commande }: { tarifs: Tarif[];
               <span className={s.qte} aria-live="polite">
                 {q[t.id] ?? 0}
               </span>
-              <button type="button" className={s.btn} aria-label={`Ajouter un billet ${t.nom}`} onClick={() => change(t.id, 1)}>
+              <button type="button" className={s.btn} aria-label={`Ajouter un billet ${t.nom}`} onClick={() => change(t.id, 1)} disabled={t.venteTerminee}>
                 <Icon name="plus" />
               </button>
             </div>

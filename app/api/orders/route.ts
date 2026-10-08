@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { signaturePanier, creerTransactionPourCommande, finaliserCommande, detacherCommande } from "@/lib/commandes";
 import { aujourdhuiPortoNovo } from "@/lib/date";
 import { aidePays, normaliserNumero } from "@/lib/telephone";
+import { messageVenteTerminee, venteTerminee } from "@/lib/vente";
 
 interface ItemSaisi {
   id: string;
@@ -16,6 +17,7 @@ interface TicketTypeRow {
   prix: number;
   quantite_totale: number;
   quantite_vendue: number;
+  vente_jusqua: string | null;
 }
 
 function emailValide(email: string): boolean {
@@ -123,7 +125,7 @@ export async function POST(req: NextRequest) {
   // 3. Événement publié + types de billets (source de vérité des prix/stock)
   const { data: ev } = await supabaseAdmin
     .from("events")
-    .select("id, titre, date_debut, date_fin, est_demo, pays_code, ticket_types(id, nom, prix, quantite_totale, quantite_vendue)")
+    .select("id, titre, date_debut, date_fin, est_demo, pays_code, ticket_types(id, nom, prix, quantite_totale, quantite_vendue, vente_jusqua)")
     .eq("slug", slug)
     .eq("statut", "publie")
     .maybeSingle();
@@ -172,6 +174,12 @@ export async function POST(req: NextRequest) {
     const tt = parId.get(it?.id);
     const q = Math.floor(Number(it?.qte));
     if (!tt || !Number.isFinite(q) || q <= 0) continue;
+    // Fin de vente du tarif (BUGS_REFONTE n°10) : dernière barrière côté
+    // serveur, l'interface seule se contourne. Même contrôle dans « Réessayer »
+    // et « Recommencer », les deux autres chemins qui créent un paiement.
+    if (venteTerminee(tt.vente_jusqua)) {
+      return NextResponse.json({ error: messageVenteTerminee(tt.nom) }, { status: 409 });
+    }
     const dispo = tt.quantite_totale - tt.quantite_vendue;
     if (q > dispo) {
       return NextResponse.json(

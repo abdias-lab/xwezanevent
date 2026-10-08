@@ -87,6 +87,8 @@ export default async function EvenementDetail({ params }: { params: { slug: stri
     )
     .filter(Boolean);
   const ferme = ev.estDemo || ev.estTermine;
+  // Tous les tarifs clos (BUGS_REFONTE n°10) : plus rien à acheter, tarifs laissés visibles et grisés.
+  const venteClose = !ferme && ev.ticketTypes.length > 0 && ev.ticketTypes.every((t) => t.venteTerminee);
   const date = dateLongue({ debut: ev.date_debut, fin: ev.date_fin && ev.date_fin !== ev.date_debut ? ev.date_fin : undefined });
 
   return (
@@ -158,7 +160,7 @@ export default async function EvenementDetail({ params }: { params: { slug: stri
               </li>
             </ul>
             <div className={s.evActions}>
-              {!ferme && ev.ticketTypes.length > 0 && (
+              {!ferme && !venteClose && ev.ticketTypes.length > 0 && (
                 <a href="#billets" className={`${s.btnBlanc} ${s.btnGrand}`}>
                   <Icon name="ticket" /> Réserver mes billets
                 </a>
@@ -173,7 +175,7 @@ export default async function EvenementDetail({ params }: { params: { slug: stri
 
         <section id="billets" className={`${s.evSection} ${s.evBillets}`} style={{ scrollMarginTop: 96 }}>
           <div className={s.tete}>
-            <h2 className={s.h2}>{ferme ? (ev.estTermine ? "Événement terminé" : "Démonstration") : "Billets"}</h2>
+            <h2 className={s.h2}>{ferme ? (ev.estTermine ? "Événement terminé" : "Démonstration") : venteClose ? "Vente terminée" : "Billets"}</h2>
           </div>
           {ferme ? (
             <>
@@ -188,7 +190,10 @@ export default async function EvenementDetail({ params }: { params: { slug: stri
               </a>
             </>
           ) : (
-            <BilletPicker tarifs={ev.ticketTypes} s={s} commande={`/evenement/${ev.slug}/commande`} />
+            <>
+              {venteClose && <p className={s.texte}>La vente en ligne est terminée pour cet événement.</p>}
+              <BilletPicker tarifs={ev.ticketTypes} s={s} commande={`/evenement/${ev.slug}/commande`} />
+            </>
           )}
         </section>
 

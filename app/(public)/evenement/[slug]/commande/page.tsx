@@ -22,6 +22,8 @@ export default async function PageCommande({ params, searchParams }: { params: {
   const ev = await getEvenementParSlug(params.slug);
   if (!ev) notFound();
   if (ev.estDemo || ev.estTermine) redirect(`/evenement/${ev.slug}`);
+  // Tous les tarifs clos (BUGS_REFONTE n°10) : rien à commander, la page de l'événement l'explique.
+  if (ev.ticketTypes.length > 0 && ev.ticketTypes.every((t) => t.venteTerminee)) redirect(`/evenement/${ev.slug}`);
 
   const supabase = creerClientServeur();
   const {
@@ -36,7 +38,7 @@ export default async function PageCommande({ params, searchParams }: { params: {
   const initial: Record<string, number> = {};
   for (const t of ev.ticketTypes) {
     const n = Number(searchParams[t.id]);
-    if (Number.isInteger(n) && n > 0) initial[t.id] = Math.min(n, MAX_PAR_TARIF, t.disponibles);
+    if (Number.isInteger(n) && n > 0 && !t.venteTerminee) initial[t.id] = Math.min(n, MAX_PAR_TARIF, t.disponibles);
   }
 
   const heure = ev.heure ? ev.heure.slice(0, 5) : null;

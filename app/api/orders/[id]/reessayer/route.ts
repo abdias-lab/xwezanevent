@@ -6,6 +6,7 @@ import { creerTransactionPourCommande, finaliserCommande } from "@/lib/commandes
 import { aujourdhuiPortoNovo } from "@/lib/date";
 import { recupererTransaction } from "@/lib/fedapay";
 import { issueTransaction } from "@/lib/statut-paiement";
+import { messageVenteTerminee, venteTerminee } from "@/lib/vente";
 
 interface PanierLigne {
   ticket_type_id: string;
@@ -118,7 +119,7 @@ export async function POST(
 
   const { data: ev } = await supabaseAdmin
     .from("events")
-    .select("id, titre, statut, date_debut, date_fin, est_demo, ticket_types(id, quantite_totale, quantite_vendue)")
+    .select("id, titre, statut, date_debut, date_fin, est_demo, ticket_types(id, quantite_totale, quantite_vendue, vente_jusqua)")
     .eq("id", order.event_id)
     .maybeSingle();
   if (!ev || ev.statut !== "publie" || (ev.date_fin ?? ev.date_debut) < aujourdhuiPortoNovo()) {
@@ -137,14 +138,18 @@ export async function POST(
     );
   }
 
-  const dispoParId = new Map(
-    (
-      ev.ticket_types as { id: string; quantite_totale: number; quantite_vendue: number }[]
-    ).map((t) => [t.id, t.quantite_totale - t.quantite_vendue])
+  const tarifs = new Map(
+    (ev.ticket_types as { id: string; quantite_totale: number; quantite_vendue: number; vente_jusqua: string | null }[]).map((t) => [t.id, t])
   );
   const panier = (order.panier ?? []) as PanierLigne[];
   for (const l of panier) {
-    const dispo = dispoParId.get(l.ticket_type_id) ?? 0;
+    const tarif = tarifs.get(l.ticket_type_id);
+    // Fin de vente (BUGS_REFONTE n°10) : une commande créée avant la clôture ne
+    // relance pas de paiement après. Même contrôle que /api/orders et « Recommencer ».
+    if (tarif && venteTerminee(tarif.vente_jusqua)) {
+      return NextResponse.json({ error: messageVenteTerminee(l.nom) }, { status: 409 });
+    }
+    const dispo = tarif ? tarif.quantite_totale - tarif.quantite_vendue : 0;
     if (l.quantite > dispo) {
       return NextResponse.json(
         { error: `Stock insuffisant pour « ${l.nom} » (${dispo} restant)` },
