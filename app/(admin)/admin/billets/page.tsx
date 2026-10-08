@@ -37,7 +37,7 @@ interface TicketLigne {
   statut: StatutBillet;
   created_at: string;
   ticket_types: { nom: string; prix: number; event_id: string; events: { titre: string } | null } | null;
-  orders: (Acheteur & { id: string; statut: string }) | null;
+  orders: (Acheteur & { id: string; statut: string; rembourse_le: string | null; rembourse_par_nom: string | null; rembourse_reference: string | null }) | null;
 }
 
 interface CommandeAnnulee extends Acheteur {
@@ -47,7 +47,7 @@ interface CommandeAnnulee extends Acheteur {
   tickets: { count: number }[];
 }
 
-type BilletVue = { id: string; ref: string; nom: string; tel: string; email: string; invite: boolean; statut: StatutBillet; evenement: string; tarif: string; prix: number; rembourse: boolean; acheteLe: string };
+type BilletVue = { id: string; ref: string; nom: string; tel: string; email: string; invite: boolean; statut: StatutBillet; evenement: string; tarif: string; prix: number; rembourse: boolean; remboursement: string | null; acheteLe: string };
 
 /**
  * Billets et remboursements (V2). Corrige l'affichage des acheteurs invités
@@ -80,7 +80,7 @@ export default async function AdminBillets({ searchParams }: { searchParams: { e
   const aucuneCommande = commandes !== null && commandes.length === 0;
 
   const SELECT_BILLET =
-    "id, statut, created_at, ticket_types!inner(nom, prix, event_id, events(titre)), orders!inner(id, statut, user_id, acheteur_nom, acheteur_email, acheteur_telephone, profiles(nom, telephone))";
+    "id, statut, created_at, ticket_types!inner(nom, prix, event_id, events(titre)), orders!inner(id, statut, user_id, acheteur_nom, acheteur_email, acheteur_telephone, rembourse_le, rembourse_par_nom, rembourse_reference, profiles(nom, telephone))";
   // ticket_types!inner : le filtre sur event_id restreint vraiment les lignes (et la LIMITE porte sur le résultat filtré).
   const requeteBillets = (sel: string, opts?: { count: "exact"; head: true }) => {
     let r = supabaseAdmin.from("tickets").select(sel, opts);
@@ -139,6 +139,10 @@ export default async function AdminBillets({ searchParams }: { searchParams: { e
     tarif: b.ticket_types?.nom ?? "—",
     prix: b.ticket_types?.prix ?? 0,
     rembourse: b.orders!.statut === "rembourse",
+    // Trace du remboursement (20261008120000) : justificatif si l'acheteur conteste.
+    remboursement: b.orders!.rembourse_le
+      ? `remboursé le ${dateHeure(b.orders!.rembourse_le)}${b.orders!.rembourse_par_nom ? ` par ${b.orders!.rembourse_par_nom}` : ""}${b.orders!.rembourse_reference ? ` · réf. ${b.orders!.rembourse_reference}` : ""}`
+      : null,
     acheteLe: b.created_at,
   }));
   const aRembourser: CommandeARembourser[] = annulees.map((c) => ({
@@ -208,15 +212,8 @@ export default async function AdminBillets({ searchParams }: { searchParams: { e
       )}
 
       {statut.cle === "rembourser" ? (
-        aRembourser.length === 0 ? (
-          <div className={s.vide}>
-            <Icon name="check" size={32} />
-            <p className={s.videTitre}>Aucun remboursement en attente</p>
-            <p className={s.videTexte}>Les commandes payées d&apos;un événement annulé apparaissent ici jusqu&apos;à leur remboursement.</p>
-          </div>
-        ) : (
-          <Remboursements commandes={aRembourser} />
-        )
+        // Toujours monté, même vide : la confirmation du dernier remboursement reste affichée.
+        <Remboursements commandes={aRembourser} />
       ) : liste.length === 0 ? (
         <div className={s.vide}>
           <Icon name="ticket" size={32} />
@@ -278,7 +275,7 @@ function Ligne({ b }: { b: BilletVue }) {
           {b.evenement}
           <span className={s.note} style={{ display: "block" }}>
             {b.tarif} · {b.prix ? montant(b.prix) : "gratuit"}
-            {b.rembourse ? " · remboursé" : ""}
+            {b.rembourse ? ` · ${b.remboursement ?? "remboursé"}` : ""}
           </span>
         </dd>
         <dt>Acheté le</dt>

@@ -17,13 +17,16 @@ export type CommandeARembourser = {
 };
 
 /**
- * NOUVELLE FONCTIONNALITÉ (design/BUGS_REFONTE.md, bug #7) : suivi des
- * remboursements après annulation. En prod, rien ne permet aujourd'hui de
- * passer une commande en `rembourse`. Il faudra une route service_role.
+ * Suivi des remboursements après annulation (design/BUGS_REFONTE.md n°7).
+ * En prod : components/v2/admin/Remboursements.tsx et
+ * /api/admin/orders/[id]/rembourser-annulation. Ajout du 2026-10-08 :
+ * référence de l'opération Mobile Money dans la feuille, et la trace (qui,
+ * référence) sous la pastille, gardées sur la commande comme justificatif.
  */
 export default function Remboursements({ commandes }: { commandes: CommandeARembourser[] }) {
-  const [faits, setFaits] = useState<Record<string, string>>({});
+  const [faits, setFaits] = useState<Record<string, { heure: string; reference: string }>>({});
   const [confirmer, setConfirmer] = useState<CommandeARembourser | null>(null);
+  const [reference, setReference] = useState("");
   const restant = commandes.filter((c) => !faits[c.commande]).reduce((n, c) => n + c.total, 0);
 
   return (
@@ -62,9 +65,18 @@ export default function Remboursements({ commandes }: { commandes: CommandeARemb
                 </div>
               </div>
               {fait ? (
-                <span className={`${s.statut} ${s.stFort}`}>Remboursé à {fait}</span>
+                <div style={{ display: "grid", gap: 4, justifyItems: "start" }} role="status">
+                  <span className={`${s.statut} ${s.stFort}`}>Remboursé à {fait.heure}</span>
+                  <span className={s.note}>
+                    par Abdias &lt;contact@xwezan.com&gt;
+                    {fait.reference ? ` · réf. ${fait.reference}` : ""}
+                  </span>
+                </div>
               ) : (
-                <button type="button" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} onClick={() => setConfirmer(c)}>
+                <button type="button" className={`${s.btn} ${s.btnOr} ${s.btnGrand}`} onClick={() => {
+                    setConfirmer(c);
+                    setReference("");
+                  }}>
                   <Icon name="check" /> Marquer remboursé
                 </button>
               )}
@@ -89,18 +101,26 @@ export default function Remboursements({ commandes }: { commandes: CommandeARemb
                 <b className={s.chiffre}>{confirmer.tel}</b>
               </div>
             </div>
-            <p className={s.feuilleTexte}>La commande passera en « remboursée »{confirmer.invite ? "" : " : l'acheteur le verra dans son compte"}. C&apos;est définitif.</p>
+            <div className={s.champ}>
+              <label htmlFor="ref-remb">
+                Référence de l&apos;opération Mobile Money <small>(recommandée)</small>
+              </label>
+              <input id="ref-remb" type="text" maxLength={100} placeholder="Identifiant de la transaction" value={reference} onChange={(e) => setReference(e.target.value)} />
+            </div>
+            <p className={s.feuilleTexte}>
+              La commande passera en « remboursée »{confirmer.invite ? "" : " : l'acheteur le verra dans son compte"}. Ton nom, l&apos;heure et la référence
+              restent sur la commande. C&apos;est définitif.
+            </p>
             <div className={s.feuilleActions}>
               <button type="button" className={`${s.btn} ${s.btnGris} ${s.btnGrand}`} onClick={() => setConfirmer(null)}>
                 Pas encore
               </button>
               <button
                 type="button"
-                autoFocus
                 className={`${s.btn} ${s.btnOr} ${s.btnGrand}`}
                 onClick={() => {
-                  const h = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-                  setFaits((p) => ({ ...p, [confirmer.commande]: h }));
+                  const heure = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+                  setFaits((p) => ({ ...p, [confirmer.commande]: { heure, reference: reference.trim() } }));
                   setConfirmer(null);
                 }}
               >
