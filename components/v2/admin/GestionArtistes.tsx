@@ -8,7 +8,7 @@ import { initialesArtiste } from "../orga/artistes/initiales";
 
 /**
  * Artistes en ligne, retirés ou refusés (admin, décisions d'Abdias du
- * 2026-10-08) : retirer (réversible), remettre en ligne, supprimer
+ * 2026-10-08) : corriger le nom affiché (A9), retirer (réversible), remettre en ligne, supprimer
  * définitivement (seulement sans rattachement ni abonné ; le serveur
  * refait le contrôle sous verrou au moment du clic). Le nombre d'abonnés
  * est affiché sur la carte et annoncé avant un retrait. Une carte traitée
@@ -28,8 +28,9 @@ export type ArtisteGere = {
   retrait: { le: string; par: string | null; motif: string | null } | null;
 };
 
-type Action = "retrait" | "remise" | "suppression";
+type Action = "retrait" | "remise" | "suppression" | "nom";
 const MOTIF_MAX = 1000;
+const NOM_MAX = 80;
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
 const dateHeure = (iso: string) => new Date(iso).toLocaleString("fr-FR", { timeZone: "Africa/Porto-Novo", dateStyle: "long", timeStyle: "short" });
 
@@ -42,6 +43,7 @@ export default function GestionArtistes({ artistes, vide }: { artistes: ArtisteG
   const router = useRouter();
   const [feuille, setFeuille] = useState<{ a: ArtisteGere; action: Action } | null>(null);
   const [motif, setMotif] = useState("");
+  const [nom, setNom] = useState("");
   const [prevenir, setPrevenir] = useState(true);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -58,6 +60,7 @@ export default function GestionArtistes({ artistes, vide }: { artistes: ArtisteG
   const ouvrir = (a: ArtisteGere, action: Action) => {
     setFeuille({ a, action });
     setMotif("");
+    setNom(a.nom);
     setPrevenir(true);
     setErreur(null);
   };
@@ -68,21 +71,24 @@ export default function GestionArtistes({ artistes, vide }: { artistes: ArtisteG
     setEnCours(true);
     setErreur(null);
     try {
-      const chemin = action === "retrait" ? "retrait" : action === "remise" ? "remise-en-ligne" : "suppression";
+      const chemin = action === "retrait" ? "retrait" : action === "remise" ? "remise-en-ligne" : action === "nom" ? "nom" : "suppression";
       const r = await fetch(`/api/admin/artistes/${a.id}/${chemin}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(action === "retrait" ? { motif, prevenir } : {}),
+        body: JSON.stringify(action === "retrait" ? { motif, prevenir } : action === "nom" ? { nom } : {}),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error ?? "Erreur");
       const texte =
         action === "retrait"
           ? `Retiré : sa page est en 404 et il n'apparaît plus sur les événements.${prevenir ? (d.prevenus ? ` ${a.gestionnaire} est prévenu par e-mail.` : " Aucun e-mail n'a pu partir.") : " Aucun e-mail envoyé."}`
+          : action === "nom"
+            ? `Nom corrigé : « ${(d as { nom?: string }).nom ?? nom.trim()} ». L'adresse de sa page ne change pas.`
           : action === "remise"
             ? `Remis en ligne : sa page, ses dates${a.abonnes ? ` et ses ${pluriel(a.abonnes, "abonné")}` : ""} sont de nouveau actifs.`
             : "Supprimé définitivement.";
-      setFaits((p) => ({ ...p, [a.id]: { vue: a, index: affiches.findIndex((x) => x.id === a.id), texte } }));
+      const vue = action === "nom" ? { ...a, nom: (d as { nom?: string }).nom ?? nom.trim() } : a;
+      setFaits((p) => ({ ...p, [a.id]: { vue, index: affiches.findIndex((x) => x.id === a.id), texte } }));
       setFeuille(null);
       router.refresh();
     } catch (e) {
@@ -138,6 +144,9 @@ export default function GestionArtistes({ artistes, vide }: { artistes: ArtisteG
               ) : (
                 <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
                   <div className={s.propositionActions}>
+                    <button type="button" className={`${s.btn} ${s.btnGris}`} onClick={() => ouvrir(a, "nom")}>
+                      <Icon name="edit" size={16} /> Corriger le nom
+                    </button>
                     {a.statut === "valide" && (
                       <>
                         <a href={`/artiste/${a.slug}`} className={`${s.btn} ${s.btnGris}`}>
@@ -169,7 +178,9 @@ export default function GestionArtistes({ artistes, vide }: { artistes: ArtisteG
         <div className={s.fond} onClick={() => !enCours && setFeuille(null)}>
           <div className={s.feuille} role="dialog" aria-modal="true" aria-labelledby="titre-gestion" onClick={(e) => e.stopPropagation()}>
             <h2 id="titre-gestion" className={s.feuilleTitre}>
-              {feuille.action === "retrait"
+              {feuille.action === "nom"
+                ? "Corriger le nom affiché"
+                : feuille.action === "retrait"
                 ? `Retirer ${feuille.a.nom} ?`
                 : feuille.action === "remise"
                   ? `Remettre ${feuille.a.nom} en ligne ?`
@@ -211,6 +222,18 @@ export default function GestionArtistes({ artistes, vide }: { artistes: ArtisteG
                 </label>
               </>
             )}
+            {feuille.action === "nom" && (
+              <>
+                <div className={s.champ}>
+                  <label htmlFor="nom-artiste">Nom de scène</label>
+                  <input id="nom-artiste" type="text" maxLength={NOM_MAX} value={nom} onChange={(e) => setNom(e.target.value)} />
+                </div>
+                <p className={s.feuilleTexte}>
+                  Écris-le exactement comme l&apos;artiste l&apos;écrit (majuscules, tirets, accents) : il est enregistré tel quel. L&apos;adresse de sa
+                  page ne change pas, les liens partagés restent valides.
+                </p>
+              </>
+            )}
             {feuille.action === "remise" && (
               <p className={s.feuilleTexte}>
                 Sa page et ses dates reviennent en ligne{feuille.a.abonnes ? `, et ses ${pluriel(feuille.a.abonnes, "abonné")} recevront de nouveau ses nouvelles dates` : ""}. Aucun e-mail n&apos;est envoyé.
@@ -233,10 +256,10 @@ export default function GestionArtistes({ artistes, vide }: { artistes: ArtisteG
               <button
                 type="button"
                 className={`${s.btn} ${feuille.action === "suppression" ? s.btnDanger : s.btnOr} ${s.btnGrand}`}
-                disabled={enCours}
+                disabled={enCours || (feuille.action === "nom" && (!nom.trim() || nom.trim() === feuille.a.nom))}
                 onClick={confirmer}
               >
-                {enCours ? "…" : feuille.action === "retrait" ? "Retirer" : feuille.action === "remise" ? "Remettre en ligne" : "Supprimer"}
+                {enCours ? "…" : feuille.action === "nom" ? "Enregistrer" : feuille.action === "retrait" ? "Retirer" : feuille.action === "remise" ? "Remettre en ligne" : "Supprimer"}
               </button>
             </div>
           </div>
