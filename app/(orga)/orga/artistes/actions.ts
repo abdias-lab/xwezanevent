@@ -29,9 +29,9 @@ async function utilisateur() {
   return user;
 }
 
-/** Photo envoyée (déjà compressée dans le navigateur), ou null si aucune. */
-function lirePhoto(formData: FormData): File | null {
-  const f = formData.get("photo");
+/** Image envoyée (« photo » ou « couverture », déjà compressée dans le navigateur), ou null si aucune. */
+function lirePhoto(formData: FormData, champ: "photo" | "couverture" = "photo"): File | null {
+  const f = formData.get(champ);
   return f instanceof File && f.size > 0 ? f : null;
 }
 
@@ -71,13 +71,15 @@ export async function creerArtiste(_etat: EtatFormulaireArtiste, formData: FormD
   }
 
   let photoUrl: string | null = null;
+  let couvertureUrl: string | null = null;
   const photo = lirePhoto(formData);
-  if (photo) {
-    try {
-      photoUrl = await uploaderImageEvenement(photo);
-    } catch (e) {
-      return { erreur: (e as Error).message };
-    }
+  const couverture = lirePhoto(formData, "couverture");
+  try {
+    if (photo) photoUrl = await uploaderImageEvenement(photo);
+    if (couverture) couvertureUrl = await uploaderImageEvenement(couverture);
+  } catch (e) {
+    if (photoUrl) await supprimerImageEvenement(photoUrl);
+    return { erreur: (e as Error).message };
   }
 
   const maintenant = new Date().toISOString();
@@ -88,6 +90,7 @@ export async function creerArtiste(_etat: EtatFormulaireArtiste, formData: FormD
       nom_scene: nom,
       bio: bio || null,
       photo_url: photoUrl,
+      couverture_url: couvertureUrl,
       liens: lus.liens,
       type_demande: type,
       label_id: type === "label" ? user.id : null,
@@ -103,6 +106,7 @@ export async function creerArtiste(_etat: EtatFormulaireArtiste, formData: FormD
   if (error || !cree) {
     console.error("[orga/artistes] création :", error?.message);
     if (photoUrl) await supprimerImageEvenement(photoUrl);
+    if (couvertureUrl) await supprimerImageEvenement(couvertureUrl);
     return { erreur: "Enregistrement impossible, réessaie." };
   }
 
@@ -119,7 +123,8 @@ export async function creerArtiste(_etat: EtatFormulaireArtiste, formData: FormD
 }
 
 /**
- * Modification d'un artiste géré par le compte. Bio, photo, réseaux : libres.
+ * Modification d'un artiste géré par le compte. Bio, photo, couverture,
+ * réseaux : libres.
  * Nom de scène : direct si le compte est vérifié ou si la page n'est pas en
  * ligne ; sinon nom_scene_demande, en vérification, l'ancien nom reste
  * affiché. Une demande refusée repasse en vérification (ou en ligne pour un
@@ -144,15 +149,17 @@ export async function modifierArtiste(_etat: EtatFormulaireArtiste, formData: Fo
 
   const nouvellePhoto = lirePhoto(formData);
   const retirer = formData.get("photo_retirer") === "1";
-  if (nouvellePhoto) {
-    try {
-      maj.photo_url = await uploaderImageEvenement(nouvellePhoto);
-    } catch (e) {
-      return { erreur: (e as Error).message };
-    }
-  } else if (retirer) {
-    maj.photo_url = null;
+  const nouvelleCouverture = lirePhoto(formData, "couverture");
+  const retirerCouverture = formData.get("couverture_retirer") === "1";
+  try {
+    if (nouvellePhoto) maj.photo_url = await uploaderImageEvenement(nouvellePhoto);
+    if (nouvelleCouverture) maj.couverture_url = await uploaderImageEvenement(nouvelleCouverture);
+  } catch (e) {
+    if (nouvellePhoto && typeof maj.photo_url === "string") await supprimerImageEvenement(maj.photo_url);
+    return { erreur: (e as Error).message };
   }
+  if (!nouvellePhoto && retirer) maj.photo_url = null;
+  if (!nouvelleCouverture && retirerCouverture) maj.couverture_url = null;
 
   // Retiré par l'équipe : traité comme en ligne pour le nom (changement soumis à validation) ;
   // son statut ne change jamais ici, seule l'équipe le remet en ligne.
@@ -180,10 +187,12 @@ export async function modifierArtiste(_etat: EtatFormulaireArtiste, formData: Fo
   if (error) {
     console.error("[orga/artistes] modification :", error.message);
     if (nouvellePhoto && typeof maj.photo_url === "string") await supprimerImageEvenement(maj.photo_url);
+    if (nouvelleCouverture && typeof maj.couverture_url === "string") await supprimerImageEvenement(maj.couverture_url);
     return { erreur: "Enregistrement impossible, réessaie." };
   }
-  // Ancienne photo remplacée ou retirée : libérée du stockage.
+  // Ancienne photo ou couverture remplacée ou retirée : libérée du stockage.
   if ((nouvellePhoto || retirer) && artiste.photo_url) await supprimerImageEvenement(artiste.photo_url);
+  if ((nouvelleCouverture || retirerCouverture) && artiste.couverture_url) await supprimerImageEvenement(artiste.couverture_url);
 
   revalidatePath("/orga/artistes");
   revalidatePath(`/artiste/${artiste.slug}`);

@@ -32,6 +32,7 @@ interface LigneArtiste {
   nom_scene_demande: string | null;
   bio: string | null;
   photo_url: string | null;
+  couverture_url: string | null;
   liens: Partial<Record<CleReseau, string>> | null;
   type_demande: "label" | "auto_produit";
   label_id: string | null;
@@ -69,7 +70,7 @@ export default async function AdminArtistes({ searchParams }: { searchParams: { 
   const [{ data: artistesData }, { data: verifiesData }, enAttente] = await Promise.all([
     supabaseAdmin
       .from("artistes")
-      .select("id, slug, nom_scene, nom_scene_demande, bio, photo_url, liens, type_demande, label_id, cree_par, whatsapp_contact, statut, motif_refus, soumis_le, updated_at, valide_le, retire_le, retire_par_nom, motif_retrait")
+      .select("id, slug, nom_scene, nom_scene_demande, bio, photo_url, couverture_url, liens, type_demande, label_id, cree_par, whatsapp_contact, statut, motif_refus, soumis_le, updated_at, valide_le, retire_le, retire_par_nom, motif_retrait")
       .order("soumis_le", { ascending: true, nullsFirst: false }),
     supabaseAdmin.from("comptes_verifies").select("user_id"),
     // Rattachements proposés en attente (lot 2) : file « Propositions ».
@@ -184,6 +185,7 @@ export default async function AdminArtistes({ searchParams }: { searchParams: { 
       slug: a.slug,
       nom: a.nom_scene,
       photo: a.photo_url,
+      couverture: a.couverture_url,
       statut: a.statut as ArtisteGere["statut"],
       meta: `${a.type_demande === "auto_produit" ? "Auto-produit" : `Label ${nomProfil(a.label_id)}`} · demandé par ${nomProfil(a.cree_par)}${
         a.valide_le && a.statut === "valide" ? ` · en ligne depuis le ${dateAnnee(a.valide_le)}` : ""
