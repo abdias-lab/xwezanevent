@@ -154,7 +154,9 @@ export async function modifierArtiste(_etat: EtatFormulaireArtiste, formData: Fo
     maj.photo_url = null;
   }
 
-  const enLigne = artiste.statut === "valide";
+  // Retiré par l'équipe : traité comme en ligne pour le nom (changement soumis à validation) ;
+  // son statut ne change jamais ici, seule l'équipe le remet en ligne.
+  const enLigne = artiste.statut === "valide" || artiste.statut === "retire";
   if (nom !== artiste.nom_scene) {
     if (verifie || !enLigne) {
       maj.nom_scene = nom;

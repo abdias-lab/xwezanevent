@@ -8,12 +8,11 @@ import { formaterNumero } from "@/lib/telephone";
 import { RESEAUX, lirePropositions, type CleReseau } from "@/lib/artistes";
 import { formatPlageDates } from "@/lib/date";
 import PropositionsArtistes, { type Contact, type PropositionAdmin } from "@/components/v2/admin/PropositionsArtistes";
+import GestionArtistes, { type ArtisteGere } from "@/components/v2/admin/GestionArtistes";
 import Coquille from "@/components/v2/Coquille";
-import Icon from "@/components/v2/Icon";
 import { NAV_ADMIN } from "@/components/v2/navAdmin";
 import { dateAnnee, depuis } from "@/components/v2/format";
 import ValidationArtistes, { type DemandeArtiste } from "@/components/v2/admin/ValidationArtistes";
-import { initialesArtiste } from "@/components/v2/orga/artistes/initiales";
 import s from "@/components/v2/espace.module.css";
 
 export const metadata: Metadata = { title: "Artistes — Administration — XwézanEvent" };
@@ -22,6 +21,7 @@ const FILTRES = [
   { cle: "", libelle: "À valider" },
   { cle: "propositions", libelle: "Propositions" },
   { cle: "valide", libelle: "En ligne" },
+  { cle: "retire", libelle: "Retirés" },
   { cle: "refuse", libelle: "Refusés" },
 ] as const;
 
@@ -37,8 +37,11 @@ interface LigneArtiste {
   label_id: string | null;
   cree_par: string | null;
   whatsapp_contact: string | null;
-  statut: "en_validation" | "valide" | "refuse";
+  statut: "en_validation" | "valide" | "refuse" | "retire";
   motif_refus: string | null;
+  retire_le: string | null;
+  retire_par_nom: string | null;
+  motif_retrait: string | null;
   soumis_le: string | null;
   updated_at: string;
   valide_le: string | null;
@@ -66,7 +69,7 @@ export default async function AdminArtistes({ searchParams }: { searchParams: { 
   const [{ data: artistesData }, { data: verifiesData }, enAttente] = await Promise.all([
     supabaseAdmin
       .from("artistes")
-      .select("id, slug, nom_scene, nom_scene_demande, bio, photo_url, liens, type_demande, label_id, cree_par, whatsapp_contact, statut, motif_refus, soumis_le, updated_at, valide_le")
+      .select("id, slug, nom_scene, nom_scene_demande, bio, photo_url, liens, type_demande, label_id, cree_par, whatsapp_contact, statut, motif_refus, soumis_le, updated_at, valide_le, retire_le, retire_par_nom, motif_retrait")
       .order("soumis_le", { ascending: true, nullsFirst: false }),
     supabaseAdmin.from("comptes_verifies").select("user_id"),
     // Rattachements proposés en attente (lot 2) : file « Propositions ».
@@ -81,6 +84,7 @@ export default async function AdminArtistes({ searchParams }: { searchParams: { 
     propositions: enAttente.length,
     valide: tous.filter((a) => a.statut === "valide").length,
     refuse: tous.filter((a) => a.statut === "refuse").length,
+    retire: tous.filter((a) => a.statut === "retire").length,
   };
 
   // Profils des demandeurs et des labels (téléphone : service_role uniquement).
@@ -158,6 +162,40 @@ export default async function AdminArtistes({ searchParams }: { searchParams: { 
   }
   const liste = filtre.cle && filtre.cle !== "propositions" ? tous.filter((a) => a.statut === filtre.cle) : [];
 
+  // En ligne, retirés, refusés : abonnés et rattachements de chaque artiste, pour les actions
+  // (retrait annoncé avec son audience, suppression seulement sans aucun lien ; le serveur
+  // refait ce contrôle sous verrou au moment de la suppression).
+  let geres: ArtisteGere[] = [];
+  if (liste.length) {
+    const idsListe = liste.map((a) => a.id);
+    const [{ data: abos }, { data: liens }] = await Promise.all([
+      supabaseAdmin.from("abonnements").select("artiste_id").in("artiste_id", idsListe),
+      supabaseAdmin.from("evenement_artistes").select("artiste_id").in("artiste_id", idsListe),
+    ]);
+    const compter = (lignes: { artiste_id: string | null }[] | null) => {
+      const m = new Map<string, number>();
+      for (const l of lignes ?? []) if (l.artiste_id) m.set(l.artiste_id, (m.get(l.artiste_id) ?? 0) + 1);
+      return m;
+    };
+    const nbAbonnes = compter(abos);
+    const nbLiens = compter(liens);
+    geres = liste.map((a) => ({
+      id: a.id,
+      slug: a.slug,
+      nom: a.nom_scene,
+      photo: a.photo_url,
+      statut: a.statut as ArtisteGere["statut"],
+      meta: `${a.type_demande === "auto_produit" ? "Auto-produit" : `Label ${nomProfil(a.label_id)}`} · demandé par ${nomProfil(a.cree_par)}${
+        a.valide_le && a.statut === "valide" ? ` · en ligne depuis le ${dateAnnee(a.valide_le)}` : ""
+      }`,
+      gestionnaire: a.label_id ? nomProfil(a.label_id) : nomProfil(a.cree_par),
+      abonnes: nbAbonnes.get(a.id) ?? 0,
+      rattachements: nbLiens.get(a.id) ?? 0,
+      motifRefus: a.motif_refus,
+      retrait: a.retire_le ? { le: a.retire_le, par: a.retire_par_nom, motif: a.motif_retrait } : null,
+    }));
+  }
+
   return (
     <Coquille nav={NAV_ADMIN} actif="artistes" compte={{ nom: profil.nom || user.email || "Admin", email: user.email ?? "" }}>
       <div className={s.entete}>
@@ -186,41 +224,12 @@ export default async function AdminArtistes({ searchParams }: { searchParams: { 
       ) : filtre.cle === "propositions" ? (
         // Toujours monté, même file vide : la confirmation de la dernière décision reste affichée après le rafraîchissement.
         <PropositionsArtistes propositions={propositions} />
-      ) : liste.length === 0 ? (
-        <div className={s.vide}>
-          <Icon name="users" size={32} />
-          <p className={s.videTitre}>{filtre.cle === "valide" ? "Aucun artiste en ligne" : "Aucun artiste refusé"}</p>
-        </div>
       ) : (
-        <ul className={s.pile} style={{ gap: 8 }}>
-          {liste.map((a) => (
-            <li key={a.id} className={`${s.carte} ${s.carteRangee}`}>
-              <div style={{ display: "flex", gap: 12, alignItems: "flex-start", minWidth: 0 }}>
-                <div className={s.avatarArtiste} aria-hidden="true">
-                  {a.photo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={a.photo_url} alt="" />
-                  ) : (
-                    <span>{initialesArtiste(a.nom_scene)}</span>
-                  )}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <p className={s.carteTitre}>{a.nom_scene}</p>
-                  <p className={s.carteMeta}>
-                    {a.type_demande === "auto_produit" ? "Auto-produit" : `Label ${nomProfil(a.label_id)}`} · demandé par {nomProfil(a.cree_par)}
-                    {a.valide_le && a.statut === "valide" ? ` · en ligne depuis le ${dateAnnee(a.valide_le)}` : ""}
-                  </p>
-                  {a.statut === "refuse" && <p className={s.carteMeta}>Motif : {a.motif_refus || "aucun"}</p>}
-                </div>
-              </div>
-              {a.statut === "valide" && (
-                <Link href={`/artiste/${a.slug}`} className={`${s.btn} ${s.btnGris}`}>
-                  <Icon name="eye" size={16} /> Voir la page
-                </Link>
-              )}
-            </li>
-          ))}
-        </ul>
+        // Toujours monté, même vide : la confirmation de la dernière action reste affichée.
+        <GestionArtistes
+          artistes={geres}
+          vide={filtre.cle === "valide" ? "Aucun artiste en ligne" : filtre.cle === "retire" ? "Aucun artiste retiré" : "Aucun artiste refusé"}
+        />
       )}
     </Coquille>
   );

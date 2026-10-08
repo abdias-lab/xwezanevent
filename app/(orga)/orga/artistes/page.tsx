@@ -17,6 +17,7 @@ const STATUT: Record<StatutArtiste, { libelle: string; classe: string }> = {
   valide: { libelle: "En ligne", classe: s.stFort },
   en_validation: { libelle: "En vérification", classe: s.stAttente },
   refuse: { libelle: "Refusé", classe: s.stDanger },
+  retire: { libelle: "Retiré par l'équipe", classe: s.stNeutre },
 };
 
 /**
@@ -172,6 +173,9 @@ export default async function OrgaArtistes({
                     </p>
                   )}
                   {a.statut === "refuse" && a.motif_refus && <p className={s.carteMeta}>Motif : {a.motif_refus}</p>}
+                  {a.statut === "retire" && (
+                    <p className={s.carteMeta}>Sa page n&apos;est plus en ligne. Pour en parler : contact@xwezan.com.</p>
+                  )}
                 </div>
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>

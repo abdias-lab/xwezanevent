@@ -703,6 +703,6 @@ export async function getArtistesEvenement(eventId: string): Promise<ArtisteEven
   type Ligne = { artiste: { nom_scene: string; slug: string; photo_url: string | null; statut: string; compte_id: string | null } | null };
   return ((data ?? []) as unknown as Ligne[])
     .map((l) => l.artiste)
-    .filter((a): a is NonNullable<Ligne["artiste"]> => !!a && a.statut !== "refuse")
+    .filter((a): a is NonNullable<Ligne["artiste"]> => !!a && a.statut !== "refuse" && a.statut !== "retire")
     .map((a) => ({ nom: a.nom_scene, slug: a.statut === "valide" ? a.slug : null, photo: a.statut === "valide" ? a.photo_url : null, compteId: a.compte_id }));
 }

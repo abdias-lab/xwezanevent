@@ -4,6 +4,7 @@ import Coquille, { RubanEtats } from "../../Coquille";
 import { A, NAV_ADMIN } from "../_admin";
 import ValidationArtistes, { type DemandeArtiste } from "./ValidationArtistes";
 import PropositionsArtistes, { type PropositionAdmin } from "./PropositionsArtistes";
+import GestionArtistes, { type ArtisteGere } from "./GestionArtistes";
 
 export const metadata: Metadata = { title: "Artistes — Administration — XwézanEvent" };
 
@@ -104,13 +105,37 @@ const PROPOSITIONS: PropositionAdmin[] = [
   },
 ];
 
+/** Artistes en ligne et retirés (factices) : retrait, remise en ligne, suppression (décisions du 2026-10-08). */
+const EN_LIGNE: ArtisteGere[] = [
+  {
+    id: "g1", slug: "zeynab-habib", nom: "Zeynab Habib", photo: null, statut: "valide",
+    meta: "Label Ouidah Live · demandé par Ouidah Live · en ligne depuis le 12 septembre 2026",
+    gestionnaire: "Ouidah Live", abonnes: 1248, rattachements: 3, motifRefus: null, retrait: null,
+  },
+  {
+    id: "g2", slug: "page-de-test", nom: "Page de test", photo: null, statut: "valide",
+    meta: "Label Ouidah Live · demandé par Ouidah Live · en ligne depuis le 2 octobre 2026",
+    gestionnaire: "Ouidah Live", abonnes: 0, rattachements: 0, motifRefus: null, retrait: null,
+  },
+];
+const RETIRES: ArtisteGere[] = [
+  {
+    id: "g3", slug: "dj-shado", nom: "DJ Shado", photo: null, statut: "retire",
+    meta: "Label Ouidah Live · demandé par Ouidah Live",
+    gestionnaire: "Ouidah Live", abonnes: 86, rattachements: 1, motifRefus: null,
+    retrait: { le: "2026-10-05T14:20:00Z", par: "Abdias <contact@xwezan.com>", motif: "Demande de l'artiste" },
+  },
+];
+
 /**
  * Artistes (preview V2, design/ARTISTES.md). En prod : app/(admin)/admin/artistes.
+ * ?etat=en-ligne, retires : retrait, remise en ligne, suppression.
  * ?etat=vide : file vide ; ?etat=propositions : file des rattachements proposés.
  */
 export default function V2AdminArtistes({ searchParams }: { searchParams: { etat?: string } }) {
   const demandes = searchParams.etat === "vide" ? [] : DEMANDES;
   const vuePropositions = searchParams.etat === "propositions";
+  const vueGestion = searchParams.etat === "en-ligne" ? EN_LIGNE : searchParams.etat === "retires" ? RETIRES : null;
   return (
     <Coquille nav={NAV_ADMIN} actif="artistes">
       <div className={s.entete}>
@@ -120,25 +145,30 @@ export default function V2AdminArtistes({ searchParams }: { searchParams: { etat
         </div>
       </div>
       <div className={s.puces} role="group" aria-label="Filtrer" style={{ marginBottom: 16 }}>
-        <a href={`${A}/artistes`} className={`${s.puce} ${vuePropositions ? "" : s.puceOn}`} aria-current={vuePropositions ? undefined : "true"}>
+        <a href={`${A}/artistes`} className={`${s.puce} ${vuePropositions || vueGestion ? "" : s.puceOn}`} aria-current={vuePropositions || vueGestion ? undefined : "true"}>
           À valider <span style={{ opacity: 0.6 }}>{demandes.length}</span>
         </a>
         <a href={`${A}/artistes?etat=propositions`} className={`${s.puce} ${vuePropositions ? s.puceOn : ""}`} aria-current={vuePropositions ? "true" : undefined}>
           Propositions <span style={{ opacity: 0.6 }}>{PROPOSITIONS.length}</span>
         </a>
-        <a href={`${A}/artistes`} className={s.puce}>
-          En ligne <span style={{ opacity: 0.6 }}>4</span>
+        <a href={`${A}/artistes?etat=en-ligne`} className={`${s.puce} ${searchParams.etat === "en-ligne" ? s.puceOn : ""}`}>
+          En ligne <span style={{ opacity: 0.6 }}>{EN_LIGNE.length}</span>
+        </a>
+        <a href={`${A}/artistes?etat=retires`} className={`${s.puce} ${searchParams.etat === "retires" ? s.puceOn : ""}`}>
+          Retirés <span style={{ opacity: 0.6 }}>{RETIRES.length}</span>
         </a>
         <a href={`${A}/artistes`} className={s.puce}>
           Refusés <span style={{ opacity: 0.6 }}>1</span>
         </a>
       </div>
-      {vuePropositions ? (
+      {vueGestion ? (
+        <GestionArtistes artistes={vueGestion} vide="Aucun artiste" />
+      ) : vuePropositions ? (
         <PropositionsArtistes propositions={PROPOSITIONS} />
       ) : (
         <ValidationArtistes demandes={demandes} />
       )}
-      <RubanEtats chemin={`${A}/artistes`} etats={["normal", "vide", "propositions"]} />
+      <RubanEtats chemin={`${A}/artistes`} etats={["normal", "vide", "propositions", "en-ligne", "retires"]} />
     </Coquille>
   );
 }
