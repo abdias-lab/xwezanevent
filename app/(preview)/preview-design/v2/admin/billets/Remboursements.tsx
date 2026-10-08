@@ -34,7 +34,8 @@ export default function Remboursements({ commandes }: { commandes: CommandeARemb
       <p className={s.alerte}>
         <Icon name="info" />
         <span>
-          Rembourse chaque acheteur sur son numéro Mobile Money (prix payé en entier, sans frais), puis marque la commande remboursée. Reste à rembourser :{" "}
+          Envoie à chaque acheteur, sur son numéro Mobile Money, <b>exactement le montant affiché</b> : le prix de ses billets, ni plus ni moins. Les
+          frais de l&apos;opérateur de paiement ne sont ni remboursés ni à ajouter. Puis marque la commande remboursée. Reste à rembourser :{" "}
           <b>{montant(restant)}</b>.
         </span>
       </p>

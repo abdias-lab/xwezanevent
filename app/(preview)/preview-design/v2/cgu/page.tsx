@@ -109,7 +109,9 @@ export default function V2Cgu() {
             <p>
               Les billets ne sont pas remboursables, sauf en cas d&apos;annulation de l&apos;événement. Dans ce cas, les fonds sont sécurisés (gel des
               reversements de l&apos;organisateur concerné) et XwézanEvent organise le remboursement de chaque acheteur vers son moyen de paiement
-              d&apos;origine, sans frais supplémentaire, dans un délai de 14 jours suivant la confirmation de l&apos;annulation. Ce remboursement ne dépend
+              d&apos;origine, dans un délai de 14 jours suivant la confirmation de l&apos;annulation. Le prix du billet est remboursé en entier, sans
+              retenue de la part de XwézanEvent ; les frais de l&apos;opérateur de paiement prélevés lors de l&apos;achat ne sont pas remboursables. Ce
+              remboursement ne dépend
               pas de l&apos;organisateur : les fonds n&apos;ont jamais quitté la plateforme. Le détail complet est disponible sur notre page <a href={`${B}/remboursements`}>Remboursements</a>.
             </p>
           ),

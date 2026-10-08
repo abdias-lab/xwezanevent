@@ -87,7 +87,7 @@ export default function Reversements() {
             <>
               <p>
                 Si un événement est annulé (par toi ou par notre équipe), l&apos;argent de ses ventes sert à <strong>rembourser les acheteurs</strong> : chacun
-                est remboursé en entier, sous 14 jours, directement par XwézanEvent. Voir notre <a href="/remboursements">politique de remboursement</a>.
+                récupère le prix de son billet en entier, sous 14 jours, directement par XwézanEvent. Voir notre <a href="/remboursements">politique de remboursement</a>.
               </p>
               <p>
                 Pour toi, cela veut dire : plus aucune demande de virement possible pour cet événement, et tes demandes <strong>en attente</strong> sont{" "}
