@@ -60,6 +60,72 @@ togolais, et les visiteurs situés au Togo voyaient un site vide (MIWADÚNÙ et 
    événements béninois, avec un message « Bientôt au Togo », plutôt qu'un catalogue vide.
 3. ~~Avoir corrigé le n°17 (cookie de pays non revalidé).~~ Fait (`64405dc`).
 Côté V2 : aucun sélecteur de pays à maquetter, il n'apparaît que lorsque deux pays sont actifs.
+4. Avoir traité le chantier « ouverture d'un deuxième pays » ci-dessous.
+
+### Chantier « ouverture d'un deuxième pays » : avant de réactiver le Togo
+
+Inventaire fait le 2026-10-09, à la demande d'Abdias, sans rien corriger : tout ce qui est calé en dur sur le
+Bénin. Lomé est en UTC+0 toute l'année, Porto-Novo en UTC+1 : partout où l'heure de Porto-Novo sert de
+référence, un événement togolais bascule **une heure trop tôt** (23:00 à Lomé au lieu de minuit).
+
+**Bloquant : règles horaires (heure de Porto-Novo appliquée à tous les événements)**
+1. Fin de vente d'un tarif : `lib/vente.ts` (`DECALAGE_PORTO_NOVO = "+01:00"`, `finDeVenteDepuisDate`), appelé
+   par `app/(orga)/creer/actions.ts`. Une prévente togolaise « jusqu'au 1er oct. » ferme à 22:59:59 heure de Lomé.
+   `libelleFinVente` lit aussi le jour à Porto-Novo (sans effet visible tant que la fin est à 23:59:59).
+2. « Aujourd'hui » : `aujourdhuiPortoNovo()` (`lib/date.ts`, décalage +1 h en dur). Bascule à 23:00 heure de
+   Lomé, donc le dernier soir d'un événement togolais, de 23:00 à minuit : vente refusée (`/api/orders`,
+   « Réessayer », « Recommencer » dans `lib/commandes.ts`), événement retiré du catalogue (`lib/events.ts`),
+   relances « nouvelle date » ignorées (`lib/nouvelle-date.ts`). Mêmes appels pour refuser une date passée à la
+   création et à la modification, et pour le délai de J+3 des reversements (`lib/payouts.ts`) : écart d'une
+   heure, sans gravité là.
+3. Clôture automatique : `cloturer_evenements_passes()` (`20260823120000_date_fin_evenements.sql`) compare à
+   `now() AT TIME ZONE 'Africa/Porto-Novo'`, et le cron tourne à 23:05 UTC (`20260712120000_evenements_termines.sql`).
+   Pour le Togo, 23:05 UTC = 23:05 à Lomé : l'événement passe « terminé » **le soir même**, en pleine soirée.
+4. Scanner, règle des 6 h : `valider_billet()` et `valider_billet_lien()`
+   (`20260929120200_scan_valide_jusqu_a_6h.sql`) coupent à 06:00 heure de Porto-Novo, soit 05:00 à Lomé. Une
+   heure de moins pour une soirée togolaise qui déborde.
+   → **Solution retenue** (décision d'Abdias du 2026-10-09) : un fuseau par pays, colonne `pays.fuseau`
+   (`Africa/Porto-Novo`, `Africa/Lome`), seule source lue par ces quatre règles, en TS comme en SQL, plutôt que
+   quatre correctifs séparés. Migration appliquée par Abdias après relecture, REVOKE/GRANT re-déclarés. Rien à
+   coder tant que le Togo n'a pas de date d'ouverture : aucun de ces points ne gêne un utilisateur béninois.
+
+**Bloquant : création d'un événement**
+5. Liste des villes en dur : `components/v2/orga/creer/Formulaire.tsx` (`VILLES` = Cotonou, Porto-Novo, Ouidah,
+   Abomey, Parakou, Grand-Popo), sans lien avec le pays choisi. Un organisateur togolais ne peut pas choisir Lomé.
+   Le sélecteur de pays, lui, apparaît bien dès que deux pays sont actifs.
+
+**Bloquant : numéros de téléphone**
+6. Inscription : `components/v2/compte/Auth.tsx` normalise toujours en Bénin (`normaliserNumero("bj", …)`) et
+   n'accepte que 8, 10 ou 13 chiffres commençant par 229. Un Togolais qui tape `90 12 34 56` se retrouve avec
+   **`0190123456`, un faux numéro béninois** ; s'il tape `+228 90 12 34 56` (11 chiffres), il est refusé avec
+   « Numéro béninois : … ». Il faudrait l'indicatif ou le pays dans le formulaire.
+7. `formaterNumero` (`lib/telephone.ts`) : **aucun problème pour le +228.** `+22890123456` et `22890123456` donnent
+   `+228 90 12 34 56`, `90123456` donne `90 12 34 56` (cas couverts par `lib/telephone.test.ts`). L'achat invité
+   (`Commande.tsx`, `/api/orders`) et la demande de virement valident déjà selon le pays de l'événement.
+
+**Textes et affichage (non bloquant, mais faux pour un Togolais)**
+8. Heures affichées à l'heure du Bénin : `components/v2/format.ts` (`partiesBenin`, `dateHeure`,
+   `dateHeureCourte`, `heureBenin`), utilisé par le scanner (« Entré à 21:42 »), le détail d'événement orga,
+   l'admin (billets, reversements, remboursements, artistes), les exports CSV de billets et les e-mails
+   de confirmation et de récapitulatif. Une heure d'avance pour un organisateur togolais.
+9. Opérateurs Mobile Money en dur : `/reversements` (« MTN Mobile Money, Moov Money, Celtiis Money »). Les pages
+   événement, `/tarifs` et la FAQ suivent déjà le pays.
+10. Placeholders `+229 01 …` : WhatsApp artiste (`FormulaireArtiste.tsx`, `creer/Artistes.tsx`) ; ancien
+    `components/Billetterie.tsx` (vérifier s'il sert encore).
+11. « Billetterie du Bénin » : titre du site (`app/layout.tsx`), manifeste PWA (`app/manifest.ts`), pied de page
+    (`components/v2/public/Entete.tsx`) ; description de `/evenements` (« … au Bénin »).
+12. Replis sur le Bénin quand le pays est inconnu : `lib/emails/layout.ts` (`NOM_PAYS_EMAIL`, à compléter à
+    chaque pays), `getPaysActuelDetail` (`lib/pays.ts`), « seul pays ouvert » dans le formulaire de création.
+    Corrects aujourd'hui, à relire à l'ouverture.
+13. Commentaire de `lib/fedapay.ts` (« Mobile Money Bénin ») : texte seulement.
+
+**Déjà prêt ou hors code**
+- Devise : XOF partout (`lib/fedapay.ts`, `montant()` en FCFA). Le Togo est dans la zone UEMOA : rien à changer.
+- Commission par pays (`pays.taux_commission_defaut`), opérateurs et normalisation par pays (`lib/telephone.ts`),
+  reversements multi-pays, adjectif « togolaise » (`lib/pays.ts`) : en place.
+- CGU : droit béninois, juridictions du Bénin, siège au Bénin. Question juridique, pas un bug : à faire relire
+  si l'activité au Togo l'exige.
+- Contact WhatsApp `+229 53 06 48 72` (`/contact`, en-tête) : c'est le vrai numéro, rien à changer.
 
 ### Projet Supabase de développement séparé : après la refonte
 
