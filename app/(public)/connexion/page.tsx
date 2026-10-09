@@ -7,6 +7,7 @@ import { Header, Footer } from "@/components/v2/public/Chrome";
 import Auth from "@/components/v2/compte/Auth";
 import v from "@/components/v2/v2.module.css";
 import s from "@/components/v2/espace.module.css";
+import c from "@/components/v2/compte/connexion.module.css";
 
 export const metadata: Metadata = {
   title: "Connexion — XwézanEvent",
@@ -40,13 +41,14 @@ export default async function Connexion({ searchParams }: { searchParams: { redi
       <Header />
       <main className={v.cont}>
         <div className={s.colonneEcran}>
-          <h1 className={v.h1}>
-            Bon retour <em>parmi nous.</em>
-          </h1>
-          <p className={v.sous} style={{ margin: "12px 0 24px" }}>
-            {CONTEXTES[dest] ?? "Connecte-toi pour retrouver tes billets, ou crée ton compte pour publier tes événements."}
-          </p>
-          <Auth vueInitiale={searchParams.vue === "inscription" ? "inscription" : "connexion"} redirect={dest} />
+          <div className={`${c.carte} ${c.entree}`}>
+            <header className={c.entete}>
+              <p className={c.marque}>Xwézan</p>
+              <h1 className={c.slogan}>Mì wá djawá !</h1>
+              <p className={c.accroche}>{CONTEXTES[dest] ?? "Retrouve tes billets, ou crée ton compte pour publier tes événements."}</p>
+            </header>
+            <Auth vueInitiale={searchParams.vue === "inscription" ? "inscription" : "connexion"} redirect={dest} />
+          </div>
         </div>
       </main>
       <Footer />
