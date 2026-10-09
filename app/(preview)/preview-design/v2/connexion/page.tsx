@@ -4,6 +4,7 @@ import s from "../espace.module.css";
 import { Header, Footer } from "../chrome";
 import { B, RubanEtats } from "../Coquille";
 import Auth from "./Auth";
+import c from "./connexion.module.css";
 
 export const metadata: Metadata = { title: "Connexion — XwézanEvent" };
 
@@ -29,13 +30,14 @@ export default function V2Connexion({ searchParams }: { searchParams: { vue?: st
       <Header />
       <main className={v.cont}>
         <div className={s.colonneEcran}>
-          <h1 className={v.h1}>
-            Bon retour <em>parmi nous.</em>
-          </h1>
-          <p className={v.sous} style={{ margin: "12px 0 24px" }}>
-            {contexte ?? "Connecte-toi pour retrouver tes billets, ou crée ton compte pour publier tes événements."}
-          </p>
-          <Auth vueInitiale={searchParams.vue === "inscription" ? "inscription" : "connexion"} erreurInitiale={searchParams.etat === "erreur"} creeInitial={searchParams.etat === "cree"} />
+          <div className={`${c.carte} ${c.entree}`}>
+            <header className={c.entete}>
+              <p className={c.marque}>Xwézan</p>
+              <h1 className={c.slogan}>Mì wá djawá !</h1>
+              <p className={c.accroche}>{contexte ?? "Retrouve tes billets, ou crée ton compte pour publier tes événements."}</p>
+            </header>
+            <Auth vueInitiale={searchParams.vue === "inscription" ? "inscription" : "connexion"} erreurInitiale={searchParams.etat === "erreur"} creeInitial={searchParams.etat === "cree"} />
+          </div>
         </div>
         <RubanEtats chemin={`${B}/connexion`} etats={["normal", "erreur", "cree"]} />
       </main>

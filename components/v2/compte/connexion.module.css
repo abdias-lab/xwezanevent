@@ -1,0 +1,118 @@
+/* ==========================================================
+   /connexion : encadré autour du formulaire (V2).
+   Purement visuel : Auth et la page gardent leur logique.
+   ========================================================== */
+
+/* Angle du dégradé conique, animable seulement s'il est enregistré. */
+@property --angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* Témoin de support de @property : vaut 1 quand la règle est comprise.
+   Sans elle, var(--anneau, 0) retombe à 0 et l'anneau doré reste masqué :
+   seule la bordure fixe de la carte s'affiche, jamais un arc figé. */
+@property --anneau {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
+/* Entrée en fondu de la carte, une seule fois au chargement. */
+.entree {
+  animation: apparition 480ms var(--ease) both;
+}
+@keyframes apparition {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.carte {
+  position: relative;
+  padding: var(--s4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--raised);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 24px 48px -24px rgb(0 0 0 / 0.6);
+}
+@media (min-width: 600px) {
+  .carte {
+    padding: var(--s6);
+  }
+}
+
+/* En-tête de la carte, centré : marque, slogan (seul h1 de la page), accroche. */
+.entete {
+  margin-bottom: var(--s6);
+  text-align: center;
+}
+.marque,
+.slogan {
+  margin: 0;
+  font-family: var(--font-playfair), serif;
+  font-style: italic;
+  font-weight: 700;
+  color: var(--or);
+}
+.marque {
+  font-size: 28px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.slogan {
+  margin-top: var(--s1);
+  font-size: 17px;
+  line-height: 1.3;
+}
+.accroche {
+  margin: var(--s2) 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* Bordure vivante : un dégradé conique doré, découpé en anneau de 1 px,
+   qui fait le tour en 7 s. Seulement si le masque composite est compris
+   (sinon le disque conique couvrirait la carte). */
+@supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
+  .carte::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    padding: 1px;
+    border-radius: inherit;
+    background: conic-gradient(from var(--angle), transparent 0deg 250deg, var(--or) 320deg, transparent 360deg);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    opacity: var(--anneau, 0);
+    pointer-events: none;
+    animation: tour 7s linear infinite;
+  }
+}
+@keyframes tour {
+  to {
+    --angle: 360deg;
+  }
+}
+
+/* Mouvement réduit : ni fondu ni rotation, la bordure fixe suffit. */
+@media (prefers-reduced-motion: reduce) {
+  .entree {
+    animation: none;
+  }
+  .carte::before {
+    animation: none;
+    opacity: 0;
+  }
+}
