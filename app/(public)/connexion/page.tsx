@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { cheminInterne } from "@/lib/redirection";
 import { POLICES_V2 } from "@/components/v2/polices";
-import { Header, Footer } from "@/components/v2/public/Chrome";
+import { Footer } from "@/components/v2/public/Chrome";
 import Auth from "@/components/v2/compte/Auth";
 import v from "@/components/v2/v2.module.css";
 import s from "@/components/v2/espace.module.css";
@@ -24,6 +24,7 @@ const CONTEXTES: Record<string, string> = {
 /**
  * Connexion / inscription (V2), reprise de la preview (v2/connexion).
  * ?vue=inscription ouvre l'onglet inscription.
+ * Pas d'en-tête de site : le « Xwézan » de la carte mène à l'accueil.
  */
 export default async function Connexion({ searchParams }: { searchParams: { redirect?: string; vue?: string } }) {
   // On n'accepte que des chemins internes (évite les redirections ouvertes,
@@ -39,7 +40,6 @@ export default async function Connexion({ searchParams }: { searchParams: { redi
 
   return (
     <div className={`${POLICES_V2} ${v.racine} ${s.racineEspace} ${c.page}`}>
-      <Header epure />
       <main className={`${v.cont} ${c.zone}`}>
         <div className={c.colonne}>
           <div className={`${c.carte} ${c.entree}`}>

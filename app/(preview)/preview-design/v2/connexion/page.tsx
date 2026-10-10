@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import v from "../v2.module.css";
 import s from "../espace.module.css";
-import { Header, Footer } from "../chrome";
+import { Footer } from "../chrome";
 import { B, RubanEtats } from "../Coquille";
 import Auth from "./Auth";
 import c from "./connexion.module.css";
@@ -27,7 +27,6 @@ export default function V2Connexion({ searchParams }: { searchParams: { vue?: st
 
   return (
     <div className={`${v.racine} ${s.racineEspace} ${c.page}`}>
-      <Header epure />
       <main className={`${v.cont} ${c.zone}`}>
         <div className={c.colonne}>
           <div className={`${c.carte} ${c.entree}`}>

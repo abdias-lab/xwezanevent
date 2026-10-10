@@ -10,27 +10,22 @@ const ESPACES: Record<RoleConnecte, { libelle: string; href: string }> = {
   admin: { libelle: "Admin", href: "/preview-design/v2/admin" },
 };
 
-/** `epure` : sans logo ni bouton (page connexion), comme en prod. */
-export function Header({ connecte, epure = false }: { connecte?: RoleConnecte; epure?: boolean }) {
+export function Header({ connecte }: { connecte?: RoleConnecte }) {
   const espace = connecte ? ESPACES[connecte] : { libelle: "Se connecter", href: "/preview-design/v2/connexion" };
   return (
     <header className={s.header}>
       <div className={`${s.cont} ${s.nav}`}>
-        {!epure && (
-          <a href="/preview-design/v2" className={s.logo} aria-label="XwézanEvent, accueil">
-            <span className={s.logoX}>Xwézan</span>
-          </a>
-        )}
+        <a href="/preview-design/v2" className={s.logo} aria-label="XwézanEvent, accueil">
+          <span className={s.logoX}>Xwézan</span>
+        </a>
         <form className={s.pilule} role="search" action="/preview-design/v2/evenements">
           <Icon name="search" size={20} />
           <input type="search" name="q" placeholder="Artiste, lieu, ville" aria-label="Rechercher un événement" />
         </form>
         {/* Plus de « Publier » dans l'en-tête (2026-10-08) : accueil, pied de page et espace organisateur. */}
-        {!epure && (
-          <a href={espace.href} className={s.btnBlanc}>
-            {espace.libelle}
-          </a>
-        )}
+        <a href={espace.href} className={s.btnBlanc}>
+          {espace.libelle}
+        </a>
       </div>
     </header>
   );
