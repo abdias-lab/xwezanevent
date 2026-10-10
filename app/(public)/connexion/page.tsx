@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { cheminInterne } from "@/lib/redirection";
 import { POLICES_V2 } from "@/components/v2/polices";
-import { Footer } from "@/components/v2/public/Chrome";
 import Auth from "@/components/v2/compte/Auth";
 import v from "@/components/v2/v2.module.css";
 import s from "@/components/v2/espace.module.css";
@@ -24,7 +23,8 @@ const CONTEXTES: Record<string, string> = {
 /**
  * Connexion / inscription (V2), reprise de la preview (v2/connexion).
  * ?vue=inscription ouvre l'onglet inscription.
- * Pas d'en-tête de site : le « Xwézan » de la carte mène à l'accueil.
+ * Ni en-tête ni pied de site : le « Xwézan » de la carte mène à l'accueil,
+ * un lien de retour et une ligne de pied réduite (contact) servent de secours.
  */
 export default async function Connexion({ searchParams }: { searchParams: { redirect?: string; vue?: string } }) {
   // On n'accepte que des chemins internes (évite les redirections ouvertes,
@@ -54,9 +54,14 @@ export default async function Connexion({ searchParams }: { searchParams: { redi
             </header>
             <Auth vueInitiale={searchParams.vue === "inscription" ? "inscription" : "connexion"} redirect={dest} />
           </div>
+          <Link href="/" className={c.retour}>
+            ← Retour à l&apos;accueil
+          </Link>
         </div>
       </main>
-      <Footer />
+      <footer className={c.pied}>
+        © Xwézan · Billetterie du Bénin · <Link href="/contact">Besoin d&apos;aide ?</Link>
+      </footer>
     </div>
   );
 }

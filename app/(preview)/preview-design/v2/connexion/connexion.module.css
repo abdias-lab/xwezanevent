@@ -33,7 +33,45 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  /* Marge haute minimale : prend le relais quand le centrage n'a pas de
+     place libre à répartir, la carte ne touche jamais le haut de l'écran. */
   padding-block: var(--s8);
+}
+@media (min-width: 600px) {
+  .zone {
+    padding-block: var(--s12);
+  }
+}
+
+/* Secours sous la carte : retour à l'accueil, discret. */
+.retour {
+  margin: var(--s6) auto 0;
+  display: block;
+  width: fit-content;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--muted);
+  transition: color var(--d1) var(--ease);
+}
+.retour:hover {
+  color: var(--texte);
+}
+
+/* Pied réduit : une seule ligne centrée, contact compris. */
+.pied {
+  padding: var(--s6) var(--s4) var(--s8);
+  text-align: center;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--muted);
+}
+.pied a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color var(--d1) var(--ease);
+}
+.pied a:hover {
+  color: var(--texte);
 }
 .colonne {
   width: 100%;

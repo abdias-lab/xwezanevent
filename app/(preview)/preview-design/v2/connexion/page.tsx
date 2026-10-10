@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import v from "../v2.module.css";
 import s from "../espace.module.css";
-import { Footer } from "../chrome";
 import { B, RubanEtats } from "../Coquille";
 import Auth from "./Auth";
 import c from "./connexion.module.css";
@@ -41,10 +40,17 @@ export default function V2Connexion({ searchParams }: { searchParams: { vue?: st
             </header>
             <Auth vueInitiale={searchParams.vue === "inscription" ? "inscription" : "connexion"} erreurInitiale={searchParams.etat === "erreur"} creeInitial={searchParams.etat === "cree"} />
           </div>
+          <a href="/preview-design/v2" className={c.retour}>
+            ← Retour à l&apos;accueil
+          </a>
         </div>
-        <RubanEtats chemin={`${B}/connexion`} etats={["normal", "erreur", "cree"]} />
       </main>
-      <Footer />
+      <footer className={c.pied}>
+        © Xwézan · Billetterie du Bénin · <a href="/preview-design/v2/contact">Besoin d&apos;aide ?</a>
+      </footer>
+      <div className={v.cont}>
+        <RubanEtats chemin={`${B}/connexion`} etats={["normal", "erreur", "cree"]} />
+      </div>
     </div>
   );
 }
