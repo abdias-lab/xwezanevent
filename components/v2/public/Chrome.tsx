@@ -15,12 +15,13 @@ export const lireRole = cache(async (): Promise<RolePied> => {
 
 /**
  * En-tête public V2 (Server Component) : lit la session pour choisir le
- * bouton de droite, puis dessine l'en-tête commun (Entete.tsx).
+ * bouton de droite, puis dessine l'en-tête commun (Entete.tsx). `epure` :
+ * sans logo ni bouton (page /connexion).
  */
-export async function Header() {
+export async function Header({ epure = false }: { epure?: boolean } = {}) {
   const role = await lireRole();
   const espace = role ? (ESPACES[role] ?? ESPACES.visiteur) : SE_CONNECTER;
-  return <Entete espace={espace} />;
+  return <Entete espace={espace} epure={epure} />;
 }
 
 /** Pied de page public V2 (Server Component) : colonne Organisateurs selon le rôle. */

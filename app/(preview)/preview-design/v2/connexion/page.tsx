@@ -26,13 +26,17 @@ export default function V2Connexion({ searchParams }: { searchParams: { vue?: st
   const contexte = CONTEXTES[dest];
 
   return (
-    <div className={`${v.racine} ${s.racineEspace}`}>
-      <Header />
-      <main className={v.cont}>
-        <div className={s.colonneEcran}>
+    <div className={`${v.racine} ${s.racineEspace} ${c.page}`}>
+      <Header epure />
+      <main className={`${v.cont} ${c.zone}`}>
+        <div className={c.colonne}>
           <div className={`${c.carte} ${c.entree}`}>
             <header className={c.entete}>
-              <p className={c.marque}>Xwézan</p>
+              <p className={c.marque}>
+                <a href="/preview-design/v2" aria-label="XwézanEvent, accueil">
+                  Xwézan
+                </a>
+              </p>
               <h1 className={c.slogan}>Mì wá djawá !</h1>
               <p className={c.accroche}>{contexte ?? "Retrouve tes billets, ou crée ton compte pour publier tes événements."}</p>
             </header>

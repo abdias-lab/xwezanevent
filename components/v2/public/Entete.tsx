@@ -22,22 +22,27 @@ export const SE_CONNECTER: Espace = { libelle: "Se connecter", href: "/connexion
  * sous le sous-titre de l'accueil, dans le pied de page et dans l'espace
  * organisateur. Sans accès à la session : utilisable côté serveur (Chrome.tsx)
  * comme côté client (EnteteClient.tsx, pour app/error.tsx). La recherche
- * envoie sur /evenements?q=.
+ * envoie sur /evenements?q=. `epure` (page /connexion seule) : ni logo ni
+ * bouton, la recherche reste ; le « Xwézan » de la carte mène à l'accueil.
  */
-export function Entete({ espace }: { espace: Espace }) {
+export function Entete({ espace, epure = false }: { espace: Espace; epure?: boolean }) {
   return (
     <header className={v.header}>
       <div className={`${v.cont} ${v.nav}`}>
-        <Link href="/" className={v.logo} aria-label="XwézanEvent, accueil">
-          <span className={v.logoX}>Xwézan</span>
-        </Link>
+        {!epure && (
+          <Link href="/" className={v.logo} aria-label="XwézanEvent, accueil">
+            <span className={v.logoX}>Xwézan</span>
+          </Link>
+        )}
         <form className={v.pilule} role="search" action="/evenements">
           <Icon name="search" size={20} />
           <input type="search" name="q" placeholder="Artiste, lieu, ville" aria-label="Rechercher un événement" />
         </form>
-        <Link href={espace.href} className={v.btnBlanc}>
-          {espace.libelle}
-        </Link>
+        {!epure && (
+          <Link href={espace.href} className={v.btnBlanc}>
+            {espace.libelle}
+          </Link>
+        )}
       </div>
     </header>
   );

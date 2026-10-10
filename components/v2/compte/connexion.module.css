@@ -19,6 +19,28 @@
   initial-value: 1;
 }
 
+/* Bloc centré entre l'en-tête et le pied de page : la page occupe au moins
+   l'écran, la zone principale prend la place restante et centre la colonne.
+   Si le contenu dépasse l'écran (360 px), aucune hauteur n'est ajoutée. */
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+}
+.zone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: var(--s8);
+}
+.colonne {
+  width: 100%;
+  max-width: 480px;
+  margin-inline: auto;
+}
+
 /* Entrée en fondu de la carte, une seule fois au chargement. */
 .entree {
   animation: apparition 480ms var(--ease) both;
