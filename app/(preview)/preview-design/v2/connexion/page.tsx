@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import v from "../v2.module.css";
 import s from "../espace.module.css";
-import { Header, Footer } from "../chrome";
 import { B, RubanEtats } from "../Coquille";
 import Auth from "./Auth";
 import c from "./connexion.module.css";
@@ -26,22 +25,32 @@ export default function V2Connexion({ searchParams }: { searchParams: { vue?: st
   const contexte = CONTEXTES[dest];
 
   return (
-    <div className={`${v.racine} ${s.racineEspace}`}>
-      <Header />
-      <main className={v.cont}>
-        <div className={s.colonneEcran}>
+    <div className={`${v.racine} ${s.racineEspace} ${c.page}`}>
+      <main className={`${v.cont} ${c.zone}`}>
+        <div className={c.colonne}>
           <div className={`${c.carte} ${c.entree}`}>
             <header className={c.entete}>
-              <p className={c.marque}>Xwézan</p>
+              <p className={c.marque}>
+                <a href="/preview-design/v2" aria-label="XwézanEvent, accueil">
+                  Xwézan
+                </a>
+              </p>
               <h1 className={c.slogan}>Mì wá djawá !</h1>
               <p className={c.accroche}>{contexte ?? "Retrouve tes billets, ou crée ton compte pour publier tes événements."}</p>
             </header>
             <Auth vueInitiale={searchParams.vue === "inscription" ? "inscription" : "connexion"} erreurInitiale={searchParams.etat === "erreur"} creeInitial={searchParams.etat === "cree"} />
           </div>
+          <a href="/preview-design/v2" className={c.retour}>
+            ← Retour à l&apos;accueil
+          </a>
         </div>
-        <RubanEtats chemin={`${B}/connexion`} etats={["normal", "erreur", "cree"]} />
       </main>
-      <Footer />
+      <footer className={c.pied}>
+        © Xwézan · Billetterie du Bénin · <a href="/preview-design/v2/contact">Besoin d&apos;aide ?</a>
+      </footer>
+      <div className={v.cont}>
+        <RubanEtats chemin={`${B}/connexion`} etats={["normal", "erreur", "cree"]} />
+      </div>
     </div>
   );
 }

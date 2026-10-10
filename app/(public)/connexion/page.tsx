@@ -1,9 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { creerClientServeur } from "@/lib/supabase-server";
 import { cheminInterne } from "@/lib/redirection";
 import { POLICES_V2 } from "@/components/v2/polices";
-import { Header, Footer } from "@/components/v2/public/Chrome";
 import Auth from "@/components/v2/compte/Auth";
 import v from "@/components/v2/v2.module.css";
 import s from "@/components/v2/espace.module.css";
@@ -23,6 +23,8 @@ const CONTEXTES: Record<string, string> = {
 /**
  * Connexion / inscription (V2), reprise de la preview (v2/connexion).
  * ?vue=inscription ouvre l'onglet inscription.
+ * Ni en-tête ni pied de site : le « Xwézan » de la carte mène à l'accueil,
+ * un lien de retour et une ligne de pied réduite (contact) servent de secours.
  */
 export default async function Connexion({ searchParams }: { searchParams: { redirect?: string; vue?: string } }) {
   // On n'accepte que des chemins internes (évite les redirections ouvertes,
@@ -37,21 +39,29 @@ export default async function Connexion({ searchParams }: { searchParams: { redi
   if (user) redirect(dest);
 
   return (
-    <div className={`${POLICES_V2} ${v.racine} ${s.racineEspace}`}>
-      <Header />
-      <main className={v.cont}>
-        <div className={s.colonneEcran}>
+    <div className={`${POLICES_V2} ${v.racine} ${s.racineEspace} ${c.page}`}>
+      <main className={`${v.cont} ${c.zone}`}>
+        <div className={c.colonne}>
           <div className={`${c.carte} ${c.entree}`}>
             <header className={c.entete}>
-              <p className={c.marque}>Xwézan</p>
+              <p className={c.marque}>
+                <Link href="/" aria-label="XwézanEvent, accueil">
+                  Xwézan
+                </Link>
+              </p>
               <h1 className={c.slogan}>Mì wá djawá !</h1>
               <p className={c.accroche}>{CONTEXTES[dest] ?? "Retrouve tes billets, ou crée ton compte pour publier tes événements."}</p>
             </header>
             <Auth vueInitiale={searchParams.vue === "inscription" ? "inscription" : "connexion"} redirect={dest} />
           </div>
+          <Link href="/" className={c.retour}>
+            ← Retour à l&apos;accueil
+          </Link>
         </div>
       </main>
-      <Footer />
+      <footer className={c.pied}>
+        © Xwézan · Billetterie du Bénin · <Link href="/contact">Besoin d&apos;aide ?</Link>
+      </footer>
     </div>
   );
 }
